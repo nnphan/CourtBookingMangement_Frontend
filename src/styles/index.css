@@ -1,0 +1,89 @@
+@import 'tailwindcss';
+
+/* =========================================================================
+   ALO Booking — design tokens (Tailwind v4 @theme)
+   Semantic tokens only. Never use raw hex inside components.
+   ========================================================================= */
+@theme {
+  /* Brand / surface ------------------------------------------------------ */
+  --color-brand-50: #eaf5ee;
+  --color-brand-100: #cbe7d6;
+  --color-brand-200: #9ed3b3;
+  --color-brand-300: #63b984;
+  --color-brand-400: #2f9e5c;
+  --color-brand-500: #16853f;
+  --color-brand-600: #0e6534; /* primary action */
+  --color-brand-700: #0b5129;
+  --color-brand-800: #08401f;
+  --color-brand-900: #063017;
+
+  --color-canvas-from: #3aa869;
+  --color-canvas-via: #1f8a4c;
+  --color-canvas-to: #14713c;
+
+  --color-surface: #ffffff;
+  --color-surface-muted: #f4f5f6;
+  --color-surface-inverse: #0e6534;
+
+  /* Text ----------------------------------------------------------------- */
+  --color-content-primary: #000000;
+  --color-content-secondary: #4b5563;
+  --color-content-placeholder: #9aa0a6;
+  --color-content-onbrand: #ffffff;
+  --color-content-link: #0e6534;
+
+  /* Lines / states ------------------------------------------------------- */
+  --color-line: #dfe3e8;
+  --color-line-strong: #c4cad1;
+  --color-focus: #ffcf3f;
+  --color-danger: #d92d20;
+  --color-success: #16853f;
+  --color-accent-gold: #f2b21a;
+  --color-accent-gold-soft: #fdf3d8;
+
+  /* Type ----------------------------------------------------------------- */
+  --font-sans: 'Montserrat', ui-sans-serif, system-ui, sans-serif;
+
+  /* Radius / elevation / motion ------------------------------------------ */
+  --radius-field: 8px;
+  --radius-card: 12px;
+  --radius-pill: 999px;
+  --shadow-card: 0 10px 30px -12px rgb(0 0 0 / 0.25);
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Control sizing (drives pixel parity across all form fields) ----------- */
+  --spacing-field: 52px;
+  --spacing-action: 56px;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-padding-top: env(safe-area-inset-top, 0px);
+  }
+  body {
+    @apply bg-surface font-sans text-base font-normal text-content-primary antialiased;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-field);
+  }
+  ::placeholder {
+    color: var(--color-content-placeholder);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+@utility auth-canvas {
+  background:
+    radial-gradient(120% 90% at 10% 0%, var(--color-canvas-from) 0%, transparent 60%),
+    linear-gradient(160deg, var(--color-canvas-via) 0%, var(--color-canvas-to) 100%);
+}

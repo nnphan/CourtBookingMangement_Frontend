@@ -1,0 +1,57 @@
+{
+  "common": {
+    "back": "Back",
+    "loading": "Working...",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "clear": "Clear field",
+    "required": "(*)"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign in",
+      "tabPhone": "Phone number",
+      "tabEmail": "Email",
+      "submit": "SIGN IN",
+      "forgotPrompt": "Forgot your password?",
+      "forgotLink": "Reset it",
+      "noAccount": "No account yet?",
+      "registerLink": "Create one",
+      "google": "Continue with Google",
+      "ownerBanner": "Court owner or staff? Tap here to get ALOBO — the venue management app."
+    },
+    "register": {
+      "title": "Create account",
+      "submit": "CREATE ACCOUNT",
+      "hasAccount": "Already have an account?",
+      "loginLink": "Sign in"
+    },
+    "fields": {
+      "phoneLabel": "Your phone number?",
+      "phonePlaceholder": "Enter phone number",
+      "emailLabel": "Your email?",
+      "emailPlaceholder": "Enter your email",
+      "fullNameLabel": "Full name (*)",
+      "fullNamePlaceholder": "Enter first and last name",
+      "passwordLabel": "Password (*)",
+      "passwordPlaceholder": "Enter password (*)",
+      "confirmPasswordLabel": "Confirm password",
+      "confirmPasswordPlaceholder": "Re-enter password",
+      "dialCode": "Country dial code"
+    },
+    "errors": {
+      "phoneRequired": "Enter a phone number to continue",
+      "phoneInvalid": "Phone number must be 9–10 digits",
+      "emailRequired": "Enter an email to continue",
+      "emailInvalid": "Check the email format, e.g. name@alobo.vn",
+      "fullNameRequired": "Enter your full name to continue",
+      "fullNameShort": "Full name needs at least 2 characters",
+      "passwordRequired": "Enter a password to continue",
+      "passwordShort": "Password needs at least 6 characters",
+      "confirmMismatch": "The two passwords do not match",
+      "invalidCredentials": "That phone number or password is not correct",
+      "network": "Lost connection to the server. Try again in a moment."
+    }
+  },
+  "nav": { "dashboard": "Overview", "courts": "Courts", "bookings": "Bookings", "logout": "Sign out" }
+}

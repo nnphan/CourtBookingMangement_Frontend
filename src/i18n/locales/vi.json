@@ -1,0 +1,57 @@
+{
+  "common": {
+    "back": "Quay lại",
+    "loading": "Đang xử lý...",
+    "showPassword": "Hiện mật khẩu",
+    "hidePassword": "Ẩn mật khẩu",
+    "clear": "Xoá nội dung",
+    "required": "(*)"
+  },
+  "auth": {
+    "login": {
+      "title": "Đăng nhập",
+      "tabPhone": "Số điện thoại",
+      "tabEmail": "Email",
+      "submit": "ĐĂNG NHẬP",
+      "forgotPrompt": "Bạn quên mật khẩu?",
+      "forgotLink": "Quên mật khẩu",
+      "noAccount": "Bạn chưa có tài khoản?",
+      "registerLink": "Đăng ký",
+      "google": "Đăng nhập với Google",
+      "ownerBanner": "Nếu bạn là CHỦ SÂN hoặc NHÂN VIÊN, Bấm vào đây để tải ứng dụng ALOBO - Quản lý sân thể thao!"
+    },
+    "register": {
+      "title": "Đăng ký",
+      "submit": "ĐĂNG KÝ",
+      "hasAccount": "Bạn đã có tài khoản?",
+      "loginLink": "Đăng nhập"
+    },
+    "fields": {
+      "phoneLabel": "Số điện thoại của bạn?",
+      "phonePlaceholder": "Nhập số điện thoại",
+      "emailLabel": "Email của bạn?",
+      "emailPlaceholder": "Nhập email của bạn",
+      "fullNameLabel": "Tên đầy đủ (*)",
+      "fullNamePlaceholder": "Nhập họ và tên",
+      "passwordLabel": "Mật khẩu (*)",
+      "passwordPlaceholder": "Nhập mật khẩu (*)",
+      "confirmPasswordLabel": "Nhập mật khẩu",
+      "confirmPasswordPlaceholder": "Nhập lại mật khẩu",
+      "dialCode": "Mã vùng quốc gia"
+    },
+    "errors": {
+      "phoneRequired": "Nhập số điện thoại để tiếp tục",
+      "phoneInvalid": "Số điện thoại gồm 9–10 chữ số",
+      "emailRequired": "Nhập email để tiếp tục",
+      "emailInvalid": "Email chưa đúng định dạng, ví dụ ten@alobo.vn",
+      "fullNameRequired": "Nhập họ và tên để tiếp tục",
+      "fullNameShort": "Họ và tên cần ít nhất 2 ký tự",
+      "passwordRequired": "Nhập mật khẩu để tiếp tục",
+      "passwordShort": "Mật khẩu cần ít nhất 6 ký tự",
+      "confirmMismatch": "Hai mật khẩu chưa trùng nhau",
+      "invalidCredentials": "Số điện thoại hoặc mật khẩu chưa đúng",
+      "network": "Mất kết nối máy chủ. Thử lại sau giây lát."
+    }
+  },
+  "nav": { "dashboard": "Tổng quan", "courts": "Sân", "bookings": "Lịch đặt", "logout": "Đăng xuất" }
+}
