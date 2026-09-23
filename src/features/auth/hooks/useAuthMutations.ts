@@ -1,9 +1,16 @@
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate, useLocation } from 'react-router';
+import { AxiosError } from 'axios';
 import { authApi } from '@/features/auth/api/auth.api';
 import { useAuthStore } from '@/features/auth/store/auth.store';
 import { paths } from '@/app/router/paths';
+import { toast } from '@/lib/toast';
 import type { AuthSession } from '@/types/auth';
+import type {
+  RegisterErrorResponse,
+  RegisterRequest,
+  RegisterSuccessResponse,
+} from '@/features/auth/types/register.types';
 
 const useOnAuthenticated = () => {
   const navigate = useNavigate();
@@ -33,6 +40,22 @@ export const useLoginWithGoogle = () => {
 };
 
 export const useRegister = () => {
-  const onSuccess = useOnAuthenticated();
-  return useMutation({ mutationFn: authApi.register, onSuccess });
+  const navigate = useNavigate();
+
+  return useMutation<RegisterSuccessResponse, Error, RegisterRequest>({
+    mutationFn: authApi.register,
+    onSuccess: () => {
+      toast.success('Registration successful', 'Your account has been created. Please sign in.');
+      navigate(paths.login, { replace: true });
+    },
+    onError: (error) => {
+      const apiError = error as AxiosError<RegisterErrorResponse>;
+      const message =
+        apiError.response?.data?.message ??
+        apiError.message ??
+        'Registration failed. Please try again.';
+
+      toast.error('Registration failed', message);
+    },
+  });
 };

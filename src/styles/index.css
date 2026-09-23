@@ -87,3 +87,18 @@
     radial-gradient(120% 90% at 10% 0%, var(--color-canvas-from) 0%, transparent 60%),
     linear-gradient(160deg, var(--color-canvas-via) 0%, var(--color-canvas-to) 100%);
 }
+
+@utility dashboard-canvas {
+  background:
+    linear-gradient(to bottom, rgba(14, 101, 52, 0.85), rgba(14, 101, 52, 0.95)),
+    url('https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?q=80&w=2070&auto=format&fit=crop') center/cover no-repeat;
+}
+
+@utility bg-gradient-social { background: linear-gradient(to bottom right, #8b5cf6, #3b82f6); }
+@utility bg-gradient-status { background: linear-gradient(to bottom right, #f59e0b, #ef4444); }
+@utility bg-gradient-sales { background: linear-gradient(to bottom right, #ec4899, #ef4444); }
+@utility bg-gradient-inventory { background: linear-gradient(to bottom right, #9f1239, #be123c); }
+@utility bg-gradient-revenue { background: linear-gradient(to bottom right, #f43f5e, #fb7185); }
+@utility bg-gradient-branch { background: linear-gradient(to bottom right, #10b981, #3b82f6); }
+@utility bg-gradient-customer { background: linear-gradient(to bottom right, #0ea5e9, #6366f1); }
+@utility bg-gradient-member { background: linear-gradient(to bottom right, #14b8a6, #0d9488); }
