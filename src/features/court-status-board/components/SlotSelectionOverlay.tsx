@@ -2,7 +2,8 @@ import React, { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { SlotSelectionRange } from '../types/common';
 import { SchedulerService } from '../services/scheduler.service';
-import { CalendarPlus, AlertTriangle, AlertCircle, X } from 'lucide-react';
+import { useCourtStatusStore } from '../store/court-status.store';
+import { CalendarPlus, AlertTriangle, AlertCircle, X, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SlotSelectionOverlayProps {
@@ -36,7 +37,11 @@ export const SlotSelectionOverlay: React.FC<SlotSelectionOverlayProps> = memo(
       slotInterval,
     );
 
-    const isInvalid = !selection.isConsecutive || selection.hasOverlap;
+    const selectedDate = useCourtStatusStore((s) => s.selectedDate);
+    const isPastDate = SchedulerService.isPastDate(selectedDate);
+    const hasPastSlot = isPastDate || SchedulerService.isPastSlot(selectedDate, selection.startTime);
+
+    const isInvalid = !selection.isConsecutive || selection.hasOverlap || hasPastSlot;
 
     return (
       <div
@@ -51,16 +56,26 @@ export const SlotSelectionOverlay: React.FC<SlotSelectionOverlayProps> = memo(
         }}
         className={cn(
           'pointer-events-none z-30 flex items-center justify-between px-2 select-none transition-all',
-          selection.hasOverlap
-            ? 'bg-rose-500/20 border-2 border-dashed border-rose-500 shadow-md'
-            : !selection.isConsecutive
-              ? 'bg-amber-500/20 border-2 border-dashed border-amber-500 shadow-md'
-              : 'bg-emerald-500/20 border-2 border-emerald-600 shadow-md',
+          hasPastSlot
+            ? 'bg-slate-300/30 border-2 border-dashed border-slate-400 shadow-md'
+            : selection.hasOverlap
+              ? 'bg-rose-500/20 border-2 border-dashed border-rose-500 shadow-md'
+              : !selection.isConsecutive
+                ? 'bg-amber-500/20 border-2 border-dashed border-amber-500 shadow-md'
+                : 'bg-emerald-500/20 border-2 border-emerald-600 shadow-md',
         )}
       >
         {/* Selected Range Info Label */}
         <div className="flex items-center gap-1.5 truncate text-xs font-bold drop-shadow-xs">
-          {selection.hasOverlap ? (
+          {hasPastSlot ? (
+            <span className="flex items-center gap-1 text-slate-700 bg-white/95 px-2 py-0.5 rounded shadow-xs text-[11px]">
+              <Clock className="size-3.5 text-slate-500 shrink-0" />
+              <span>{t('courtStatus.selection.pastSlot', 'Khung giờ quá khứ')}</span>
+              <span className="font-normal text-slate-500">
+                ({selection.startTime} - {selection.endTime})
+              </span>
+            </span>
+          ) : selection.hasOverlap ? (
             <span className="flex items-center gap-1 text-rose-700 bg-white/95 px-2 py-0.5 rounded shadow-xs text-[11px]">
               <AlertCircle className="size-3.5 text-rose-600 shrink-0" />
               <span>{t('courtStatus.selection.overlap', 'Trùng lịch đặt')}</span>
@@ -99,11 +114,13 @@ export const SlotSelectionOverlay: React.FC<SlotSelectionOverlayProps> = memo(
               if (!isInvalid) onConfirm(selection);
             }}
             title={
-              selection.hasOverlap
-                ? 'Khoảng thời gian này đã có lịch đặt'
-                : !selection.isConsecutive
-                  ? 'Vui lòng chọn các khung giờ liền kề nhau'
-                  : `Bấm để tạo đặt sân ${selection.courtName} (${selection.startTime} - ${selection.endTime})`
+              hasPastSlot
+                ? 'Past time slots cannot be booked.'
+                : selection.hasOverlap
+                  ? 'Khoảng thời gian này đã có lịch đặt'
+                  : !selection.isConsecutive
+                    ? 'Vui lòng chọn các khung giờ liền kề nhau'
+                    : `Bấm để tạo đặt sân ${selection.courtName} (${selection.startTime} - ${selection.endTime})`
             }
             className={cn(
               'flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-bold shadow-md transition-transform active:scale-95 cursor-pointer',
@@ -114,11 +131,13 @@ export const SlotSelectionOverlay: React.FC<SlotSelectionOverlayProps> = memo(
           >
             <CalendarPlus className="size-3.5" />
             <span>
-              {!selection.isConsecutive
-                ? t('courtStatus.selection.nonConsecutiveBtn', 'Chưa liền kề')
-                : selection.hasOverlap
-                  ? t('courtStatus.selection.overlapBtn', 'Trùng lịch')
-                  : t('courtStatus.selection.bookBtn', 'Đặt lịch')}
+              {hasPastSlot
+                ? t('courtStatus.selection.pastSlotBtn', 'Giờ quá khứ')
+                : !selection.isConsecutive
+                  ? t('courtStatus.selection.nonConsecutiveBtn', 'Chưa liền kề')
+                  : selection.hasOverlap
+                    ? t('courtStatus.selection.overlapBtn', 'Trùng lịch')
+                    : t('courtStatus.selection.bookBtn', 'Đặt lịch')}
             </span>
           </button>
 

@@ -2,6 +2,7 @@ import { request } from '@/lib/axios';
 import type { CourtStatusFilterParams, CourtStatusResponse } from '../types/common';
 import type { BookingItem } from '../types/booking';
 import type { CourtItem, CourtBranch, CourtGroup } from '../types/court';
+import { SchedulerService } from '../services/scheduler.service';
 
 const MOCK_BRANCHES: CourtBranch[] = [
   { id: 'tmt-demo', name: 'TMT (Sân DEMO của ALOBO)', address: '123 Huỳnh Thúc Kháng, Q.1, TP.HCM' },
@@ -249,6 +250,14 @@ export const courtStatusApi = {
    * Create a new booking
    */
   createBooking: async (data: Partial<BookingItem>): Promise<BookingItem> => {
+    // API request validation before submit
+    if (data.date && SchedulerService.isPastDate(data.date)) {
+      throw new Error('Cannot create bookings for past dates.');
+    }
+    if (data.date && data.startTime && SchedulerService.isPastSlot(data.date, data.startTime)) {
+      throw new Error('Past time slots cannot be booked.');
+    }
+
     try {
       return await request<BookingItem>({
         url: '/court-status/bookings',

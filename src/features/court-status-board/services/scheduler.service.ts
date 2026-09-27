@@ -108,6 +108,55 @@ export class SchedulerService {
   }
 
   /**
+   * Check if a date string (YYYY-MM-DD) is strictly in the past (before today 00:00:00)
+   */
+  public static isPastDate(selectedDate: string): boolean {
+    if (!selectedDate) return false;
+    const d = dayjs(selectedDate, 'YYYY-MM-DD');
+    if (!d.isValid()) return false;
+    return d.isBefore(dayjs().startOf('day'));
+  }
+
+  /**
+   * Check if a date string (YYYY-MM-DD) is today
+   */
+  public static isToday(selectedDate: string): boolean {
+    if (!selectedDate) return false;
+    const d = dayjs(selectedDate, 'YYYY-MM-DD');
+    return d.isValid() && d.isSame(dayjs(), 'day');
+  }
+
+  /**
+   * Check if a specific time slot on a given date is in the past.
+   * - If selectedDate is before today: all slots are past -> returns true.
+   * - If selectedDate is in the future: returns false.
+   * - If selectedDate is today: returns true if slot start time is earlier than current time.
+   */
+  public static isPastSlot(selectedDate: string, slotTime: string): boolean {
+    if (!selectedDate || !slotTime) return false;
+    if (this.isPastDate(selectedDate)) return true;
+
+    const d = dayjs(selectedDate, 'YYYY-MM-DD');
+    if (!d.isValid()) return false;
+
+    // Future date: all slots are available
+    if (d.isAfter(dayjs().endOf('day'))) return false;
+
+    // Selected date is today: compare slot start time with current time
+    const parts = slotTime.split(':');
+    const hours = parseInt(parts[0] ?? '0', 10);
+    const minutes = parseInt(parts[1] ?? '0', 10);
+
+    const slotDateTime = d
+      .hour(hours)
+      .minute(minutes)
+      .second(0)
+      .millisecond(0);
+
+    return slotDateTime.isBefore(dayjs());
+  }
+
+  /**
    * Formats a date string (YYYY-MM-DD) into display label like "Thứ 7 15/08" or "C. Nhật 27/09"
    */
   public static formatVietnameseDateLabel(dateString: string): { dayOfWeek: string; formattedDate: string } {

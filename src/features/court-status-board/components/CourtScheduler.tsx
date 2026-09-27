@@ -5,12 +5,14 @@ import type { BookingItem } from '../types/booking';
 import type { SlotSelectionRange } from '../types/common';
 import { SchedulerService } from '../services/scheduler.service';
 import { SCHEDULER_CONFIG } from '../constants/scheduler';
+import { useCourtStatusStore } from '../store/court-status.store';
 import { useSchedulerVirtualization } from '../hooks/useSchedulerVirtualization';
 import { useSlotSelection } from '../hooks/useSlotSelection';
 import { TimeHeader } from './TimeHeader';
 import { CourtColumn } from './CourtColumn';
 import { SchedulerGrid } from './SchedulerGrid';
-import { RotateCcw, Calendar, Target, Layers } from 'lucide-react';
+import { RotateCcw, Calendar, Target, Layers, AlertTriangle } from 'lucide-react';
+import { toast } from '@/lib/toast';
 
 interface CourtSchedulerProps {
   courts: CourtItem[];
@@ -57,6 +59,9 @@ export const CourtScheduler: React.FC<CourtSchedulerProps> = memo(
     const { t } = useTranslation();
     const containerRef = useRef<HTMLDivElement>(null);
 
+    const selectedDate = useCourtStatusStore((s) => s.selectedDate);
+    const isPastDate = useMemo(() => SchedulerService.isPastDate(selectedDate), [selectedDate]);
+
     // Calculate dynamic slot width based on zoom level
     const slotWidth = useMemo(() => {
       const computed = Math.round(SCHEDULER_CONFIG.BASE_SLOT_WIDTH * zoomLevel);
@@ -96,6 +101,14 @@ export const CourtScheduler: React.FC<CourtSchedulerProps> = memo(
 
     const handleConfirmSelection = useCallback(
       (selection: SlotSelectionRange) => {
+        if (isPastDate || SchedulerService.isPastSlot(selectedDate, selection.startTime)) {
+          toast.error(
+            t('courtStatus.pastDateAlert', 'Cannot create bookings for past dates.'),
+            'Không thể tạo lịch đặt sân cho ngày hoặc khung giờ trong quá khứ.',
+          );
+          return;
+        }
+
         onOpenCreateBooking({
           courtId: selection.courtId,
           courtName: selection.courtName,
@@ -104,7 +117,7 @@ export const CourtScheduler: React.FC<CourtSchedulerProps> = memo(
         });
         clearSelection();
       },
-      [onOpenCreateBooking, clearSelection],
+      [onOpenCreateBooking, clearSelection, isPastDate, selectedDate, t],
     );
 
     const handleBottomReset = useCallback(() => {
@@ -116,12 +129,20 @@ export const CourtScheduler: React.FC<CourtSchedulerProps> = memo(
     }, [activeSelection, clearSelection, onResetFilters]);
 
     const handleBottomBook = useCallback(() => {
+      if (isPastDate) {
+        toast.error(
+          t('courtStatus.pastDateAlert', 'Cannot create bookings for past dates.'),
+          'Không thể tạo lịch đặt sân cho ngày trong quá khứ.',
+        );
+        return;
+      }
+
       if (activeSelection && activeSelection.isConsecutive && !activeSelection.hasOverlap) {
         handleConfirmSelection(activeSelection);
       } else {
         onOpenCreateBooking();
       }
-    }, [activeSelection, handleConfirmSelection, onOpenCreateBooking]);
+    }, [activeSelection, handleConfirmSelection, onOpenCreateBooking, isPastDate, t]);
 
     const isSelectionInvalid = Boolean(
       activeSelection && (!activeSelection.isConsecutive || activeSelection.hasOverlap),
@@ -129,6 +150,24 @@ export const CourtScheduler: React.FC<CourtSchedulerProps> = memo(
 
     return (
       <div className="relative flex flex-col h-full w-full bg-white select-none overflow-hidden">
+        {/* Past Date Protection Alert Banner */}
+        {isPastDate && (
+          <div
+            role="alert"
+            className="z-30 flex items-center justify-between border-b border-amber-300 bg-amber-50 px-4 py-2.5 text-xs font-semibold text-amber-900 shadow-xs"
+          >
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="size-4 shrink-0 text-amber-600" />
+              <span>{t('courtStatus.pastDateAlert', 'Cannot create bookings for past dates.')}</span>
+              <span className="hidden sm:inline font-normal text-amber-700">
+                ({t('courtStatus.pastDateAlertVi', 'Không thể tạo lịch đặt sân cho các ngày trong quá khứ.')})
+              </span>
+            </div>
+            <span className="rounded bg-amber-200/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800">
+              Chỉ xem (Read-only)
+            </span>
+          </div>
+        )}
         {/* Scrollable Scheduler Container */}
         <div
           ref={containerRef}
@@ -227,34 +266,53 @@ export const CourtScheduler: React.FC<CourtSchedulerProps> = memo(
               </span>
             </button>
 
-            {/* Book Court Button (Grey) */}
+            {/* Book Court Button (Grey / Green / Disabled) */}
             <button
               type="button"
               onClick={handleBottomBook}
-              disabled={isSelectionInvalid}
+              disabled={isPastDate || isSelectionInvalid}
+              title={
+                isPastDate
+                  ? 'Cannot create bookings for past dates.'
+                  : undefined
+              }
               className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition-transform active:scale-95 ${
-                activeSelection && !isSelectionInvalid
-                  ? 'bg-emerald-600 hover:bg-emerald-700 ring-2 ring-emerald-400'
-                  : 'bg-[#7f8c8d] hover:bg-[#6c7a7b]'
+                isPastDate
+                  ? 'bg-slate-400 cursor-not-allowed opacity-60'
+                  : activeSelection && !isSelectionInvalid
+                    ? 'bg-emerald-600 hover:bg-emerald-700 ring-2 ring-emerald-400'
+                    : 'bg-[#7f8c8d] hover:bg-[#6c7a7b]'
               }`}
             >
               <Calendar className="size-3.5 stroke-[2.5]" />
               <span>
-                {activeSelection
-                  ? !activeSelection.isConsecutive
-                    ? t('courtStatus.bottom.notConsecutive', 'Chưa liền kề')
-                    : activeSelection.hasOverlap
-                      ? t('courtStatus.bottom.overlapWarning', 'Bị trùng lịch')
-                      : `${t('courtStatus.bottom.book', 'Đặt lịch')} (${activeSelection.startTime} → ${activeSelection.endTime})`
-                  : t('courtStatus.bottom.book', 'Đặt lịch')}
+                {isPastDate
+                  ? t('courtStatus.bottom.pastDateDisabled', 'Không thể đặt ngày quá khứ')
+                  : activeSelection
+                    ? !activeSelection.isConsecutive
+                      ? t('courtStatus.bottom.notConsecutive', 'Chưa liền kề')
+                      : activeSelection.hasOverlap
+                        ? t('courtStatus.bottom.overlapWarning', 'Bị trùng lịch')
+                        : `${t('courtStatus.bottom.book', 'Đặt lịch')} (${activeSelection.startTime} → ${activeSelection.endTime})`
+                    : t('courtStatus.bottom.book', 'Đặt lịch')}
               </span>
             </button>
 
-            {/* Create Event Button (Salmon / Reddish) */}
+            {/* Create Event Button (Salmon / Reddish / Disabled) */}
             <button
               type="button"
               onClick={onOpenCreateEvent}
-              className="flex items-center gap-1.5 rounded-lg bg-[#e74c3c] hover:bg-[#c0392b] px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition-transform active:scale-95"
+              disabled={isPastDate}
+              title={
+                isPastDate
+                  ? 'Cannot create bookings for past dates.'
+                  : undefined
+              }
+              className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition-transform active:scale-95 ${
+                isPastDate
+                  ? 'bg-slate-400 cursor-not-allowed opacity-60'
+                  : 'bg-[#e74c3c] hover:bg-[#c0392b]'
+              }`}
             >
               <Target className="size-3.5 stroke-[2.5]" />
               <span>{t('courtStatus.bottom.event', 'Sự kiện')}</span>

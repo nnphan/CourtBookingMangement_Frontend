@@ -25,6 +25,7 @@ export const useSlotSelection = ({
 }: UseSlotSelectionProps): UseSlotSelectionReturn => {
   const { t } = useTranslation();
 
+  const selectedDate = useCourtStatusStore((s) => s.selectedDate);
   const activeSelection = useCourtStatusStore((s) => s.activeSelection);
   const setActiveSelection = useCourtStatusStore((s) => s.setActiveSelection);
   const clearActiveSelection = useCourtStatusStore((s) => s.clearActiveSelection);
@@ -32,10 +33,27 @@ export const useSlotSelection = ({
   /**
    * Handle clicking an individual time slot cell
    * Toggles selection state: Selected -> Unselected / Unselected -> Selected
-   * Enforces Same Court Rule and Continuous Range Rule
+   * Enforces Same Court Rule, Past Slot Protection, and Continuous Range Rule
    */
   const handleSlotClick = useCallback(
     (court: CourtItem, slot: TimeSlot) => {
+      // 0. Past Date & Past Slot Protection:
+      if (SchedulerService.isPastDate(selectedDate)) {
+        toast.error(
+          t('courtStatus.pastDateAlert', 'Cannot create bookings for past dates.'),
+          'Không thể đặt lịch cho các ngày trong quá khứ.',
+        );
+        return;
+      }
+
+      if (SchedulerService.isPastSlot(selectedDate, slot.time)) {
+        toast.error(
+          t('courtStatus.pastSlotTooltip', 'Past time slots cannot be booked.'),
+          'Khung giờ trong quá khứ không thể đặt lịch.',
+        );
+        return;
+      }
+
       // 1. Same Court Rule:
       // If there are already selected slots on another court, reject and show toast
       if (
@@ -68,6 +86,11 @@ export const useSlotSelection = ({
         updatedSlots = [...currentSelected, slot.time];
       }
 
+      // Filter out any past slots to guarantee multi-selection ignores past slots
+      updatedSlots = updatedSlots.filter(
+        (time) => !SchedulerService.isPastSlot(selectedDate, time),
+      );
+
       // If no slots remain selected, clear state
       if (updatedSlots.length === 0) {
         clearActiveSelection();
@@ -95,7 +118,7 @@ export const useSlotSelection = ({
         setActiveSelection(newRange);
       }
     },
-    [activeSelection, slotInterval, bookings, clearActiveSelection, setActiveSelection, t],
+    [activeSelection, slotInterval, bookings, clearActiveSelection, setActiveSelection, selectedDate, t],
   );
 
   /**

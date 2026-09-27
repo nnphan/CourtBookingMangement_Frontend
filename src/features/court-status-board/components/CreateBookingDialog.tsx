@@ -3,7 +3,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
-import { Clock } from 'lucide-react';
+import { Clock, AlertTriangle } from 'lucide-react';
+import { toast } from '@/lib/toast';
 import {
   Dialog,
   DialogContent,
@@ -27,26 +28,38 @@ import { SchedulerService } from '../services/scheduler.service';
 import { useCourtStatusStore } from '../store/court-status.store';
 import dayjs from '@/lib/dayjs';
 
-const bookingSchema = z.object({
-  customerName: z.string().min(2, 'Họ và tên khách hàng ít nhất 2 ký tự'),
-  phoneNumber: z
-    .string()
-    .min(9, 'Số điện thoại gồm 9-10 chữ số')
-    .regex(/^[0-9+]+$/, 'Số điện thoại không hợp lệ'),
-  courtId: z.string().min(1, 'Vui lòng chọn sân'),
-  date: z.string().min(1, 'Vui lòng chọn ngày'),
-  startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Giờ bắt đầu không hợp lệ (HH:mm)'),
-  endTime: z.string().regex(/^([01]\d|2[0-4]):([0-5]\d)$/, 'Giờ kết thúc không hợp lệ (HH:mm)'),
-  bookingType: z.enum([
-    'recurring',
-    'daily',
-    'flexible',
-    'event',
-    'deposit_pending',
-    'maintenance',
-  ]),
-  notes: z.string().optional(),
-});
+const bookingSchema = z
+  .object({
+    customerName: z.string().min(2, 'Họ và tên khách hàng ít nhất 2 ký tự'),
+    phoneNumber: z
+      .string()
+      .min(9, 'Số điện thoại gồm 9-10 chữ số')
+      .regex(/^[0-9+]+$/, 'Số điện thoại không hợp lệ'),
+    courtId: z.string().min(1, 'Vui lòng chọn sân'),
+    date: z.string().min(1, 'Vui lòng chọn ngày'),
+    startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Giờ bắt đầu không hợp lệ (HH:mm)'),
+    endTime: z.string().regex(/^([01]\d|2[0-4]):([0-5]\d)$/, 'Giờ kết thúc không hợp lệ (HH:mm)'),
+    bookingType: z.enum([
+      'recurring',
+      'daily',
+      'flexible',
+      'event',
+      'deposit_pending',
+      'maintenance',
+    ]),
+    notes: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      const startMin = SchedulerService.parseTimeToMinutes(data.startTime);
+      const endMin = SchedulerService.parseTimeToMinutes(data.endTime);
+      return endMin > startMin;
+    },
+    {
+      message: 'Giờ kết thúc phải sau giờ bắt đầu',
+      path: ['endTime'],
+    },
+  );
 
 type BookingFormValues = z.infer<typeof bookingSchema>;
 
@@ -104,6 +117,16 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
     const watchedEnd = watch('endTime');
     const watchedDate = watch('date');
 
+    const isPastDate = useMemo(() => {
+      if (editingBooking) return false;
+      return SchedulerService.isPastDate(watchedDate);
+    }, [editingBooking, watchedDate]);
+
+    const isPastSlot = useMemo(() => {
+      if (editingBooking) return false;
+      return SchedulerService.isPastSlot(watchedDate, watchedStart);
+    }, [editingBooking, watchedDate, watchedStart]);
+
     // Format date as dd-MM-yyyy for user display (e.g. 29-09-2026)
     const formattedDisplayDate = useMemo(() => {
       if (!watchedDate) return '';
@@ -154,6 +177,24 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
     }, [isOpen, defaultValues, editingBooking, courts, storeSelectedDate, reset]);
 
     const onSubmit = async (values: BookingFormValues) => {
+      // Validate past date / time slot before submitting
+      if (!editingBooking) {
+        if (SchedulerService.isPastDate(values.date)) {
+          toast.error(
+            t('courtStatus.pastDateAlert', 'Cannot create bookings for past dates.'),
+            'Không thể đặt lịch cho các ngày trong quá khứ.',
+          );
+          return;
+        }
+        if (SchedulerService.isPastSlot(values.date, values.startTime)) {
+          toast.error(
+            t('courtStatus.pastSlotTooltip', 'Past time slots cannot be booked.'),
+            'Không thể đặt khung giờ trong quá khứ.',
+          );
+          return;
+        }
+      }
+
       const selectedCourt = courts.find((c) => c.id === values.courtId);
       const courtName = selectedCourt?.name ?? 'Sân';
 
@@ -193,6 +234,21 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
+            {/* Past Date / Past Slot Protection Alert */}
+            {!editingBooking && (isPastDate || isPastSlot) && (
+              <div
+                role="alert"
+                className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs font-semibold text-red-700"
+              >
+                <AlertTriangle className="size-4 shrink-0 text-red-500" />
+                <span>
+                  {isPastDate
+                    ? t('courtStatus.pastDateAlert', 'Cannot create bookings for past dates.')
+                    : t('courtStatus.pastSlotTooltip', 'Past time slots cannot be booked.')}
+                </span>
+              </div>
+            )}
+
             {/* Customer Name */}
             <div className="space-y-1">
               <label className="text-xs font-semibold text-slate-700">
@@ -379,8 +435,16 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                 type="submit"
                 variant="primary"
                 size="sm"
+                disabled={!editingBooking && (isPastDate || isPastSlot)}
                 loading={isLoading}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                title={
+                  !editingBooking && (isPastDate || isPastSlot)
+                    ? isPastDate
+                      ? 'Cannot create bookings for past dates.'
+                      : 'Past time slots cannot be booked.'
+                    : undefined
+                }
+                className="bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {editingBooking
                   ? t('courtStatus.actions.save', 'Cập nhật')

@@ -1,7 +1,9 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Search, Filter } from 'lucide-react';
+import { toast } from '@/lib/toast';
+import { SchedulerService } from '../services/scheduler.service';
 import { useCourtStatus } from '../hooks/useCourtStatus';
 import { useCourtStatusFilters } from '../hooks/useCourtStatusFilters';
 import { useCourtStatusSocket } from '../hooks/useCourtStatusSocket';
@@ -76,14 +78,51 @@ export const CourtStatusPage: React.FC = () => {
     navigate(-1);
   }, [navigate]);
 
+  const isPastDate = useMemo(() => SchedulerService.isPastDate(selectedDate), [selectedDate]);
+
+  const handleOpenCreateBooking = useCallback(
+    (initial?: {
+      courtId?: string;
+      courtName?: string;
+      date?: string;
+      startTime?: string;
+      endTime?: string;
+    }) => {
+      const targetDate = initial?.date ?? selectedDate;
+      if (SchedulerService.isPastDate(targetDate)) {
+        toast.error(
+          t('courtStatus.pastDateAlert', 'Cannot create bookings for past dates.'),
+          'Không thể đặt lịch cho các ngày trong quá khứ.',
+        );
+        return;
+      }
+      if (initial?.startTime && SchedulerService.isPastSlot(targetDate, initial.startTime)) {
+        toast.error(
+          t('courtStatus.pastSlotTooltip', 'Past time slots cannot be booked.'),
+          'Không thể đặt khung giờ trong quá khứ.',
+        );
+        return;
+      }
+      openCreateDialog({ date: targetDate, ...initial });
+    },
+    [openCreateDialog, selectedDate, t],
+  );
+
   const handleOpenCreateEvent = useCallback(() => {
+    if (SchedulerService.isPastDate(selectedDate)) {
+      toast.error(
+        t('courtStatus.pastDateAlert', 'Cannot create bookings for past dates.'),
+        'Không thể tạo sự kiện cho các ngày trong quá khứ.',
+      );
+      return;
+    }
     openCreateDialog({
       courtId: courts[0]?.id,
       date: selectedDate,
       startTime: '08:00',
       endTime: '12:00',
     });
-  }, [openCreateDialog, courts, selectedDate]);
+  }, [openCreateDialog, courts, selectedDate, t]);
 
   const handleCancelBooking = useCallback(
     async (booking: BookingItem) => {
@@ -197,7 +236,7 @@ export const CourtStatusPage: React.FC = () => {
           <div className="p-6">
             <EmptyState
               date={selectedDate}
-              onCreateBooking={() => openCreateDialog({ date: selectedDate })}
+              onCreateBooking={isPastDate ? undefined : () => handleOpenCreateBooking({ date: selectedDate })}
             />
           </div>
         ) : (
@@ -212,9 +251,7 @@ export const CourtStatusPage: React.FC = () => {
                 zoomLevel={zoomLevel}
                 onZoomChange={setZoomLevel}
                 onResetFilters={resetFilters}
-                onOpenCreateBooking={(initial) =>
-                  openCreateDialog({ date: selectedDate, ...initial })
-                }
+                onOpenCreateBooking={handleOpenCreateBooking}
                 onOpenCreateEvent={handleOpenCreateEvent}
                 onSelectBooking={openDetailDrawer}
                 onEditBooking={openEditDialog}

@@ -1,10 +1,12 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import type { CourtItem } from '../types/court';
 import type { TimeSlot, SlotSelectionRange } from '../types/common';
 import type { BookingItem } from '../types/booking';
 import { BookingLayer } from './BookingLayer';
 import { SlotSelectionOverlay } from './SlotSelectionOverlay';
 import { SCHEDULER_CONFIG } from '../constants/scheduler';
+import { SchedulerService } from '../services/scheduler.service';
+import { useCourtStatusStore } from '../store/court-status.store';
 import { cn } from '@/lib/utils';
 
 interface SchedulerGridProps {
@@ -51,6 +53,17 @@ export const SchedulerGrid: React.FC<SchedulerGridProps> = memo(
     onCreateInvoice,
     onCancelBooking,
   }) => {
+    const selectedDate = useCourtStatusStore((s) => s.selectedDate);
+
+    // Performance: Memoize disabled slot calculation for all slots on the current date
+    const disabledSlotMap = useMemo(() => {
+      const map = new Map<string, boolean>();
+      for (const slot of timeSlots) {
+        map.set(slot.time, SchedulerService.isPastSlot(selectedDate, slot.time));
+      }
+      return map;
+    }, [selectedDate, timeSlots]);
+
     return (
       <div
         style={{
@@ -80,27 +93,33 @@ export const SchedulerGrid: React.FC<SchedulerGridProps> = memo(
               }}
               className="flex border-b border-[#e2e8f0]"
             >
-              {/* Empty background grid cells with click-to-select support */}
+              {/* Background grid cells with past slot protection & click-to-select support */}
               {timeSlots.map((slot) => {
-                const isSelected = isSlotSelected(court.id, slot.time);
+                const isPast = disabledSlotMap.get(slot.time) ?? false;
+                const isSelected = !isPast && isSlotSelected(court.id, slot.time);
+
+                const cellTitle = isPast
+                  ? 'Past time slots cannot be booked.'
+                  : isSelected
+                    ? `Bấm để bỏ chọn sân ${court.name} lúc ${slot.formattedTime}`
+                    : `Bấm để chọn sân ${court.name} lúc ${slot.formattedTime}`;
 
                 return (
                   <div
                     key={slot.time}
                     role="gridcell"
                     aria-selected={isSelected}
+                    aria-disabled={isPast ? 'true' : undefined}
                     style={{ width: `${slotWidth}px` }}
-                    onClick={() => onSlotClick(court, slot)}
-                    title={
-                      isSelected
-                        ? `Bấm để bỏ chọn sân ${court.name} lúc ${slot.formattedTime}`
-                        : `Bấm để chọn sân ${court.name} lúc ${slot.formattedTime}`
-                    }
+                    onClick={isPast ? undefined : () => onSlotClick(court, slot)}
+                    title={cellTitle}
                     className={cn(
-                      'relative h-full shrink-0 border-r border-[#e2e8f0] cursor-pointer transition-colors select-none',
-                      isSelected
-                        ? 'bg-emerald-500/25 border-t-2 border-b-2 border-emerald-600'
-                        : 'hover:bg-emerald-50/60 active:bg-emerald-100/70',
+                      'relative h-full shrink-0 border-r border-[#e2e8f0] select-none transition-colors',
+                      isPast
+                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                        : isSelected
+                          ? 'bg-emerald-500/25 border-t-2 border-b-2 border-emerald-600 cursor-pointer'
+                          : 'cursor-pointer hover:bg-emerald-50/60 active:bg-emerald-100/70',
                     )}
                   >
                     {isSelected && (
