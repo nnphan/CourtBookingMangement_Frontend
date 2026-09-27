@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
+import type { AxiosError } from 'axios';
 import { useNavigate } from 'react-router';
 import { authApi } from '@/features/auth/api/auth.api';
 import { paths } from '@/app/router/paths';

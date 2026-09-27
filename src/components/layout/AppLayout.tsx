@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { Outlet } from 'react-router';
-import { useTranslation } from 'react-i18next';
 import { Menu, Lightbulb } from 'lucide-react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { BottomNav } from '@/components/layout/BottomNav';
 
 export const AppLayout = () => {
-  const { t } = useTranslation();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
 
   return (

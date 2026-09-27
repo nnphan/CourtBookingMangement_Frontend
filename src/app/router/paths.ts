@@ -5,6 +5,7 @@ export const paths = {
   forgotPassword: '/uForgotPassword',
   dashboard: '/dashboard',
   courts: '/courts',
+  courtStatus: '/court-status',
   bookings: '/bookings',
   notFound: '*',
 } as const;

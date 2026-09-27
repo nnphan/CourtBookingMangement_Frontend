@@ -53,5 +53,101 @@
       "network": "Mất kết nối máy chủ. Thử lại sau giây lát."
     }
   },
-  "nav": { "dashboard": "Tổng quan", "courts": "Sân", "bookings": "Lịch đặt", "logout": "Đăng xuất" }
+  "nav": { "dashboard": "Tổng quan", "courts": "Sân", "bookings": "Lịch đặt", "logout": "Đăng xuất" },
+  "courtStatus": {
+    "title": "Trạng thái sân",
+    "header": {
+      "search": "Tìm kiếm",
+      "filter": "Bộ lọc"
+    },
+    "filters": {
+      "allCourts": "Tất cả",
+      "groupLabel": "Nhóm sân",
+      "branchLabel": "Chi nhánh",
+      "intervalLabel": "Khoảng thời gian",
+      "dateLabel": "Ngày",
+      "minutes": "phút",
+      "refresh": "Làm mới"
+    },
+    "legend": {
+      "label": "Chú thích trạng thái"
+    },
+    "statuses": {
+      "available": "Trắng",
+      "recurring": "Lịch cố định",
+      "daily": "Lịch ngày",
+      "flexible": "Lịch linh hoạt",
+      "event": "Sự kiện",
+      "deposit_pending": "Chờ KH cọc",
+      "maintenance": "Khóa",
+      "service_unpaid": "Chưa T.T dịch vụ",
+      "ticket_unpaid": "Chưa T.T tiền vé"
+    },
+    "actions": {
+      "viewDetails": "Xem chi tiết",
+      "editBooking": "Chỉnh sửa lịch",
+      "checkIn": "Check-in nhận sân",
+      "checkOut": "Check-out trả sân",
+      "createInvoice": "Tạo hóa đơn",
+      "cancelBooking": "Hủy lịch đặt",
+      "save": "Lưu thay đổi",
+      "confirm": "Xác nhận đặt sân"
+    },
+    "detail": {
+      "title": "Chi tiết đặt sân",
+      "subtitle": "Thông tin lịch đặt sân và trạng thái thanh toán",
+      "bookingInfo": "Thông tin đặt sân",
+      "customerInfo": "Thông tin khách hàng",
+      "paymentInfo": "Thông tin thanh toán",
+      "services": "Dịch vụ cộng thêm"
+    },
+    "dialog": {
+      "createTitle": "Đặt sân mới",
+      "editTitle": "Chỉnh sửa lịch đặt",
+      "description": "Nhập đầy đủ thông tin khách hàng và giờ thuê sân."
+    },
+    "fields": {
+      "customerName": "Tên khách hàng (*)",
+      "phoneNumber": "Số điện thoại (*)",
+      "court": "Chọn sân",
+      "date": "Ngày đặt sân",
+      "startTime": "Giờ bắt đầu",
+      "endTime": "Giờ kết thúc",
+      "bookingType": "Loại lịch",
+      "notes": "Ghi chú thêm"
+    },
+    "empty": {
+      "title": "Không có lịch đặt nào",
+      "description": "Chưa có lịch đặt nào trong ngày đã chọn.",
+      "dateDescription": "Chưa có lịch đặt nào vào ngày {{date}}. Bạn có thể bấm vào khung giờ trên sân để thêm mới.",
+      "createBtn": "Tạo lịch đặt ngay"
+    },
+    "error": {
+      "title": "Không thể tải lịch trạng thái sân",
+      "description": "Đã xảy ra lỗi khi kết nối với máy chủ. Vui lòng kiểm tra đường truyền và thử lại.",
+      "retry": "Thử lại",
+      "refresh": "Tải lại trang"
+    },
+    "selection": {
+      "differentCourt": "Vui lòng chỉ chọn các khung giờ trên cùng một sân.",
+      "notConsecutive": "Các khung giờ đã chọn phải liền kề nhau.",
+      "overlap": "Trùng lịch đặt",
+      "bookBtn": "Đặt lịch",
+      "nonConsecutiveBtn": "Chưa liền kề",
+      "overlapBtn": "Trùng lịch",
+      "clear": "Hủy chọn"
+    },
+    "bottom": {
+      "reselect": "Chọn lại",
+      "clearSelection": "Bỏ chọn",
+      "book": "Đặt lịch",
+      "notConsecutive": "Chưa liền kề",
+      "overlapWarning": "Bị trùng lịch",
+      "event": "Sự kiện"
+    },
+    "mobile": {
+      "activeBookings": "lượt đặt",
+      "emptyCourt": "Sân trống cả ngày"
+    }
+  }
 }

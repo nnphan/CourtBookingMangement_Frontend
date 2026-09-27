@@ -1,6 +1,12 @@
 import * as React from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from '@/components/ui/select';
 import { Field, FieldError, FieldLabel, FieldShell } from '@/components/ui/field';
 import { formatPhone, normalizePhone } from '@/lib/utils';
 
@@ -66,28 +72,34 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
       <Field>
         <FieldLabel htmlFor={id}>{label}</FieldLabel>
         <FieldShell invalid={!!error} disabled={disabled}>
-          <div className="relative flex shrink-0 items-center gap-1.5 pl-3 pr-2">
-            <span aria-hidden className="text-[18px] leading-none">
-              {country.flag}
-            </span>
-            <span className="whitespace-nowrap text-[15px] text-content-primary">
-              {country.dialCode.replace('+', '+ ')}
-            </span>
-            <ChevronDown aria-hidden className="size-4 text-content-placeholder" />
-            <select
+          <Select value={dialCode} onValueChange={onDialCodeChange} disabled={disabled}>
+            <SelectTrigger
               aria-label={t('auth.fields.dialCode')}
-              value={dialCode}
-              disabled={disabled}
-              onChange={(e) => onDialCodeChange(e.target.value)}
-              className="absolute inset-0 cursor-pointer opacity-0"
+              hideChevron
+              className="h-auto w-auto border-0 bg-transparent p-0 pl-3 pr-2 text-content-primary shadow-none focus:ring-0 focus:ring-offset-0 disabled:cursor-not-allowed"
             >
+              <div className="flex items-center gap-1.5">
+                <span aria-hidden className="text-[18px] leading-none">
+                  {country.flag}
+                </span>
+                <span className="whitespace-nowrap text-[15px] font-normal text-content-primary">
+                  {country.dialCode.replace('+', '+ ')}
+                </span>
+                <ChevronDown aria-hidden className="size-4 text-content-placeholder" />
+              </div>
+            </SelectTrigger>
+            <SelectContent align="start" className="min-w-[200px]">
               {COUNTRIES.map((c) => (
-                <option key={c.iso2} value={c.dialCode}>
-                  {c.flag} {c.name} ({c.dialCode})
-                </option>
+                <SelectItem key={c.iso2} value={c.dialCode}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{c.flag}</span>
+                    <span>{c.name}</span>
+                    <span className="text-slate-400 font-normal">({c.dialCode})</span>
+                  </div>
+                </SelectItem>
               ))}
-            </select>
-          </div>
+            </SelectContent>
+          </Select>
 
           <span aria-hidden className="my-2.5 w-px bg-line" />
 

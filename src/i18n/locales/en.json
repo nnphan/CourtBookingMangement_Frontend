@@ -53,5 +53,101 @@
       "network": "Lost connection to the server. Try again in a moment."
     }
   },
-  "nav": { "dashboard": "Overview", "courts": "Courts", "bookings": "Bookings", "logout": "Sign out" }
+  "nav": { "dashboard": "Overview", "courts": "Courts", "bookings": "Bookings", "logout": "Sign out" },
+  "courtStatus": {
+    "title": "Court Status Board",
+    "header": {
+      "search": "Search",
+      "filter": "Filter"
+    },
+    "filters": {
+      "allCourts": "All Courts",
+      "groupLabel": "Court Group",
+      "branchLabel": "Branch",
+      "intervalLabel": "Interval",
+      "dateLabel": "Date",
+      "minutes": "mins",
+      "refresh": "Refresh"
+    },
+    "legend": {
+      "label": "Status Legend"
+    },
+    "statuses": {
+      "available": "Available",
+      "recurring": "Recurring",
+      "daily": "Daily",
+      "flexible": "Flexible",
+      "event": "Event",
+      "deposit_pending": "Deposit Pending",
+      "maintenance": "Maintenance",
+      "service_unpaid": "Service Unpaid",
+      "ticket_unpaid": "Ticket Unpaid"
+    },
+    "actions": {
+      "viewDetails": "View Details",
+      "editBooking": "Edit Booking",
+      "checkIn": "Check-in",
+      "checkOut": "Check-out",
+      "createInvoice": "Create Invoice",
+      "cancelBooking": "Cancel Booking",
+      "save": "Save Changes",
+      "confirm": "Confirm Booking"
+    },
+    "detail": {
+      "title": "Booking Details",
+      "subtitle": "Court reservation details and payment status",
+      "bookingInfo": "Booking Information",
+      "customerInfo": "Customer Information",
+      "paymentInfo": "Payment Information",
+      "services": "Additional Services"
+    },
+    "dialog": {
+      "createTitle": "New Booking",
+      "editTitle": "Edit Booking",
+      "description": "Enter customer information and court reservation time."
+    },
+    "fields": {
+      "customerName": "Customer Name (*)",
+      "phoneNumber": "Phone Number (*)",
+      "court": "Select Court",
+      "date": "Booking Date",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "bookingType": "Booking Type",
+      "notes": "Additional Notes"
+    },
+    "empty": {
+      "title": "No bookings found",
+      "description": "There are no bookings on the selected date.",
+      "dateDescription": "No bookings scheduled on {{date}}. Click on any court slot to create a reservation.",
+      "createBtn": "Create Booking"
+    },
+    "error": {
+      "title": "Failed to load court status",
+      "description": "An error occurred while connecting to the server. Please check your connection and try again.",
+      "retry": "Retry",
+      "refresh": "Refresh"
+    },
+    "selection": {
+      "differentCourt": "Please select slots from the same court.",
+      "notConsecutive": "Selected time slots must be consecutive.",
+      "overlap": "Booking Conflict",
+      "bookBtn": "Book Slots",
+      "nonConsecutiveBtn": "Not Consecutive",
+      "overlapBtn": "Conflict",
+      "clear": "Clear Selection"
+    },
+    "bottom": {
+      "reselect": "Reselect",
+      "clearSelection": "Clear",
+      "book": "Book",
+      "notConsecutive": "Not Consecutive",
+      "overlapWarning": "Schedule Conflict",
+      "event": "Event"
+    },
+    "mobile": {
+      "activeBookings": "bookings",
+      "emptyCourt": "Available all day"
+    }
+  }
 }
