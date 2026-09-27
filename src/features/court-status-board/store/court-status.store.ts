@@ -81,11 +81,18 @@ export const useCourtStatusStore = create<CourtStatusState>((set) => ({
   clearActiveSelection: () => set({ activeSelection: null }),
 
   openCreateDialog: (initialValues) =>
-    set({
+    set((state) => ({
       isCreateDialogOpen: true,
       editingBooking: null,
-      createDialogDefaultValues: initialValues ?? null,
-    }),
+      createDialogDefaultValues: initialValues
+        ? {
+            ...initialValues,
+            date: initialValues.date ?? state.selectedDate,
+          }
+        : {
+            date: state.selectedDate,
+          },
+    })),
 
   closeCreateDialog: () =>
     set({

@@ -24,6 +24,8 @@ import type { CourtItem } from '../types/court';
 import type { BookingItem, BookingType, PaymentStatus } from '../types/booking';
 import { COURT_BOOKING_STATUSES } from '../constants/booking-status';
 import { SchedulerService } from '../services/scheduler.service';
+import { useCourtStatusStore } from '../store/court-status.store';
+import dayjs from '@/lib/dayjs';
 
 const bookingSchema = z.object({
   customerName: z.string().min(2, 'Họ và tên khách hàng ít nhất 2 ký tự'),
@@ -75,6 +77,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
     isLoading = false,
   }) => {
     const { t } = useTranslation();
+    const storeSelectedDate = useCourtStatusStore((s) => s.selectedDate);
 
     const {
       register,
@@ -89,7 +92,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
         customerName: '',
         phoneNumber: '',
         courtId: courts[0]?.id ?? 'court-1',
-        date: '2026-08-15',
+        date: defaultValues?.date ?? storeSelectedDate,
         startTime: '08:00',
         endTime: '10:00',
         bookingType: 'daily',
@@ -99,6 +102,14 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
 
     const watchedStart = watch('startTime');
     const watchedEnd = watch('endTime');
+    const watchedDate = watch('date');
+
+    // Format date as dd-MM-yyyy for user display (e.g. 29-09-2026)
+    const formattedDisplayDate = useMemo(() => {
+      if (!watchedDate) return '';
+      const d = dayjs(watchedDate);
+      return d.isValid() ? d.format('DD-MM-YYYY') : watchedDate;
+    }, [watchedDate]);
 
     const durationInfo = useMemo(() => {
       if (watchedStart && watchedEnd) {
@@ -132,7 +143,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
             customerName: '',
             phoneNumber: '',
             courtId: defaultValues.courtId ?? courts[0]?.id ?? 'court-1',
-            date: defaultValues.date ?? '2026-08-15',
+            date: defaultValues.date ?? storeSelectedDate,
             startTime: defaultValues.startTime ?? '08:00',
             endTime: calculatedEndTime ?? '10:00',
             bookingType: 'daily',
@@ -140,7 +151,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
           });
         }
       }
-    }, [isOpen, defaultValues, editingBooking, courts, reset]);
+    }, [isOpen, defaultValues, editingBooking, courts, storeSelectedDate, reset]);
 
     const onSubmit = async (values: BookingFormValues) => {
       const selectedCourt = courts.find((c) => c.id === values.courtId);
@@ -214,17 +225,17 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
               )}
             </div>
 
-            {/* Court Selection */}
+            {/* Court Selection (Read-Only: pre-filled from scheduler) */}
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700">
-                {t('courtStatus.fields.court', 'Chọn sân')}
+              <label className="flex items-center justify-between text-xs font-semibold text-slate-700">
+                <span>{t('courtStatus.fields.court', 'Sân đã chọn')}</span>
               </label>
               <Controller
                 control={control}
                 name="courtId"
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger className="w-full">
+                  <Select value={field.value} onValueChange={field.onChange} disabled>
+                    <SelectTrigger className="w-full border-slate-200 bg-slate-100 text-slate-700 select-none disabled:opacity-100 disabled:bg-slate-100 disabled:text-slate-700 shadow-none focus:ring-0">
                       <SelectValue placeholder={t('courtStatus.fields.court', 'Chọn sân')} />
                     </SelectTrigger>
                     <SelectContent>
@@ -242,46 +253,61 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
               )}
             </div>
 
-            {/* Date */}
+            {/* Date (Read-Only: pre-filled from scheduler, displayed as dd-MM-yyyy) */}
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700">
-                {t('courtStatus.fields.date', 'Ngày đặt sân')}
+              <label className="flex items-center justify-between text-xs font-semibold text-slate-700">
+                <span>{t('courtStatus.fields.date', 'Ngày đặt sân')}</span>
               </label>
+              <input type="hidden" {...register('date')} />
               <input
-                type="date"
-                {...register('date')}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none"
+                type="text"
+                value={formattedDisplayDate}
+                readOnly
+                tabIndex={-1}
+                placeholder="dd-MM-yyyy"
+                className="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-700 select-none focus:outline-none"
               />
               {errors.date && <p className="text-[11px] text-red-500">{errors.date.message}</p>}
             </div>
 
-            {/* Time range (start time & end time) */}
+            {/* Time range (start time & end time: Read-Only from scheduler selection) */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">
-                  {t('courtStatus.fields.startTime', 'Giờ bắt đầu')}
+                <label className="flex items-center justify-between text-xs font-semibold text-slate-700">
+                  <span>{t('courtStatus.fields.startTime', 'Giờ bắt đầu')}</span>
                 </label>
-                <input
-                  type="text"
-                  placeholder="08:00"
-                  {...register('startTime')}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="08:00"
+                    {...register('startTime')}
+                    readOnly
+                    tabIndex={-1}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-100 pr-9 pl-3 py-2 text-sm text-slate-700 cursor-not-allowed select-none pointer-events-none focus:outline-none"
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  </div>
+                </div>
                 {errors.startTime && (
                   <p className="text-[11px] text-red-500">{errors.startTime.message}</p>
                 )}
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">
-                  {t('courtStatus.fields.endTime', 'Giờ kết thúc')}
-                </label>
-                <input
-                  type="text"
-                  placeholder="10:00"
-                  {...register('endTime')}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none"
-                />
+                <label className="flex items-center justify-between text-xs font-semibold text-slate-700">
+                  <span>{t('courtStatus.fields.endTime', 'Giờ kết thúc')}</span>                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="10:00"
+                    {...register('endTime')}
+                    readOnly
+                    tabIndex={-1}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-100 pr-9 pl-3 py-2 text-sm text-slate-700 cursor-not-allowed select-none pointer-events-none focus:outline-none"
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  </div>
+                </div>
                 {errors.endTime && (
                   <p className="text-[11px] text-red-500">{errors.endTime.message}</p>
                 )}

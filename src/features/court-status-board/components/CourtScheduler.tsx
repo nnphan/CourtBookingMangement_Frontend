@@ -23,6 +23,7 @@ interface CourtSchedulerProps {
   onOpenCreateBooking: (initialValues?: {
     courtId?: string;
     courtName?: string;
+    date?: string;
     startTime?: string;
     endTime?: string;
   }) => void;

@@ -197,7 +197,7 @@ export const CourtStatusPage: React.FC = () => {
           <div className="p-6">
             <EmptyState
               date={selectedDate}
-              onCreateBooking={() => openCreateDialog()}
+              onCreateBooking={() => openCreateDialog({ date: selectedDate })}
             />
           </div>
         ) : (
@@ -212,7 +212,9 @@ export const CourtStatusPage: React.FC = () => {
                 zoomLevel={zoomLevel}
                 onZoomChange={setZoomLevel}
                 onResetFilters={resetFilters}
-                onOpenCreateBooking={(initial) => openCreateDialog(initial)}
+                onOpenCreateBooking={(initial) =>
+                  openCreateDialog({ date: selectedDate, ...initial })
+                }
                 onOpenCreateEvent={handleOpenCreateEvent}
                 onSelectBooking={openDetailDrawer}
                 onEditBooking={openEditDialog}
@@ -248,7 +250,13 @@ export const CourtStatusPage: React.FC = () => {
                       </div>
                       <button
                         type="button"
-                        onClick={() => openCreateDialog({ courtId: court.id, courtName: court.name })}
+                        onClick={() =>
+                          openCreateDialog({
+                            courtId: court.id,
+                            courtName: court.name,
+                            date: selectedDate,
+                          })
+                        }
                         className="text-xs font-semibold text-emerald-600 hover:text-emerald-700"
                       >
                         + Đặt sân
