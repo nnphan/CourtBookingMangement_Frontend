@@ -9,7 +9,7 @@ const cards = [
   { title: 'Quản lý kho và dịch vụ', icon: PackageOpen, gradient: 'bg-gradient-inventory', path: '#' },
   { title: 'Doanh thu & lợi nhuận', icon: BarChart3, gradient: 'bg-gradient-revenue', path: paths.dashboard },
   { title: 'Quản lý chi nhánh', icon: GitBranch, gradient: 'bg-gradient-branch', path: '#' },
-  { title: 'Quản lý khách hàng', icon: Users, gradient: 'bg-gradient-customer', path: '#' },
+  { title: 'Quản lý khách hàng', icon: Users, gradient: 'bg-gradient-customer', path: paths.customers },
   { title: 'Hạng thành viên', icon: Award, gradient: 'bg-gradient-member', path: '#' },
 ];
 

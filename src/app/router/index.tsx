@@ -12,6 +12,11 @@ const DashboardPage = lazy(() => import('@/features/dashboard/pages/DashboardPag
 const CourtsPage = lazy(() => import('@/features/courts/pages/CourtsPage'));
 const BookingsPage = lazy(() => import('@/features/booking/pages/BookingsPage'));
 const CourtStatusPage = lazy(() => import('@/features/court-status-board/pages/CourtStatusPage'));
+const CustomerLayout = lazy(() => import('@/features/customer-management/layouts/CustomerLayout'));
+const CustomerListPage = lazy(() => import('@/features/customer-management/pages/CustomerListPage'));
+const CustomerDetailPage = lazy(() => import('@/features/customer-management/pages/CustomerDetailPage'));
+const CustomerCreatePage = lazy(() => import('@/features/customer-management/pages/CustomerCreatePage'));
+const CustomerEditPage = lazy(() => import('@/features/customer-management/pages/CustomerEditPage'));
 const NotFoundPage = lazy(() => import('@/components/common/NotFoundPage'));
 
 const withSuspense = (node: React.ReactNode) => (
@@ -40,6 +45,15 @@ export const router = createBrowserRouter([
         ],
       },
       { path: paths.courtStatus, element: withSuspense(<CourtStatusPage />) },
+      {
+        element: withSuspense(<CustomerLayout />),
+        children: [
+          { path: paths.customers, element: withSuspense(<CustomerListPage />) },
+          { path: paths.customerCreate, element: withSuspense(<CustomerCreatePage />) },
+          { path: '/customers/:id', element: withSuspense(<CustomerDetailPage />) },
+          { path: '/customers/:id/edit', element: withSuspense(<CustomerEditPage />) },
+        ],
+      },
     ],
   },
   { path: paths.notFound, element: withSuspense(<NotFoundPage />) },

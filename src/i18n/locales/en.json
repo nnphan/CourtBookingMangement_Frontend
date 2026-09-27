@@ -149,5 +149,93 @@
       "activeBookings": "bookings",
       "emptyCourt": "Available all day"
     }
+  },
+  "customer": {
+    "title": "Customer Management",
+    "subtitle": "Customer profiles, membership tiers, and booking history records",
+    "addCustomer": "Add Customer",
+    "createTitle": "Create New Customer",
+    "createSubtitle": "Enter personal information and contact details to register a customer profile",
+    "editTitle": "Edit Customer Information",
+    "saveChanges": "Save Changes",
+    "createSubmit": "Create Customer",
+    "searchPlaceholder": "Search by name, phone (e.g. 0909...), customer code, email...",
+    "searchLabel": "Search Customer",
+    "emptyTitle": "No Customers Found",
+    "emptyFilterDesc": "No customers match the current filters or search query.",
+    "emptyDesc": "No customers have been registered yet. Add the first customer to get started.",
+    "resetFilters": "Reset Filters",
+    "filterStatus": "Status",
+    "allStatuses": "All Statuses",
+    "filterMemberType": "Member Tier",
+    "allMemberTypes": "All Tiers",
+    "filterType": "Customer Type",
+    "allTypes": "All Types",
+    "registered": "Registered Member",
+    "guest": "Guest Customer",
+    "convertToMember": "Upgrade to Member",
+    "deactivate": "Deactivate",
+    "activate": "Reactivate",
+    "table": {
+      "code": "Customer Code",
+      "fullName": "Full Name",
+      "phone": "Phone Number",
+      "email": "Email",
+      "memberType": "Member Tier",
+      "totalBookings": "Total Bookings",
+      "status": "Status",
+      "createdDate": "Created Date",
+      "actions": "Actions"
+    },
+    "fields": {
+      "fullName": "Full Name (*)",
+      "phone": "Phone Number (*)",
+      "email": "Email",
+      "gender": "Gender",
+      "birthday": "Date of Birth",
+      "memberType": "Member Tier",
+      "status": "Status",
+      "address": "Address",
+      "notes": "Notes"
+    },
+    "stats": {
+      "total": "Total Customers",
+      "active": "Active Customers",
+      "vip": "VIP Members",
+      "newThisMonth": "New This Month",
+      "totalBookings": "Total Bookings",
+      "totalRevenue": "Total Revenue",
+      "lastBookingDate": "Last Booking Date",
+      "favoriteCourt": "Favorite Court",
+      "frequency": "Booking Frequency"
+    },
+    "membership": {
+      "joinDate": "Join Date",
+      "expireDate": "Expiration Date"
+    },
+    "history": {
+      "title": "Booking History",
+      "empty": "No booking history matching the criteria.",
+      "bookingNumber": "Booking #",
+      "date": "Booking Date",
+      "court": "Court",
+      "time": "Time Slot",
+      "amount": "Amount",
+      "status": "Booking Status",
+      "payment": "Payment Status"
+    },
+    "analytics": {
+      "trendTitle": "New Customer Growth Trend",
+      "topTitle": "Top Revenue Customers",
+      "distributionTitle": "Membership Tier Distribution"
+    },
+    "pagination": {
+      "showing": "Showing",
+      "records": "customers",
+      "previous": "Previous Page",
+      "prevBtn": "Previous",
+      "next": "Next Page",
+      "nextBtn": "Next"
+    }
   }
 }

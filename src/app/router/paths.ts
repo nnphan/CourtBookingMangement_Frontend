@@ -7,5 +7,9 @@ export const paths = {
   courts: '/courts',
   courtStatus: '/court-status',
   bookings: '/bookings',
+  customers: '/customers',
+  customerDetail: (id: string = ':id') => `/customers/${id}`,
+  customerCreate: '/customers/new',
+  customerEdit: (id: string = ':id') => `/customers/${id}/edit`,
   notFound: '*',
 } as const;

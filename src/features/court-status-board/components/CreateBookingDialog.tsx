@@ -1,10 +1,13 @@
-import React, { memo, useEffect, useMemo } from 'react';
+import React, { memo, useEffect, useMemo, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
-import { Clock, AlertTriangle } from 'lucide-react';
+import { Clock, AlertTriangle, Crown, UserCheck, Sparkles, User } from 'lucide-react';
 import { toast } from '@/lib/toast';
+import { CustomerSearch } from '@/features/customer-management/components/CustomerSearch';
+import type { Customer } from '@/features/customer-management/types/customer';
+import { customerApi } from '@/features/customer-management/api/customer.api';
 import {
   Dialog,
   DialogContent,
@@ -92,12 +95,15 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
     const { t } = useTranslation();
     const storeSelectedDate = useCourtStatusStore((s) => s.selectedDate);
 
+    const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+
     const {
       register,
       control,
       handleSubmit,
       reset,
       watch,
+      setValue,
       formState: { errors },
     } = useForm<BookingFormValues>({
       resolver: zodResolver(bookingSchema),
@@ -143,6 +149,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
 
     useEffect(() => {
       if (isOpen) {
+        setSelectedCustomer(null);
         if (editingBooking) {
           reset({
             customerName: editingBooking.customerName,
@@ -175,6 +182,27 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
         }
       }
     }, [isOpen, defaultValues, editingBooking, courts, storeSelectedDate, reset]);
+
+    const handleSelectCustomer = (customer: Customer) => {
+      setSelectedCustomer(customer);
+      setValue('customerName', customer.fullName, { shouldValidate: true });
+      setValue('phoneNumber', customer.phoneNumber, { shouldValidate: true });
+    };
+
+    const handleConvertGuest = async () => {
+      if (!selectedCustomer || !selectedCustomer.isGuest) return;
+      try {
+        const res = await customerApi.convertGuestToCustomer(selectedCustomer.id, {
+          memberType: 'bronze',
+        });
+        if (res.success) {
+          setSelectedCustomer(res.data);
+          toast.success('Thành công', 'Đã chuyển đổi thành Hội viên chính thức!');
+        }
+      } catch {
+        toast.error('Lỗi', 'Không thể chuyển đổi khách hàng.');
+      }
+    };
 
     const onSubmit = async (values: BookingFormValues) => {
       // Validate past date / time slot before submitting
@@ -249,6 +277,68 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
               </div>
             )}
 
+            {/* Customer Search & Quick Selection */}
+            {!editingBooking && (
+              <div className="space-y-2 p-3 bg-slate-50/80 rounded-xl border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <User className="size-3.5 text-emerald-600" />
+                    <span>{t('courtStatus.fields.customerSearch', 'Tìm & Chọn Khách Hàng')}</span>
+                  </label>
+
+                  {selectedCustomer && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCustomer(null)}
+                      className="text-[11px] text-slate-500 hover:text-slate-800 underline cursor-pointer"
+                    >
+                      Bỏ chọn
+                    </button>
+                  )}
+                </div>
+
+                <CustomerSearch
+                  onSelectCustomer={handleSelectCustomer}
+                  placeholder="Gõ SĐT (0909...), Tên hoặc Mã KH để tìm nhanh..."
+                />
+
+                {/* Customer Status & Tier Pill */}
+                {selectedCustomer ? (
+                  <div className="flex flex-wrap items-center justify-between gap-2 p-2 rounded-lg bg-white border border-slate-200 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-900">{selectedCustomer.fullName}</span>
+                      <span className="font-mono text-slate-500">({selectedCustomer.phoneNumber})</span>
+                      {selectedCustomer.isGuest ? (
+                        <span className="text-[10px] bg-amber-50 text-amber-800 px-1.5 py-0.5 rounded font-medium border border-amber-200">
+                          Khách vãng lai
+                        </span>
+                      ) : (
+                        <span className="text-[10px] bg-emerald-50 text-emerald-800 px-1.5 py-0.5 rounded font-bold border border-emerald-200 flex items-center gap-1">
+                          <Crown className="size-2.5" />
+                          Hội viên: {selectedCustomer.memberType.toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+
+                    {selectedCustomer.isGuest && (
+                      <button
+                        type="button"
+                        onClick={handleConvertGuest}
+                        className="text-[11px] font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1 underline cursor-pointer"
+                      >
+                        <Sparkles className="size-3" />
+                        Chuyển sang hội viên
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-slate-500">
+                    💡 Chọn từ danh sách gợi ý hoặc nhập thông tin bên dưới cho khách vãng lai.
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Customer Name */}
             <div className="space-y-1">
               <label className="text-xs font-semibold text-slate-700">
@@ -274,7 +364,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                 type="tel"
                 placeholder="0903xxxxxx"
                 {...register('phoneNumber')}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none font-mono"
               />
               {errors.phoneNumber && (
                 <p className="text-[11px] text-red-500">{errors.phoneNumber.message}</p>

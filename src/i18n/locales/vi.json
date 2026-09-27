@@ -149,5 +149,93 @@
       "activeBookings": "lượt đặt",
       "emptyCourt": "Sân trống cả ngày"
     }
+  },
+  "customer": {
+    "title": "Quản lý Khách hàng",
+    "subtitle": "Danh sách hồ sơ khách hàng, phân hạng hội viên và lịch sử đặt sân",
+    "addCustomer": "Thêm khách hàng",
+    "createTitle": "Thêm khách hàng mới",
+    "createSubtitle": "Nhập thông tin cá nhân và số điện thoại để tạo hồ sơ khách hàng mới",
+    "editTitle": "Chỉnh sửa thông tin khách hàng",
+    "saveChanges": "Lưu thay đổi",
+    "createSubmit": "Tạo khách hàng",
+    "searchPlaceholder": "Tìm theo tên, SĐT (ví dụ: 0909...), mã KH, email...",
+    "searchLabel": "Tìm kiếm khách hàng",
+    "emptyTitle": "Không tìm thấy khách hàng nào",
+    "emptyFilterDesc": "Không có khách hàng nào khớp với bộ lọc hoặc từ khóa tìm kiếm hiện tại.",
+    "emptyDesc": "Hệ thống chưa có khách hàng nào. Hãy thêm khách hàng đầu tiên để bắt đầu quản lý.",
+    "resetFilters": "Xóa bộ lọc",
+    "filterStatus": "Trạng thái",
+    "allStatuses": "Tất cả trạng thái",
+    "filterMemberType": "Hạng thành viên",
+    "allMemberTypes": "Tất cả hạng",
+    "filterType": "Phân loại",
+    "allTypes": "Tất cả loại",
+    "registered": "Hội viên đã đăng ký",
+    "guest": "Khách vãng lai",
+    "convertToMember": "Nâng cấp lên Hội viên",
+    "deactivate": "Ngừng hoạt động",
+    "activate": "Kích hoạt lại",
+    "table": {
+      "code": "Mã KH",
+      "fullName": "Họ và tên",
+      "phone": "Số điện thoại",
+      "email": "Email",
+      "memberType": "Hạng TV",
+      "totalBookings": "Lượt đặt",
+      "status": "Trạng thái",
+      "createdDate": "Ngày tạo",
+      "actions": "Thao tác"
+    },
+    "fields": {
+      "fullName": "Họ và tên (*)",
+      "phone": "Số điện thoại (*)",
+      "email": "Email",
+      "gender": "Giới tính",
+      "birthday": "Ngày sinh",
+      "memberType": "Hạng thành viên",
+      "status": "Trạng thái",
+      "address": "Địa chỉ",
+      "notes": "Ghi chú"
+    },
+    "stats": {
+      "total": "Tổng khách hàng",
+      "active": "Đang hoạt động",
+      "vip": "Hội viên VIP",
+      "newThisMonth": "Khách mới tháng này",
+      "totalBookings": "Tổng số lượt đặt",
+      "totalRevenue": "Tổng chi tiêu",
+      "lastBookingDate": "Lần đặt gần nhất",
+      "favoriteCourt": "Sân yêu thích",
+      "frequency": "Tần suất chơi"
+    },
+    "membership": {
+      "joinDate": "Ngày gia nhập",
+      "expireDate": "Ngày hết hạn"
+    },
+    "history": {
+      "title": "Lịch sử đặt sân",
+      "empty": "Chưa có lịch sử đặt sân nào phù hợp.",
+      "bookingNumber": "Mã đặt",
+      "date": "Ngày đặt",
+      "court": "Sân",
+      "time": "Khung giờ",
+      "amount": "Số tiền",
+      "status": "Trạng thái",
+      "payment": "Thanh toán"
+    },
+    "analytics": {
+      "trendTitle": "Tăng trưởng khách hàng mới",
+      "topTitle": "Top khách hàng chi tiêu",
+      "distributionTitle": "Phân bổ hạng thành viên"
+    },
+    "pagination": {
+      "showing": "Hiển thị",
+      "records": "khách hàng",
+      "previous": "Trang trước",
+      "prevBtn": "Trước",
+      "next": "Trang kế tiếp",
+      "nextBtn": "Sau"
+    }
   }
 }

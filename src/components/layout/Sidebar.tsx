@@ -21,14 +21,18 @@ import {
 import { useAuthStore } from '@/features/auth/store/auth.store';
 import { cn } from '@/lib/utils';
 
+import { paths } from '@/app/router/paths';
+import { useNavigate } from 'react-router';
+
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
 const menuItems = [
+  { icon: Users, label: 'Quản lý khách hàng', path: paths.customers },
   { icon: Globe, label: 'Chuyển đổi ngôn ngữ' },
-  { icon: Home, label: 'Đổi trang chủ: Trang chủ cũ' },
+  { icon: Home, label: 'Đổi trang chủ: Trang chủ cũ', path: paths.dashboard },
   { icon: User, label: 'Thông tin tài khoản' },
   { icon: Info, label: 'Phiên bản: 2.10.3' },
   { icon: Printer, label: 'Cài đặt máy hiện' },
@@ -42,9 +46,10 @@ const menuItems = [
   { icon: RefreshCw, label: 'Chuyển tài khoản' },
 ];
 
-export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
+  export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const { t } = useTranslation();
   const { logout } = useAuthStore();
+  const navigate = useNavigate();
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -106,7 +111,13 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
               <button
                 key={i}
                 type="button"
-                className="group flex w-full items-center gap-3 border-b border-white/5 px-4 py-3.5 text-left transition-colors hover:bg-white/10 focus-visible:bg-white/10"
+                onClick={() => {
+                  if ('path' in item && item.path) {
+                    navigate(item.path);
+                    onClose();
+                  }
+                }}
+                className="group flex w-full items-center gap-3 border-b border-white/5 px-4 py-3.5 text-left transition-colors hover:bg-white/10 focus-visible:bg-white/10 cursor-pointer"
               >
                 <item.icon aria-hidden className="size-5 shrink-0 opacity-80" />
                 <span className="flex-1 text-[15px] font-medium">{item.label}</span>
