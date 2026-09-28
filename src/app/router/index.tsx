@@ -1,9 +1,10 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter, Navigate, RouterProvider } from 'react-router';
+import { createBrowserRouter, RouterProvider } from 'react-router';
 import { paths } from '@/app/router/paths';
 import { GuestRoute, ProtectedRoute } from '@/app/router/guards';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { RouteFallback } from '@/components/common/RouteFallback';
+import { RouteErrorBoundary } from '@/components/common/RouteErrorBoundary';
 
 const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage'));
 const RegisterPage = lazy(() => import('@/features/auth/pages/RegisterPage'));
@@ -17,6 +18,9 @@ const CustomerListPage = lazy(() => import('@/features/customer-management/pages
 const CustomerDetailPage = lazy(() => import('@/features/customer-management/pages/CustomerDetailPage'));
 const CustomerCreatePage = lazy(() => import('@/features/customer-management/pages/CustomerCreatePage'));
 const CustomerEditPage = lazy(() => import('@/features/customer-management/pages/CustomerEditPage'));
+const BranchDiscoveryPage = lazy(
+  () => import('@/features/branch-discovery/pages/BranchDiscoveryPage'),
+);
 const NotFoundPage = lazy(() => import('@/components/common/NotFoundPage'));
 
 const withSuspense = (node: React.ReactNode) => (
@@ -24,7 +28,11 @@ const withSuspense = (node: React.ReactNode) => (
 );
 
 export const router = createBrowserRouter([
-  { path: paths.root, element: <Navigate to={paths.login} replace /> },
+  {
+    path: paths.root,
+    element: withSuspense(<BranchDiscoveryPage />),
+    errorElement: <RouteErrorBoundary />,
+  },
   {
     element: <GuestRoute />,
     children: [
