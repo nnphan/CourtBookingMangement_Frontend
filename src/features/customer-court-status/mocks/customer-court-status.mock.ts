@@ -8,6 +8,19 @@ import type {
   CustomerCourtAvailableSlotsData,
 } from '../types/customer-slot';
 
+import { SEED_BRANCHES } from '@/features/branch-discovery/api/branches.api';
+
+const DISCOVERY_MAPPED_BRANCHES: CustomerBranch[] = SEED_BRANCHES.map((b) => ({
+  id: b.id,
+  branchCode: b.district.replace(/\s+/g, '').slice(0, 4).toUpperCase(),
+  branchName: b.name,
+  address: b.address,
+  openTime: b.operatingHours?.open || '05:30',
+  closeTime: b.operatingHours?.close || '23:30',
+  rating: b.rating,
+  isActive: true,
+}));
+
 export const MOCK_CUSTOMER_BRANCHES: CustomerBranch[] = [
   {
     id: 'branch-q7',
@@ -29,6 +42,7 @@ export const MOCK_CUSTOMER_BRANCHES: CustomerBranch[] = [
     rating: 4.7,
     isActive: true,
   },
+  ...DISCOVERY_MAPPED_BRANCHES,
 ];
 
 export const MOCK_CUSTOMER_COURTS: CustomerCourt[] = [

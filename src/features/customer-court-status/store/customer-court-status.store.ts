@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import type { CustomerSlotSelection } from '../types/customer-slot';
 import { CUSTOMER_SCHEDULER_CONFIG } from '../constants/customer-scheduler.config';
+import { CustomerCourtStatusService } from '../services/customer-court-status.service';
+import { useSchedulerSelectionStore } from './scheduler-selection.store';
 
 interface CustomerCourtStatusState {
   selectedBranchId: string;
@@ -33,23 +35,70 @@ export const useCustomerCourtStatusStore = create<CustomerCourtStatusState>((set
   isCreateBookingOpen: false,
   activeSelection: null,
 
-  setSelectedBranchId: (selectedBranchId) =>
-    set({ selectedBranchId, activeSelection: null, isCreateBookingOpen: false }),
-  setSelectedDate: (selectedDate) =>
-    set({ selectedDate, activeSelection: null, isCreateBookingOpen: false }),
-  setSlotInterval: (slotInterval) =>
-    set({ slotInterval, activeSelection: null, isCreateBookingOpen: false }),
+  setSelectedBranchId: (selectedBranchId) => {
+    useSchedulerSelectionStore.getState().clearSelection();
+    set({ selectedBranchId, activeSelection: null, isCreateBookingOpen: false });
+  },
+  setSelectedDate: (selectedDate) => {
+    useSchedulerSelectionStore.getState().clearSelection();
+    set({ selectedDate, activeSelection: null, isCreateBookingOpen: false });
+  },
+  setSlotInterval: (slotInterval) => {
+    useSchedulerSelectionStore.getState().clearSelection();
+    set({ slotInterval, activeSelection: null, isCreateBookingOpen: false });
+  },
   setZoomLevel: (zoomLevel) => set({ zoomLevel }),
   openPriceModal: () => set({ isPriceModalOpen: true }),
   closePriceModal: () => set({ isPriceModalOpen: false }),
-  openCreateBooking: (selection) =>
+  openCreateBooking: (selection) => {
+    if (selection) {
+      const duration =
+        selection.durationMinutes ??
+        CustomerCourtStatusService.calculateDurationMinutes(
+          selection.startTime,
+          selection.endTime,
+        );
+      useSchedulerSelectionStore.getState().setSelection({
+        selectedCourtId: selection.courtId,
+        selectedCourtName: selection.courtName,
+        selectedSlots: selection.selectedSlots,
+        startTime: selection.startTime,
+        endTime: selection.endTime,
+        durationMinutes: duration,
+      });
+    }
     set((state) => ({
       isCreateBookingOpen: true,
       activeSelection: selection !== undefined ? selection : state.activeSelection,
-    })),
-  closeCreateBooking: () =>
-    set({ isCreateBookingOpen: false, activeSelection: null }),
-  setActiveSelection: (activeSelection) => set({ activeSelection }),
-  clearSelection: () =>
-    set({ activeSelection: null, isCreateBookingOpen: false }),
+    }));
+  },
+  closeCreateBooking: () => {
+    useSchedulerSelectionStore.getState().clearSelection();
+    set({ isCreateBookingOpen: false, activeSelection: null });
+  },
+  setActiveSelection: (activeSelection) => {
+    if (activeSelection) {
+      const duration =
+        activeSelection.durationMinutes ??
+        CustomerCourtStatusService.calculateDurationMinutes(
+          activeSelection.startTime,
+          activeSelection.endTime,
+        );
+      useSchedulerSelectionStore.getState().setSelection({
+        selectedCourtId: activeSelection.courtId,
+        selectedCourtName: activeSelection.courtName,
+        selectedSlots: activeSelection.selectedSlots,
+        startTime: activeSelection.startTime,
+        endTime: activeSelection.endTime,
+        durationMinutes: duration,
+      });
+    } else {
+      useSchedulerSelectionStore.getState().clearSelection();
+    }
+    set({ activeSelection });
+  },
+  clearSelection: () => {
+    useSchedulerSelectionStore.getState().clearSelection();
+    set({ activeSelection: null, isCreateBookingOpen: false });
+  },
 }));

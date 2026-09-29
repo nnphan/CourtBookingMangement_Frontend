@@ -13,7 +13,7 @@ import { createSuccessResponse } from '@/mocks/shared/mock-api-response';
 import { mockDelay } from '@/mocks/shared/mock-delay';
 
 // Mock Dataset of Badminton Clubs & Branches
-const SEED_BRANCHES: BadmintonBranch[] = [
+export const SEED_BRANCHES: BadmintonBranch[] = [
   {
     id: 'branch-001',
     slug: 'alobo-arena-quan-1',

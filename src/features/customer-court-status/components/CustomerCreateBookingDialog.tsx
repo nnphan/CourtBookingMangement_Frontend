@@ -62,8 +62,15 @@ export const CustomerCreateBookingDialog: React.FC<CustomerCreateBookingDialogPr
 
   // Reset form whenever dialog is closed or activeSelection is cleared
   useEffect(() => {
-    reset({ customerName: '', phoneNumber: '', note: '' });
-  }, [isCreateBookingOpen, activeSelection, reset]);
+    if (!activeSelection) {
+      reset({ customerName: '', phoneNumber: '', note: '' });
+      if (isCreateBookingOpen) {
+        closeCreateBooking();
+      }
+    } else {
+      reset({ customerName: '', phoneNumber: '', note: '' });
+    }
+  }, [isCreateBookingOpen, activeSelection, reset, closeCreateBooking]);
 
   const onFormSubmit = async (values: BookingFormValues) => {
     if (!activeSelection) return;

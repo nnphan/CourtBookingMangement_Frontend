@@ -11,16 +11,19 @@ import {
 import type { BadmintonBranch } from '../types/branch';
 import { useBranchSearchStore } from '../store/branch-search.store';
 
+import { useNavigate } from 'react-router';
+import { BranchNavigationService } from '../services/navigation.service';
+
 interface BranchMapViewProps {
   branches: BadmintonBranch[];
 }
 
 export const BranchMapView = ({ branches }: BranchMapViewProps) => {
+  const navigate = useNavigate();
   const {
     hoveredBranchId,
     setHoveredBranchId,
     openDetailModal,
-    openBookingDrawer,
   } = useBranchSearchStore();
 
   const [selectedPinId, setSelectedPinId] = useState<string | null>(null);
@@ -171,8 +174,12 @@ export const BranchMapView = ({ branches }: BranchMapViewProps) => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => openBookingDrawer(activeBranch)}
-                    className="rounded-lg bg-brand-600 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-brand-700"
+                    onClick={() => {
+                      if (activeBranch) {
+                        BranchNavigationService.goToCustomerCourtStatus(navigate, activeBranch);
+                      }
+                    }}
+                    className="rounded-lg bg-brand-600 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-brand-700 cursor-pointer"
                   >
                     <CalendarCheck className="size-3 inline mr-1" />
                     Đặt sân

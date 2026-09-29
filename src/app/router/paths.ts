@@ -12,5 +12,7 @@ export const paths = {
   customerCreate: '/customers/new',
   customerEdit: (id: string = ':id') => `/customers/${id}/edit`,
   customerCourtStatus: '/customer/court-status',
+  customerBranchCourtStatus: (branchId: string = ':branchId') =>
+    `/customer/branches/${branchId}/court-status`,
   notFound: '*',
 } as const;

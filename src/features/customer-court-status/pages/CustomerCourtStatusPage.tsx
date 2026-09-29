@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import dayjs from 'dayjs';
 import {
   ArrowLeft,
@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Building2,
 } from 'lucide-react';
+import { paths } from '@/app/router/paths';
 import { useCustomerCourtStatus } from '../hooks/useCustomerCourtStatus';
 import { useCustomerCourtStatusStore } from '../store/customer-court-status.store';
 import { StatusLegend } from '../components/StatusLegend';
@@ -22,6 +23,10 @@ import { CustomerCourtStatusService } from '../services/customer-court-status.se
 
 export const CustomerCourtStatusPage: React.FC = () => {
   const navigate = useNavigate();
+  const { branchId: paramBranchId } = useParams<{ branchId?: string }>();
+  const [searchParams] = useSearchParams();
+  const queryBranchId = searchParams.get('branchId');
+  const targetBranchId = paramBranchId || queryBranchId;
 
   // Zustand Store
   const selectedBranchId = useCustomerCourtStatusStore((s) => s.selectedBranchId);
@@ -31,6 +36,13 @@ export const CustomerCourtStatusPage: React.FC = () => {
   const slotInterval = useCustomerCourtStatusStore((s) => s.slotInterval);
   const zoomLevel = useCustomerCourtStatusStore((s) => s.zoomLevel);
   const openCreateBooking = useCustomerCourtStatusStore((s) => s.openCreateBooking);
+
+  // Sync route parameter branchId into Zustand store
+  useEffect(() => {
+    if (targetBranchId && targetBranchId !== selectedBranchId) {
+      setSelectedBranchId(targetBranchId);
+    }
+  }, [targetBranchId, selectedBranchId, setSelectedBranchId]);
 
   // TanStack Query Server State
   const {
@@ -74,6 +86,27 @@ export const CustomerCourtStatusPage: React.FC = () => {
     }
   };
 
+  const handleBranchChange = (newBranchId: string) => {
+    setSelectedBranchId(newBranchId);
+    navigate(paths.customerBranchCourtStatus(newBranchId), { replace: true });
+  };
+
+  // Resolve current branch information
+  const currentBranch = useMemo(() => {
+    const found = branches.find((b) => b.id === selectedBranchId);
+    if (found) return found;
+    return {
+      id: selectedBranchId,
+      branchName: statusData?.branchName || 'TMT Badminton Club',
+      branchCode: 'CLB',
+      address: '123 Nguyễn Thị Thập, Quận 7, TP.HCM',
+      openTime: '05:00',
+      closeTime: '23:30',
+      rating: 4.9,
+      isActive: true,
+    };
+  }, [branches, selectedBranchId, statusData?.branchName]);
+
   // Mobile active court
   const activeCourt = useMemo(() => {
     return courts.find((c) => c.courtId === activeMobileCourtId) || courts[0];
@@ -106,7 +139,7 @@ export const CustomerCourtStatusPage: React.FC = () => {
               <Building2 className="size-3.5 text-white/70 mr-1.5" />
               <select
                 value={selectedBranchId}
-                onChange={(e) => setSelectedBranchId(e.target.value)}
+                onChange={(e) => handleBranchChange(e.target.value)}
                 className="bg-transparent text-white font-medium text-xs focus:outline-hidden cursor-pointer"
               >
                 {branches.map((b) => (
@@ -153,17 +186,34 @@ export const CustomerCourtStatusPage: React.FC = () => {
         </div>
       </header>
 
-      {/* 2. LEGEND SECTION */}
+      {/* 2. SELECTED BRANCH INFORMATION BANNER */}
+      <section
+        aria-label="Thông tin chi nhánh"
+        className="bg-[#0b532d] px-3 sm:px-6 py-2 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs text-white/95 shadow-inner"
+      >
+        <div className="flex items-center gap-2 font-bold text-xs sm:text-sm text-emerald-100">
+          <span className="text-sm sm:text-base">🏢</span>
+          <span className="tracking-tight">{currentBranch.branchName}</span>
+        </div>
+        {currentBranch.address && (
+          <div className="flex items-center gap-1.5 text-white/85 text-[11px] sm:text-xs">
+            <span className="text-emerald-300">📍</span>
+            <span>{currentBranch.address}</span>
+          </div>
+        )}
+      </section>
+
+      {/* 3. LEGEND SECTION */}
       <section aria-label="Chú thích màu trạng thái">
         <StatusLegend />
       </section>
 
-      {/* 3. NOTICE BANNER */}
+      {/* 4. NOTICE BANNER */}
       <section aria-label="Thông báo hỗ trợ lịch cố định">
         <CustomerNoticeBanner />
       </section>
 
-      {/* 4. MAIN SCHEDULER VIEW */}
+      {/* 5. MAIN SCHEDULER VIEW */}
       <main className="flex-1 flex flex-col bg-white">
         {isLoading ? (
           <CustomerCourtStatusSkeleton />
@@ -194,10 +244,19 @@ export const CustomerCourtStatusPage: React.FC = () => {
             <div className="md:hidden flex flex-col p-3 space-y-3 bg-slate-50">
               {/* Branch & Date Badge */}
               <div className="flex items-center justify-between bg-white p-3 rounded-xl shadow-2xs border border-slate-200">
-                <span className="font-bold text-xs text-slate-800">
-                  {statusData?.branchName || 'TMT Badminton Club'}
-                </span>
-                <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                <div className="flex flex-col pr-2">
+                  <span className="font-bold text-xs text-slate-800 flex items-center gap-1">
+                    <span>🏢</span>
+                    <span>{currentBranch.branchName}</span>
+                  </span>
+                  {currentBranch.address && (
+                    <span className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-1 truncate">
+                      <span>📍</span>
+                      <span>{currentBranch.address}</span>
+                    </span>
+                  )}
+                </div>
+                <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full shrink-0">
                   {formattedDisplayDate}
                 </span>
               </div>
@@ -286,13 +345,13 @@ export const CustomerCourtStatusPage: React.FC = () => {
         )}
       </main>
 
-      {/* 5. MODALS & DIALOGS */}
+      {/* 6. MODALS & DIALOGS */}
       <CourtPriceModal />
 
       <CustomerCreateBookingDialog
         onSubmitBooking={createBooking}
         isLoading={isCreating}
-        branchName={statusData?.branchName}
+        branchName={currentBranch.branchName}
       />
     </div>
   );

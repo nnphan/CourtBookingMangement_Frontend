@@ -12,12 +12,15 @@ import {
 import { useBranchSearchStore } from '../store/branch-search.store';
 import { AMENITIES_MAP } from '../constants/amenities';
 
+import { useNavigate } from 'react-router';
+import { BranchNavigationService } from '../services/navigation.service';
+
 export const BranchDetailModal = () => {
+  const navigate = useNavigate();
   const {
     isDetailOpen,
     closeDetailModal,
     selectedBranchForDetail: branch,
-    openBookingDrawer,
   } = useBranchSearchStore();
 
   // Escape key closes modal
@@ -297,9 +300,11 @@ export const BranchDetailModal = () => {
               type="button"
               onClick={() => {
                 closeDetailModal();
-                openBookingDrawer(branch);
+                if (branch) {
+                  BranchNavigationService.goToCustomerCourtStatus(navigate, branch);
+                }
               }}
-              className="flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-xs sm:text-sm font-extrabold text-white shadow-md hover:bg-brand-700 active:scale-95 focus-visible:outline-3 focus-visible:outline-[var(--color-focus)]"
+              className="flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-xs sm:text-sm font-extrabold text-white shadow-md hover:bg-brand-700 active:scale-95 focus-visible:outline-3 focus-visible:outline-[var(--color-focus)] cursor-pointer"
             >
               <CalendarCheck className="size-4" />
               <span>Tiến hành đặt sân ngay</span>

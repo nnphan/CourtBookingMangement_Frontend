@@ -12,15 +12,18 @@ import {
 } from 'lucide-react';
 import type { BadmintonBranch } from '../types/branch';
 import { useBranchSearchStore } from '../store/branch-search.store';
+import { useNavigate } from 'react-router';
 import { AMENITIES_MAP } from '../constants/amenities';
+import { BranchNavigationService } from '../services/navigation.service';
 
 interface BranchCardProps {
   branch: BadmintonBranch;
 }
 
 export const BranchCard = ({ branch }: BranchCardProps) => {
+  const navigate = useNavigate();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const { openDetailModal, openBookingDrawer, setHoveredBranchId } = useBranchSearchStore();
+  const { openDetailModal, setHoveredBranchId } = useBranchSearchStore();
 
   const images =
     Array.isArray(branch.images) && branch.images.length > 0
@@ -217,8 +220,8 @@ export const BranchCard = ({ branch }: BranchCardProps) => {
 
             <button
               type="button"
-              onClick={() => openBookingDrawer(branch)}
-              className="flex items-center gap-1.5 rounded-xl bg-brand-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition-transform hover:bg-brand-700 active:scale-95 focus-visible:outline-3 focus-visible:outline-[var(--color-focus)]"
+              onClick={() => BranchNavigationService.goToCustomerCourtStatus(navigate, branch)}
+              className="flex items-center gap-1.5 rounded-xl bg-brand-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition-transform hover:bg-brand-700 active:scale-95 focus-visible:outline-3 focus-visible:outline-[var(--color-focus)] cursor-pointer"
             >
               <CalendarCheck className="size-3.5" />
               <span>Đặt sân</span>

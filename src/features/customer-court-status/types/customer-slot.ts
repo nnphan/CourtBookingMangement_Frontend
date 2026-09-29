@@ -51,4 +51,5 @@ export interface CustomerSlotSelection {
   startTime: string;
   endTime: string;
   selectedSlots: string[];
+  durationMinutes?: number;
 }

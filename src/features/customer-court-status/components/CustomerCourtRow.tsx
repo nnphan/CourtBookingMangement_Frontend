@@ -6,7 +6,7 @@ import type { CustomerGeneratedTimeSlot } from '../services/customer-court-statu
 import { CUSTOMER_SCHEDULER_CONFIG } from '../constants/customer-scheduler.config';
 import { CUSTOMER_COURT_STATUS } from '../types/customer-status';
 import { AvailableSlotTooltip } from './AvailableSlotTooltip';
-import { cn } from '@/lib/utils';
+import { SchedulerCell } from './SchedulerCell';
 import { X } from 'lucide-react';
 
 interface CustomerCourtRowProps {
@@ -17,6 +17,7 @@ interface CustomerCourtRowProps {
   slotInterval: number;
   activeSelection: CustomerSlotSelection | null;
   onSlotClick: (courtId: string, slotTime: string) => void;
+  onClearSelection: () => void;
   isSlotSelected: (courtId: string, slotTime: string) => boolean;
 }
 
@@ -29,7 +30,7 @@ export const CustomerCourtRow: React.FC<CustomerCourtRowProps> = memo(
     slotInterval,
     activeSelection,
     onSlotClick,
-    isSlotSelected,
+    onClearSelection,
   }) => {
     // Filter slots belonging to this court that are NOT available
     const courtOccupiedSlots = slots.filter(
@@ -67,30 +68,17 @@ export const CustomerCourtRow: React.FC<CustomerCourtRowProps> = memo(
           className="relative flex shrink-0"
           style={{ width: timeSlots.length * slotWidth }}
         >
-          {/* Base Grid cells for click targets */}
-          {timeSlots.map((slot) => {
-            const isSelected = isSlotSelected(court.courtId, slot.time);
-            return (
-              <div
-                key={slot.time}
-                role="gridcell"
-                aria-selected={isSelected}
-                style={{ width: slotWidth }}
-                onClick={() => onSlotClick(court.courtId, slot.time)}
-                className={cn(
-                  'shrink-0 h-full border-r border-slate-200 cursor-pointer transition-colors select-none relative',
-                  isSelected
-                    ? 'bg-emerald-100/70 border-t-2 border-b-2 border-emerald-600'
-                    : 'hover:bg-emerald-50/40',
-                )}
-                title={
-                  isSelected
-                    ? `Bấm để bỏ chọn ${court.courtName} lúc ${slot.time}`
-                    : `Bấm để chọn ${court.courtName} lúc ${slot.time}`
-                }
-              />
-            );
-          })}
+          {/* Base Grid cells for click targets deriving from single source of truth */}
+          {timeSlots.map((slot) => (
+            <SchedulerCell
+              key={slot.time}
+              courtId={court.courtId}
+              courtName={court.courtName}
+              slotTime={slot.time}
+              slotWidth={slotWidth}
+              onSlotClick={onSlotClick}
+            />
+          ))}
 
           {/* Occupied blocks layer (BOOKED, LOCKED, EVENT) */}
           {courtOccupiedSlots.map((slot, index) => {
@@ -141,10 +129,18 @@ export const CustomerCourtRow: React.FC<CustomerCourtRowProps> = memo(
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onSlotClick(court.courtId, activeSelection.startTime);
+                  onClearSelection();
                 }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onClearSelection();
+                  }
+                }}
+                aria-label="Clear selected time slots"
                 className="pointer-events-auto p-0.5 rounded-full text-emerald-800 hover:text-emerald-950 hover:bg-emerald-200/80 transition-colors cursor-pointer"
-                title="Bấm để hủy chọn"
+                title="✕ Bấm để hủy chọn"
               >
                 <X className="size-3" />
               </button>

@@ -135,6 +135,15 @@ export class CustomerCourtStatusService {
   }
 
   /**
+   * Calculate duration in minutes between startTime and endTime
+   */
+  public static calculateDurationMinutes(startTime: string, endTime: string): number {
+    const start = this.parseTimeToMinutes(startTime);
+    const end = this.parseTimeToMinutes(endTime);
+    return Math.max(0, end - start);
+  }
+
+  /**
    * Compute consecutive slot range from selected slot array
    */
   public static calculateRangeFromSlots(
@@ -156,6 +165,7 @@ export class CustomerCourtStatusService {
 
     const startTime = this.minutesToTime(minMinutes);
     const endTime = this.minutesToTime(maxMinutes + intervalMinutes);
+    const durationMinutes = (maxMinutes + intervalMinutes) - minMinutes;
 
     return {
       courtId,
@@ -163,6 +173,7 @@ export class CustomerCourtStatusService {
       startTime,
       endTime,
       selectedSlots: selectedSlotTimes,
+      durationMinutes,
     };
   }
 

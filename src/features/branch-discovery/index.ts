@@ -10,6 +10,9 @@ export * from './api/branches.api';
 // Store
 export * from './store/branch-search.store';
 
+// Services
+export * from './services/navigation.service';
+
 // Hooks
 export * from './hooks/useBranches';
 

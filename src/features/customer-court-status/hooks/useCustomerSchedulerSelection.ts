@@ -59,6 +59,7 @@ export const useCustomerSchedulerSelection = ({
           startTime: slotTime,
           endTime,
           selectedSlots: [slotTime],
+          durationMinutes: slotInterval,
         });
         return;
       }
@@ -99,12 +100,14 @@ export const useCustomerSchedulerSelection = ({
         if (isConsecutive && sortedMinutes[0] !== undefined && sortedMinutes[sortedMinutes.length - 1] !== undefined) {
           const minMin = sortedMinutes[0];
           const maxMin = sortedMinutes[sortedMinutes.length - 1] + slotInterval;
+          const duration = maxMin - minMin;
           setActiveSelection({
             courtId,
             courtName,
             startTime: CustomerCourtStatusService.minutesToTime(minMin),
             endTime: CustomerCourtStatusService.minutesToTime(maxMin),
             selectedSlots: remainingSlots,
+            durationMinutes: duration,
           });
         } else {
           // If removing a middle slot breaks continuity, deselect all to avoid invalid gap
@@ -142,6 +145,7 @@ export const useCustomerSchedulerSelection = ({
           startTime: slotTime,
           endTime: singleEnd,
           selectedSlots: [slotTime],
+          durationMinutes: slotInterval,
         });
         return;
       }
@@ -152,12 +156,14 @@ export const useCustomerSchedulerSelection = ({
         allSlots.push(CustomerCourtStatusService.minutesToTime(m));
       }
 
+      const totalDuration = newMax - newMin;
       setActiveSelection({
         courtId,
         courtName,
         startTime: newStartTime,
         endTime: newEndTime,
         selectedSlots: allSlots,
+        durationMinutes: totalDuration,
       });
     },
     [activeSelection, courts, slots, slotInterval, selectedDate, setActiveSelection, clearSelection],

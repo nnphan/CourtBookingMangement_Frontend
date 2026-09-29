@@ -42,6 +42,11 @@ export const router = createBrowserRouter([
     errorElement: <RouteErrorBoundary />,
   },
   {
+    path: paths.customerBranchCourtStatus(),
+    element: withSuspense(<CustomerCourtStatusPage />),
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
     element: <GuestRoute />,
     children: [
       { path: paths.login, element: withSuspense(<LoginPage />) },

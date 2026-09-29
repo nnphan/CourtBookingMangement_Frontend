@@ -66,6 +66,7 @@ export const CustomerCourtScheduler: React.FC<CustomerCourtSchedulerProps> = mem
                   slotInterval={slotInterval}
                   activeSelection={activeSelection}
                   onSlotClick={handleSlotClick}
+                  onClearSelection={clearSelection}
                   isSlotSelected={isSlotSelected}
                 />
               ))}
