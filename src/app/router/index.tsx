@@ -21,6 +21,9 @@ const CustomerEditPage = lazy(() => import('@/features/customer-management/pages
 const BranchDiscoveryPage = lazy(
   () => import('@/features/branch-discovery/pages/BranchDiscoveryPage'),
 );
+const CustomerCourtStatusPage = lazy(
+  () => import('@/features/customer-court-status/pages/CustomerCourtStatusPage'),
+);
 const NotFoundPage = lazy(() => import('@/components/common/NotFoundPage'));
 
 const withSuspense = (node: React.ReactNode) => (
@@ -31,6 +34,11 @@ export const router = createBrowserRouter([
   {
     path: paths.root,
     element: withSuspense(<BranchDiscoveryPage />),
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: paths.customerCourtStatus,
+    element: withSuspense(<CustomerCourtStatusPage />),
     errorElement: <RouteErrorBoundary />,
   },
   {

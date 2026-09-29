@@ -1,0 +1,49 @@
+{
+  "branchId": "branch-q7",
+  "branchName": "TMT Badminton Club Quận 7",
+  "bookingDate": "2026-09-29",
+  "courts": [
+    { "courtId": "court-1", "courtName": "C.Lông 1" },
+    { "courtId": "court-2", "courtName": "C.Lông 2" },
+    { "courtId": "court-3", "courtName": "C.Lông 3" },
+    { "courtId": "court-4", "courtName": "C.Lông 4" },
+    { "courtId": "court-5", "courtName": "C.Lông 5" },
+    { "courtId": "court-6", "courtName": "C.Lông 6" },
+    { "courtId": "court-7", "courtName": "C.Lông 7" },
+    { "courtId": "court-8", "courtName": "C.Lông 8" }
+  ],
+  "slots": [
+    { "courtId": "court-1", "startTime": "05:00", "endTime": "07:00", "status": "BOOKED" },
+    { "courtId": "court-1", "startTime": "07:00", "endTime": "11:00", "status": "LOCKED" },
+    { "courtId": "court-1", "startTime": "18:00", "endTime": "20:00", "status": "BOOKED" },
+
+    { "courtId": "court-2", "startTime": "05:00", "endTime": "07:00", "status": "BOOKED" },
+    { "courtId": "court-2", "startTime": "07:00", "endTime": "11:00", "status": "LOCKED" },
+    { "courtId": "court-2", "startTime": "17:00", "endTime": "20:00", "status": "BOOKED" },
+
+    { "courtId": "court-3", "startTime": "05:00", "endTime": "08:00", "status": "BOOKED" },
+    { "courtId": "court-3", "startTime": "08:00", "endTime": "11:00", "status": "LOCKED" },
+    { "courtId": "court-3", "startTime": "17:00", "endTime": "22:00", "status": "BOOKED" },
+
+    { "courtId": "court-4", "startTime": "05:00", "endTime": "05:30", "status": "LOCKED" },
+    { "courtId": "court-4", "startTime": "05:30", "endTime": "07:00", "status": "BOOKED" },
+    { "courtId": "court-4", "startTime": "07:00", "endTime": "11:00", "status": "LOCKED" },
+    { "courtId": "court-4", "startTime": "19:00", "endTime": "21:00", "status": "BOOKED" },
+
+    { "courtId": "court-5", "startTime": "05:00", "endTime": "07:00", "status": "BOOKED" },
+    { "courtId": "court-5", "startTime": "07:00", "endTime": "11:00", "status": "LOCKED" },
+    { "courtId": "court-5", "startTime": "19:00", "endTime": "21:00", "status": "BOOKED" },
+
+    { "courtId": "court-6", "startTime": "05:00", "endTime": "07:00", "status": "BOOKED" },
+    { "courtId": "court-6", "startTime": "07:00", "endTime": "11:00", "status": "LOCKED" },
+    { "courtId": "court-6", "startTime": "18:00", "endTime": "22:00", "status": "BOOKED" },
+
+    { "courtId": "court-7", "startTime": "05:00", "endTime": "07:00", "status": "BOOKED" },
+    { "courtId": "court-7", "startTime": "07:00", "endTime": "11:00", "status": "LOCKED" },
+    { "courtId": "court-7", "startTime": "18:00", "endTime": "20:00", "status": "BOOKED" },
+
+    { "courtId": "court-8", "startTime": "05:00", "endTime": "07:00", "status": "BOOKED" },
+    { "courtId": "court-8", "startTime": "07:00", "endTime": "11:00", "status": "LOCKED" },
+    { "courtId": "court-8", "startTime": "19:00", "endTime": "21:00", "status": "BOOKED" }
+  ]
+}

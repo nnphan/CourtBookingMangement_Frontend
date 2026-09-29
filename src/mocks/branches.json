@@ -1,0 +1,22 @@
+[
+  {
+    "id": "branch-q7",
+    "branchCode": "Q7",
+    "branchName": "TMT Badminton Club Quận 7",
+    "address": "123 Nguyễn Thị Thập, Quận 7",
+    "openTime": "05:00",
+    "closeTime": "23:00",
+    "rating": 4.8,
+    "isActive": true
+  },
+  {
+    "id": "branch-td",
+    "branchCode": "TD",
+    "branchName": "TMT Badminton Club Thủ Đức",
+    "address": "456 Võ Văn Ngân, Thủ Đức",
+    "openTime": "05:00",
+    "closeTime": "23:00",
+    "rating": 4.7,
+    "isActive": true
+  }
+]

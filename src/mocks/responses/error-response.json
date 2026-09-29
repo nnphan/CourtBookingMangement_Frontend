@@ -1,0 +1,8 @@
+{
+  "success": false,
+  "errorCode": "COMMON_500",
+  "message": "Nullable object must have a value.",
+  "traceId": "0HNORLH33PS61:00000001",
+  "timestamp": "2026-09-26T14:20:35.218067+00:00",
+  "validationErrors": null
+}
