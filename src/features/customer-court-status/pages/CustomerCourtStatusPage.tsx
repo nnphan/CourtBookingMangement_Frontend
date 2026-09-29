@@ -6,7 +6,6 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
-  Building2,
 } from 'lucide-react';
 import { paths } from '@/app/router/paths';
 import { useCustomerCourtStatus } from '../hooks/useCustomerCourtStatus';
@@ -20,6 +19,9 @@ import { CustomerCourtStatusSkeleton } from '../components/CustomerCourtStatusSk
 import { CustomerCourtStatusEmpty } from '../components/CustomerCourtStatusEmpty';
 import { CustomerCourtStatusError } from '../components/CustomerCourtStatusError';
 import { CustomerCourtStatusService } from '../services/customer-court-status.service';
+import { BranchSelectDropdown } from '../components/BranchSelectDropdown';
+import { SlotIntervalSelect } from '../components/SlotIntervalSelect';
+import { MobileCourtSelect } from '../components/MobileCourtSelect';
 
 export const CustomerCourtStatusPage: React.FC = () => {
   const navigate = useNavigate();
@@ -34,6 +36,7 @@ export const CustomerCourtStatusPage: React.FC = () => {
   const selectedDate = useCustomerCourtStatusStore((s) => s.selectedDate);
   const setSelectedDate = useCustomerCourtStatusStore((s) => s.setSelectedDate);
   const slotInterval = useCustomerCourtStatusStore((s) => s.slotInterval);
+  const setSlotInterval = useCustomerCourtStatusStore((s) => s.setSlotInterval);
   const zoomLevel = useCustomerCourtStatusStore((s) => s.zoomLevel);
   const openCreateBooking = useCustomerCourtStatusStore((s) => s.openCreateBooking);
 
@@ -131,33 +134,35 @@ export const CustomerCourtStatusPage: React.FC = () => {
           ĐẶT LỊCH THEO SÂN - TRỰC QUAN
         </h1>
 
-        {/* Right: Date Picker & Branch Select Controls */}
+        {/* Right: Date Picker & Modern Notion/Linear Dropdowns */}
         <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Branch Selector */}
+          {/* Branch Selector Dropdown (Modern Enterprise Radix UI Select) */}
           {branches.length > 1 && (
-            <div className="hidden sm:flex items-center bg-white/10 hover:bg-white/15 rounded-md px-2 py-1 text-xs border border-white/15">
-              <Building2 className="size-3.5 text-white/70 mr-1.5" />
-              <select
-                value={selectedBranchId}
-                onChange={(e) => handleBranchChange(e.target.value)}
-                className="bg-transparent text-white font-medium text-xs focus:outline-hidden cursor-pointer"
-              >
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id} className="text-slate-900 bg-white">
-                    {b.branchCode} - {b.branchName}
-                  </option>
-                ))}
-              </select>
+            <div className="hidden sm:block">
+              <BranchSelectDropdown
+                branches={branches}
+                selectedBranchId={selectedBranchId}
+                onBranchChange={handleBranchChange}
+                variant="header"
+              />
             </div>
           )}
 
+          {/* Slot Interval Select (Desktop/Tablet) */}
+          <div className="hidden lg:block">
+            <SlotIntervalSelect
+              value={slotInterval}
+              onChange={setSlotInterval}
+            />
+          </div>
+
           {/* Date Picker Button with Day controls */}
-          <div className="flex items-center bg-white/15 hover:bg-white/20 border border-white/20 rounded-md px-2 py-1 text-xs transition-colors">
+          <div className="flex items-center bg-white/15 hover:bg-white/20 border border-white/20 rounded-lg px-2 py-1 text-xs transition-colors">
             <button
               type="button"
               onClick={handlePrevDay}
               title="Ngày trước"
-              className="p-0.5 hover:text-amber-300 transition-colors"
+              className="p-0.5 hover:text-amber-300 transition-colors cursor-pointer"
             >
               <ChevronLeft className="size-3.5" />
             </button>
@@ -178,7 +183,7 @@ export const CustomerCourtStatusPage: React.FC = () => {
               type="button"
               onClick={handleNextDay}
               title="Ngày sau"
-              className="p-0.5 hover:text-amber-300 transition-colors"
+              className="p-0.5 hover:text-amber-300 transition-colors cursor-pointer"
             >
               <ChevronRight className="size-3.5" />
             </button>
@@ -242,33 +247,40 @@ export const CustomerCourtStatusPage: React.FC = () => {
 
             {/* Mobile View (< 768px): Privacy-Safe Court Cards */}
             <div className="md:hidden flex flex-col p-3 space-y-3 bg-slate-50">
-              {/* Branch & Date Badge */}
-              <div className="flex items-center justify-between bg-white p-3 rounded-xl shadow-2xs border border-slate-200">
-                <div className="flex flex-col pr-2">
-                  <span className="font-bold text-xs text-slate-800 flex items-center gap-1">
-                    <span>🏢</span>
-                    <span>{currentBranch.branchName}</span>
-                  </span>
-                  {currentBranch.address && (
-                    <span className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-1 truncate">
-                      <span>📍</span>
-                      <span>{currentBranch.address}</span>
-                    </span>
-                  )}
+              {/* Branch Selector on Mobile with modern Select */}
+              {branches.length > 1 && (
+                <div className="w-full">
+                  <BranchSelectDropdown
+                    branches={branches}
+                    selectedBranchId={selectedBranchId}
+                    onBranchChange={handleBranchChange}
+                    variant="surface"
+                  />
                 </div>
-                <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full shrink-0">
+              )}
+
+              {/* Date & Court Switcher on Mobile */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex-1">
+                  <MobileCourtSelect
+                    courts={courts}
+                    activeCourtId={activeCourt?.courtId || courts[0]?.courtId || ''}
+                    onCourtChange={setActiveMobileCourtId}
+                  />
+                </div>
+                <span className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1.5 rounded-xl shrink-0">
                   {formattedDisplayDate}
                 </span>
               </div>
 
-              {/* Court Selection Tabs */}
+              {/* Court Quick Tabs */}
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
                 {courts.map((court) => (
                   <button
                     key={court.courtId}
                     type="button"
                     onClick={() => setActiveMobileCourtId(court.courtId)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
                       (activeCourt?.courtId || courts[0]?.courtId) === court.courtId
                         ? 'bg-emerald-700 text-white shadow-xs'
                         : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
