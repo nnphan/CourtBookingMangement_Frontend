@@ -6,6 +6,8 @@ import type { CustomerGeneratedTimeSlot } from '../services/customer-court-statu
 import { CUSTOMER_SCHEDULER_CONFIG } from '../constants/customer-scheduler.config';
 import { CUSTOMER_COURT_STATUS } from '../types/customer-status';
 import { AvailableSlotTooltip } from './AvailableSlotTooltip';
+import { cn } from '@/lib/utils';
+import { X } from 'lucide-react';
 
 interface CustomerCourtRowProps {
   court: CustomerCourt;
@@ -15,6 +17,7 @@ interface CustomerCourtRowProps {
   slotInterval: number;
   activeSelection: CustomerSlotSelection | null;
   onSlotClick: (courtId: string, slotTime: string) => void;
+  isSlotSelected: (courtId: string, slotTime: string) => boolean;
 }
 
 export const CustomerCourtRow: React.FC<CustomerCourtRowProps> = memo(
@@ -26,6 +29,7 @@ export const CustomerCourtRow: React.FC<CustomerCourtRowProps> = memo(
     slotInterval,
     activeSelection,
     onSlotClick,
+    isSlotSelected,
   }) => {
     // Filter slots belonging to this court that are NOT available
     const courtOccupiedSlots = slots.filter(
@@ -65,13 +69,25 @@ export const CustomerCourtRow: React.FC<CustomerCourtRowProps> = memo(
         >
           {/* Base Grid cells for click targets */}
           {timeSlots.map((slot) => {
+            const isSelected = isSlotSelected(court.courtId, slot.time);
             return (
               <div
                 key={slot.time}
+                role="gridcell"
+                aria-selected={isSelected}
                 style={{ width: slotWidth }}
                 onClick={() => onSlotClick(court.courtId, slot.time)}
-                className="shrink-0 h-full border-r border-slate-200 hover:bg-emerald-50/40 cursor-pointer transition-colors"
-                title={`${court.courtName} - ${slot.time}`}
+                className={cn(
+                  'shrink-0 h-full border-r border-slate-200 cursor-pointer transition-colors select-none relative',
+                  isSelected
+                    ? 'bg-emerald-100/70 border-t-2 border-b-2 border-emerald-600'
+                    : 'hover:bg-emerald-50/40',
+                )}
+                title={
+                  isSelected
+                    ? `Bấm để bỏ chọn ${court.courtName} lúc ${slot.time}`
+                    : `Bấm để chọn ${court.courtName} lúc ${slot.time}`
+                }
               />
             );
           })}
@@ -116,11 +132,22 @@ export const CustomerCourtRow: React.FC<CustomerCourtRowProps> = memo(
                 left: `${selectionDim.left}px`,
                 width: `${selectionDim.width}px`,
               }}
-              className="absolute top-[2px] bottom-[2px] rounded-xs bg-[#D1FAE5] border-2 border-[#059669] shadow-sm z-15 flex items-center justify-center pointer-events-none transition-all duration-150 animate-in fade-in zoom-in-95"
+              className="absolute top-[2px] bottom-[2px] rounded-xs bg-[#D1FAE5] border-2 border-[#059669] shadow-sm z-15 flex items-center justify-between px-1.5 pointer-events-none transition-all duration-150 animate-in fade-in zoom-in-95"
             >
-              <span className="text-[10px] font-bold text-emerald-900 px-1 bg-white/70 rounded-xs shadow-2xs">
+              <span className="text-[10px] font-bold text-emerald-900 px-1 bg-white/70 rounded-xs shadow-2xs truncate">
                 {activeSelection.startTime} - {activeSelection.endTime}
               </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSlotClick(court.courtId, activeSelection.startTime);
+                }}
+                className="pointer-events-auto p-0.5 rounded-full text-emerald-800 hover:text-emerald-950 hover:bg-emerald-200/80 transition-colors cursor-pointer"
+                title="Bấm để hủy chọn"
+              >
+                <X className="size-3" />
+              </button>
             </div>
           )}
         </div>

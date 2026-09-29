@@ -41,6 +41,7 @@ export const CustomerCourtScheduler: React.FC<CustomerCourtSchedulerProps> = mem
     const {
       activeSelection,
       handleSlotClick,
+      isSlotSelected,
       clearSelection,
       handleBookCurrentSelection,
     } = useCustomerSchedulerSelection({ courts, slots, slotInterval });
@@ -65,6 +66,7 @@ export const CustomerCourtScheduler: React.FC<CustomerCourtSchedulerProps> = mem
                   slotInterval={slotInterval}
                   activeSelection={activeSelection}
                   onSlotClick={handleSlotClick}
+                  isSlotSelected={isSlotSelected}
                 />
               ))}
             </div>

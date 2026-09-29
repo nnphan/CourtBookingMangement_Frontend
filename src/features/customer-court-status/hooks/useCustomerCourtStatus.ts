@@ -33,6 +33,9 @@ export const useCustomerCourtStatus = () => {
         'Đặt sân thành công!',
         `Mã đơn: ${result.bookingNumber}. Nhân viên sẽ sớm liên hệ xác nhận.`,
       );
+      // Clear any active slot selection in Zustand store
+      useCustomerCourtStatusStore.getState().clearSelection();
+
       // Invalidate status query to reflect new booking immediately
       queryClient.invalidateQueries({
         queryKey: ['customer-court-status', selectedBranchId, selectedDate],

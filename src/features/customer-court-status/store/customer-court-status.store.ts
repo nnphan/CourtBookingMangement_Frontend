@@ -31,17 +31,14 @@ export const useCustomerCourtStatusStore = create<CustomerCourtStatusState>((set
   zoomLevel: 1.0,
   isPriceModalOpen: false,
   isCreateBookingOpen: false,
-  activeSelection: {
-    courtId: 'court-5',
-    courtName: 'C.Lông 5',
-    startTime: '12:00',
-    endTime: '14:00',
-    selectedSlots: ['12:00', '12:30', '13:00', '13:30'],
-  }, // Initial seed matching screenshot highlight on Court 5!
+  activeSelection: null,
 
-  setSelectedBranchId: (selectedBranchId) => set({ selectedBranchId }),
-  setSelectedDate: (selectedDate) => set({ selectedDate }),
-  setSlotInterval: (slotInterval) => set({ slotInterval }),
+  setSelectedBranchId: (selectedBranchId) =>
+    set({ selectedBranchId, activeSelection: null, isCreateBookingOpen: false }),
+  setSelectedDate: (selectedDate) =>
+    set({ selectedDate, activeSelection: null, isCreateBookingOpen: false }),
+  setSlotInterval: (slotInterval) =>
+    set({ slotInterval, activeSelection: null, isCreateBookingOpen: false }),
   setZoomLevel: (zoomLevel) => set({ zoomLevel }),
   openPriceModal: () => set({ isPriceModalOpen: true }),
   closePriceModal: () => set({ isPriceModalOpen: false }),
@@ -50,7 +47,9 @@ export const useCustomerCourtStatusStore = create<CustomerCourtStatusState>((set
       isCreateBookingOpen: true,
       activeSelection: selection !== undefined ? selection : state.activeSelection,
     })),
-  closeCreateBooking: () => set({ isCreateBookingOpen: false }),
+  closeCreateBooking: () =>
+    set({ isCreateBookingOpen: false, activeSelection: null }),
   setActiveSelection: (activeSelection) => set({ activeSelection }),
-  clearSelection: () => set({ activeSelection: null }),
+  clearSelection: () =>
+    set({ activeSelection: null, isCreateBookingOpen: false }),
 }));

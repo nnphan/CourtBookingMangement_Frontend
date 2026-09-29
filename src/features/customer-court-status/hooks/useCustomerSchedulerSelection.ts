@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import type { CustomerCourt } from '../types/customer-court';
 import type { CustomerSlotItem } from '../types/customer-slot';
 import { CustomerCourtStatusService } from '../services/customer-court-status.service';
@@ -47,8 +47,8 @@ export const useCustomerSchedulerSelection = ({
       const courtName = court?.courtName ?? courtId;
 
       // 3. Selection logic
+      // CASE 1: No active selection, or clicked on a different court -> Fresh single-slot selection
       if (!activeSelection || activeSelection.courtId !== courtId) {
-        // Start fresh selection
         const endMinutes =
           CustomerCourtStatusService.parseTimeToMinutes(slotTime) + slotInterval;
         const endTime = CustomerCourtStatusService.minutesToTime(endMinutes);
@@ -63,7 +63,57 @@ export const useCustomerSchedulerSelection = ({
         return;
       }
 
-      // Already selecting on this court
+      // CASE 2: Already selecting on this court
+      const isAlreadySelected = activeSelection.selectedSlots.includes(slotTime);
+
+      if (isAlreadySelected) {
+        // TOGGLE OFF: Unselect!
+        // Sub-case 2a: Only 1 slot was selected -> unselecting it clears the selection
+        if (activeSelection.selectedSlots.length <= 1) {
+          clearSelection();
+          return;
+        }
+
+        // Sub-case 2b: Multi-slot selection. Remove the clicked slot.
+        const remainingSlots = activeSelection.selectedSlots.filter((t) => t !== slotTime);
+        if (remainingSlots.length === 0) {
+          clearSelection();
+          return;
+        }
+
+        // Check if remaining slots are consecutive
+        const sortedMinutes = remainingSlots
+          .map((t) => CustomerCourtStatusService.parseTimeToMinutes(t))
+          .sort((a, b) => a - b);
+
+        let isConsecutive = true;
+        for (let i = 1; i < sortedMinutes.length; i++) {
+          const prev = sortedMinutes[i - 1];
+          const curr = sortedMinutes[i];
+          if (prev === undefined || curr === undefined || curr - prev !== slotInterval) {
+            isConsecutive = false;
+            break;
+          }
+        }
+
+        if (isConsecutive && sortedMinutes[0] !== undefined && sortedMinutes[sortedMinutes.length - 1] !== undefined) {
+          const minMin = sortedMinutes[0];
+          const maxMin = sortedMinutes[sortedMinutes.length - 1] + slotInterval;
+          setActiveSelection({
+            courtId,
+            courtName,
+            startTime: CustomerCourtStatusService.minutesToTime(minMin),
+            endTime: CustomerCourtStatusService.minutesToTime(maxMin),
+            selectedSlots: remainingSlots,
+          });
+        } else {
+          // If removing a middle slot breaks continuity, deselect all to avoid invalid gap
+          clearSelection();
+        }
+        return;
+      }
+
+      // CASE 3: Slot is NOT selected on the current court -> Toggle ON / Extend range
       const startMin = CustomerCourtStatusService.parseTimeToMinutes(activeSelection.startTime);
       const clickedMin = CustomerCourtStatusService.parseTimeToMinutes(slotTime);
 
@@ -110,7 +160,7 @@ export const useCustomerSchedulerSelection = ({
         selectedSlots: allSlots,
       });
     },
-    [activeSelection, courts, slots, slotInterval, selectedDate, setActiveSelection],
+    [activeSelection, courts, slots, slotInterval, selectedDate, setActiveSelection, clearSelection],
   );
 
   const isSlotSelected = useCallback(
@@ -128,6 +178,17 @@ export const useCustomerSchedulerSelection = ({
     }
     openCreateBooking(activeSelection);
   }, [activeSelection, openCreateBooking]);
+
+  // Keyboard shortcut: Escape clears active selection
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && activeSelection) {
+        clearSelection();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [activeSelection, clearSelection]);
 
   return {
     activeSelection,

@@ -107,6 +107,12 @@ export const useSlotSelection = ({
       );
 
       if (newRange) {
+        // If toggling off broke consecutive continuity, clear selection cleanly
+        if (existsIndex !== -1 && !newRange.isConsecutive) {
+          clearActiveSelection();
+          return;
+        }
+
         // 3. Continuous Range Rule Warning
         if (!newRange.isConsecutive) {
           toast.error(
