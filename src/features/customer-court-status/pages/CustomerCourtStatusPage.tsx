@@ -22,6 +22,7 @@ import { CustomerCourtStatusService } from '../services/customer-court-status.se
 import { BranchSelectDropdown } from '../components/BranchSelectDropdown';
 import { SlotIntervalSelect } from '../components/SlotIntervalSelect';
 import { MobileCourtSelect } from '../components/MobileCourtSelect';
+import { CustomerDatePickerDialog } from '../components/CustomerDatePickerDialog';
 
 export const CustomerCourtStatusPage: React.FC = () => {
   const navigate = useNavigate();
@@ -63,6 +64,7 @@ export const CustomerCourtStatusPage: React.FC = () => {
 
   // Mobile selected court state
   const [activeMobileCourtId, setActiveMobileCourtId] = useState<string>('court-1');
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState<boolean>(false);
 
   const handleBack = useCallback(() => {
     navigate(-1);
@@ -156,34 +158,34 @@ export const CustomerCourtStatusPage: React.FC = () => {
             />
           </div>
 
-          {/* Date Picker Button with Day controls */}
-          <div className="flex items-center bg-white/15 hover:bg-white/20 border border-white/20 rounded-lg px-2 py-1 text-xs transition-colors">
+          {/* Date Picker Button (Matches Screenshot: [ 29/09/2026 📅 ]) */}
+          <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={handlePrevDay}
               title="Ngày trước"
-              className="p-0.5 hover:text-amber-300 transition-colors cursor-pointer"
+              aria-label="Ngày trước"
+              className="p-1 rounded-md text-white/80 hover:text-white hover:bg-white/15 transition-colors cursor-pointer hidden sm:grid place-items-center"
             >
               <ChevronLeft className="size-3.5" />
             </button>
 
-            {/* Hidden native date input with styled label */}
-            <label className="flex items-center gap-1.5 px-1.5 font-semibold cursor-pointer select-none">
+            <button
+              type="button"
+              onClick={() => setIsDatePickerOpen(true)}
+              aria-label="Chọn ngày xem lịch trạng thái sân"
+              className="flex items-center gap-2 bg-white/12 hover:bg-white/20 active:bg-white/25 border border-white/25 rounded-lg px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition-all duration-150 cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-emerald-300"
+            >
               <span>{formattedDisplayDate}</span>
-              <Calendar className="size-3.5 text-white/80" />
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={handleDateInputChange}
-                className="sr-only"
-              />
-            </label>
+              <Calendar className="size-3.5 text-white/90" />
+            </button>
 
             <button
               type="button"
               onClick={handleNextDay}
               title="Ngày sau"
-              className="p-0.5 hover:text-amber-300 transition-colors cursor-pointer"
+              aria-label="Ngày sau"
+              className="p-1 rounded-md text-white/80 hover:text-white hover:bg-white/15 transition-colors cursor-pointer hidden sm:grid place-items-center"
             >
               <ChevronRight className="size-3.5" />
             </button>
@@ -268,9 +270,15 @@ export const CustomerCourtStatusPage: React.FC = () => {
                     onCourtChange={setActiveMobileCourtId}
                   />
                 </div>
-                <span className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1.5 rounded-xl shrink-0">
-                  {formattedDisplayDate}
-                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsDatePickerOpen(true)}
+                  aria-label="Chọn ngày xem lịch"
+                  className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1.5 rounded-xl shrink-0 flex items-center gap-1.5 hover:bg-emerald-100/80 cursor-pointer transition-colors"
+                >
+                  <span>{formattedDisplayDate}</span>
+                  <Calendar className="size-3.5 text-emerald-700" />
+                </button>
               </div>
 
               {/* Court Quick Tabs */}
@@ -364,6 +372,14 @@ export const CustomerCourtStatusPage: React.FC = () => {
         onSubmitBooking={createBooking}
         isLoading={isCreating}
         branchName={currentBranch.branchName}
+      />
+
+      {/* 7. CUSTOM VIETNAMESE CALENDAR DIALOG (MATCHES SCREENSHOT) */}
+      <CustomerDatePickerDialog
+        isOpen={isDatePickerOpen}
+        onClose={() => setIsDatePickerOpen(false)}
+        selectedDate={selectedDate}
+        onConfirmDate={setSelectedDate}
       />
     </div>
   );

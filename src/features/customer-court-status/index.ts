@@ -8,6 +8,7 @@ export * from './components/SchedulerCell';
 export * from './components/BranchSelectDropdown';
 export * from './components/SlotIntervalSelect';
 export * from './components/MobileCourtSelect';
+export * from './components/CustomerDatePickerDialog';
 export * from './services/customer-court-status.service';
 export * from './hooks/useCustomerCourtStatus';
 export * from './hooks/useCustomerSchedulerSelection';

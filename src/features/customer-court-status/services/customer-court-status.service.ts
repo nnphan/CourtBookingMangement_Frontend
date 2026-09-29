@@ -199,4 +199,12 @@ export class CustomerCourtStatusService {
     const slotDateTime = dayjs(dateStr).hour(hours).minute(minutes).second(0);
     return slotDateTime.isBefore(dayjs());
   }
+
+  /**
+   * Format date into Vietnamese month header: "tháng M năm YYYY" (e.g. "tháng 9 năm 2026")
+   */
+  public static formatVietnameseMonthHeader(date: dayjs.Dayjs | string): string {
+    const d = typeof date === 'string' ? dayjs(date) : date;
+    return d.isValid() ? `tháng ${d.month() + 1} năm ${d.year()}` : '';
+  }
 }
