@@ -36,25 +36,6 @@ export const TimeHeader: React.FC<TimeHeaderProps> = memo(
           className="relative flex shrink-0 h-full"
           style={{ width: `${timeSlots.length * slotWidth}px` }}
         >
-          {/* Slot Column Boundaries (Vertical Guide Lines in Header) */}
-          {timeSlots.map((slot, index) => {
-            const x = index * slotWidth;
-
-            return (
-              <div
-                key={`col-${slot.time}`}
-                role="columnheader"
-                style={{
-                  position: 'absolute',
-                  left: `${x}px`,
-                  width: `${slotWidth}px`,
-                  height: '100%',
-                }}
-                className="border-r border-[#c8ded2] pointer-events-none"
-              />
-            );
-          })}
-
           {/* Time Labels positioned exactly at Slot Boundaries */}
           {timeSlots.map((slot, index) => {
             const x = index * slotWidth;
@@ -63,6 +44,7 @@ export const TimeHeader: React.FC<TimeHeaderProps> = memo(
             return (
               <div
                 key={`marker-${slot.time}`}
+                role="columnheader"
                 style={{
                   position: 'absolute',
                   left: `${x}px`,
@@ -78,7 +60,7 @@ export const TimeHeader: React.FC<TimeHeaderProps> = memo(
                 </span>
 
                 {/* Vertical Tick Mark directly connecting to slot boundary line */}
-                <div className="mt-auto w-px h-2 bg-[#9fc4af]" />
+                <div className="mt-auto w-px h-2.5 bg-[#9fc4af]" />
               </div>
             );
           })}

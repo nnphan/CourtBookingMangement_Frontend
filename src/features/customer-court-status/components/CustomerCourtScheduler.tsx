@@ -2,7 +2,7 @@ import React, { memo, useMemo } from 'react';
 import type { CustomerCourt } from '../types/customer-court';
 import type { CustomerSlotItem } from '../types/customer-slot';
 import { CustomerCourtStatusService } from '../services/customer-court-status.service';
-import { CUSTOMER_SCHEDULER_CONFIG } from '../constants/customer-scheduler.config';
+import { CUSTOMER_SCHEDULER_CONFIG, SLOT_WIDTH } from '../constants/customer-scheduler.config';
 import { CustomerTimeHeader } from './CustomerTimeHeader';
 import { CustomerCourtRow } from './CustomerCourtRow';
 import { CustomerAvailabilityLayer } from './CustomerAvailabilityLayer';
@@ -17,9 +17,9 @@ interface CustomerCourtSchedulerProps {
 
 export const CustomerCourtScheduler: React.FC<CustomerCourtSchedulerProps> = memo(
   ({ courts, slots, slotInterval, zoomLevel }) => {
-    // Dynamic slot width
+    // Dynamic slot width derived from single source of truth SLOT_WIDTH = 80
     const slotWidth = useMemo(() => {
-      const computed = Math.round(CUSTOMER_SCHEDULER_CONFIG.BASE_SLOT_WIDTH * zoomLevel);
+      const computed = Math.round(SLOT_WIDTH * zoomLevel);
       return Math.max(
         CUSTOMER_SCHEDULER_CONFIG.MIN_SLOT_WIDTH,
         Math.min(CUSTOMER_SCHEDULER_CONFIG.MAX_SLOT_WIDTH, computed),
@@ -37,6 +37,8 @@ export const CustomerCourtScheduler: React.FC<CustomerCourtSchedulerProps> = mem
       [slotInterval],
     );
 
+    const totalGridWidth = useMemo(() => timeSlots.length * slotWidth, [timeSlots.length, slotWidth]);
+
     // Selection management hook
     const {
       activeSelection,
@@ -50,7 +52,12 @@ export const CustomerCourtScheduler: React.FC<CustomerCourtSchedulerProps> = mem
       <div className="relative w-full h-full flex flex-col overflow-hidden bg-white select-none">
         {/* Horizontal & Vertical Scroll Container */}
         <div className="flex-1 overflow-auto relative">
-          <div className="inline-block min-w-full">
+          <div
+            style={{
+              width: `${CUSTOMER_SCHEDULER_CONFIG.COURT_COL_WIDTH + totalGridWidth + 24}px`,
+              minWidth: '100%',
+            }}
+          >
             {/* Sticky Time Header */}
             <CustomerTimeHeader timeSlots={timeSlots} slotWidth={slotWidth} />
 

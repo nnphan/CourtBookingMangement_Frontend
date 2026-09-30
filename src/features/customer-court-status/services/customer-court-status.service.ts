@@ -1,14 +1,16 @@
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import type { CustomerSlotItem, CustomerSlotSelection } from '../types/customer-slot';
-import { CUSTOMER_SCHEDULER_CONFIG } from '../constants/customer-scheduler.config';
+import { CUSTOMER_SCHEDULER_CONFIG, SLOT_WIDTH } from '../constants/customer-scheduler.config';
 
 dayjs.extend(customParseFormat);
 
 export interface CustomerGeneratedTimeSlot {
   time: string; // "05:00", "05:30"
+  formattedTime: string; // "5:00", "5:30"
   formattedHour: string; // "5:00", "6:00" or empty for half-hours
   isMajorHour: boolean;
+  slotIndex: number;
   minutesFromStart: number;
 }
 
@@ -48,22 +50,27 @@ export class CustomerCourtStatusService {
 
     const slots: CustomerGeneratedTimeSlot[] = [];
     let current = startMinutes;
+    let slotIndex = 0;
 
     while (current < endMinutes) {
       const hours = Math.floor(current / 60);
       const minutes = current % 60;
       const isMajorHour = minutes === 0;
       const time = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      const formattedTime = `${hours}:${minutes.toString().padStart(2, '0')}`;
       const formattedHour = isMajorHour ? `${hours}:00` : '';
 
       slots.push({
         time,
+        formattedTime,
         formattedHour,
         isMajorHour,
+        slotIndex,
         minutesFromStart: current - startMinutes,
       });
 
       current += intervalMinutes;
+      slotIndex++;
     }
 
     return slots;
@@ -75,7 +82,7 @@ export class CustomerCourtStatusService {
   public static calculateSlotDimensions(
     startTime: string,
     endTime: string,
-    slotWidth: number,
+    slotWidth: number = SLOT_WIDTH,
     intervalMinutes: number = CUSTOMER_SCHEDULER_CONFIG.DEFAULT_INTERVAL_MINUTES,
     schedulerStartTime: string = CUSTOMER_SCHEDULER_CONFIG.START_TIME,
   ): { left: number; width: number } {

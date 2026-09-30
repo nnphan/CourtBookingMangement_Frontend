@@ -1,17 +1,18 @@
 import React, { memo } from 'react';
 import { useSchedulerSelectionStore } from '../store/scheduler-selection.store';
+import { SLOT_WIDTH } from '../constants/customer-scheduler.config';
 import { cn } from '@/lib/utils';
 
 interface SchedulerCellProps {
   courtId: string;
   courtName: string;
   slotTime: string;
-  slotWidth: number;
+  slotWidth?: number;
   onSlotClick: (courtId: string, slotTime: string) => void;
 }
 
 export const SchedulerCell: React.FC<SchedulerCellProps> = memo(
-  ({ courtId, courtName, slotTime, slotWidth, onSlotClick }) => {
+  ({ courtId, courtName, slotTime, slotWidth = SLOT_WIDTH, onSlotClick }) => {
     // Single source of truth from schedulerSelectionStore
     const selectedCourtId = useSchedulerSelectionStore((s) => s.selectedCourtId);
     const selectedSlots = useSchedulerSelectionStore((s) => s.selectedSlots);

@@ -3,7 +3,7 @@ import type { CustomerCourt } from '../types/customer-court';
 import type { CustomerSlotItem, CustomerSlotSelection } from '../types/customer-slot';
 import { CustomerCourtStatusService } from '../services/customer-court-status.service';
 import type { CustomerGeneratedTimeSlot } from '../services/customer-court-status.service';
-import { CUSTOMER_SCHEDULER_CONFIG } from '../constants/customer-scheduler.config';
+import { CUSTOMER_SCHEDULER_CONFIG, SLOT_WIDTH } from '../constants/customer-scheduler.config';
 import { CUSTOMER_COURT_STATUS } from '../types/customer-status';
 import { AvailableSlotTooltip } from './AvailableSlotTooltip';
 import { SchedulerCell } from './SchedulerCell';
@@ -13,7 +13,7 @@ interface CustomerCourtRowProps {
   court: CustomerCourt;
   slots: CustomerSlotItem[];
   timeSlots: CustomerGeneratedTimeSlot[];
-  slotWidth: number;
+  slotWidth?: number;
   slotInterval: number;
   activeSelection: CustomerSlotSelection | null;
   onSlotClick: (courtId: string, slotTime: string) => void;
@@ -26,7 +26,7 @@ export const CustomerCourtRow: React.FC<CustomerCourtRowProps> = memo(
     court,
     slots,
     timeSlots,
-    slotWidth,
+    slotWidth = SLOT_WIDTH,
     slotInterval,
     activeSelection,
     onSlotClick,
@@ -57,8 +57,8 @@ export const CustomerCourtRow: React.FC<CustomerCourtRowProps> = memo(
       >
         {/* Sticky Court Column on left */}
         <div
-          style={{ width: CUSTOMER_SCHEDULER_CONFIG.COURT_COL_WIDTH }}
-          className="sticky left-0 z-20 shrink-0 bg-[#ebf7f0] border-r border-slate-300 font-semibold text-xs text-slate-800 flex items-center justify-center select-none"
+          style={{ width: `${CUSTOMER_SCHEDULER_CONFIG.COURT_COL_WIDTH}px` }}
+          className="sticky left-0 z-20 shrink-0 bg-[#ebf7f0] border-r border-[#c8ded2] font-semibold text-xs text-slate-800 flex items-center justify-center select-none"
         >
           {court.courtName}
         </div>
@@ -66,7 +66,7 @@ export const CustomerCourtRow: React.FC<CustomerCourtRowProps> = memo(
         {/* Schedule Grid Track */}
         <div
           className="relative flex shrink-0"
-          style={{ width: timeSlots.length * slotWidth }}
+          style={{ width: `${timeSlots.length * slotWidth}px` }}
         >
           {/* Base Grid cells for click targets deriving from single source of truth */}
           {timeSlots.map((slot) => (
