@@ -2,9 +2,10 @@ export const SLOT_WIDTH = 80;
 
 export const SCHEDULER_CONFIG = {
   START_TIME: '05:00',
-  END_TIME: '24:00',
-  DEFAULT_INTERVAL_MINUTES: 30,
-  SUPPORTED_INTERVALS: [15, 30, 60] as const,
+  END_TIME: '23:00',
+  SLOT_DURATION: 60,
+  DEFAULT_INTERVAL_MINUTES: 60,
+  SUPPORTED_INTERVALS: [60, 30, 15] as const,
 
   // Geometry (pixels)
   SLOT_WIDTH: 80, // Single source of truth
@@ -23,3 +24,4 @@ export const SCHEDULER_CONFIG = {
 } as const;
 
 export type SupportedInterval = (typeof SCHEDULER_CONFIG.SUPPORTED_INTERVALS)[number];
+

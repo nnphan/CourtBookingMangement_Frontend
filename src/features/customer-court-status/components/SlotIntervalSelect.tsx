@@ -45,22 +45,22 @@ export const SlotIntervalSelect: React.FC<SlotIntervalSelectProps> = memo(
           </div>
 
           <SelectItem
+            value="60"
+            className="py-2 px-2.5 rounded-lg text-xs font-medium cursor-pointer"
+          >
+            <div className="flex flex-col">
+              <span className="font-bold text-slate-900">60 phút (Chuẩn 1 giờ / ô)</span>
+              <span className="text-[10px] text-slate-500">Chuẩn đặt sân theo giờ</span>
+            </div>
+          </SelectItem>
+
+          <SelectItem
             value="30"
             className="py-2 px-2.5 rounded-lg text-xs font-medium cursor-pointer"
           >
             <div className="flex flex-col">
               <span className="font-bold text-slate-900">30 phút (Chi tiết)</span>
-              <span className="text-[10px] text-slate-500">Chuẩn đặt sân thông dụng</span>
-            </div>
-          </SelectItem>
-
-          <SelectItem
-            value="60"
-            className="py-2 px-2.5 rounded-lg text-xs font-medium cursor-pointer"
-          >
-            <div className="flex flex-col">
-              <span className="font-bold text-slate-900">60 phút (Tổng quan)</span>
-              <span className="text-[10px] text-slate-500">Xem nhanh theo giờ</span>
+              <span className="text-[10px] text-slate-500">Hiển thị nửa giờ</span>
             </div>
           </SelectItem>
         </SelectContent>

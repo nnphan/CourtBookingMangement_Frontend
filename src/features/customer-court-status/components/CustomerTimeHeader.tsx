@@ -1,7 +1,15 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
+import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
 import type { CustomerGeneratedTimeSlot } from '../services/customer-court-status.service';
-import { CUSTOMER_SCHEDULER_CONFIG, SLOT_WIDTH } from '../constants/customer-scheduler.config';
+import {
+  CUSTOMER_SCHEDULER_CONFIG,
+  SCHEDULER_CONFIG,
+  SLOT_WIDTH,
+} from '../constants/customer-scheduler.config';
 import { cn } from '@/lib/utils';
+
+dayjs.extend(customParseFormat);
 
 interface CustomerTimeHeaderProps {
   timeSlots: CustomerGeneratedTimeSlot[];
@@ -11,6 +19,16 @@ interface CustomerTimeHeaderProps {
 export const CustomerTimeHeader: React.FC<CustomerTimeHeaderProps> = memo(
   ({ timeSlots, slotWidth = SLOT_WIDTH }) => {
     const totalGridWidth = timeSlots.length * slotWidth;
+
+    // Filter only hourly labels (minute === 0)
+    const headerLabels = useMemo(
+      () =>
+        timeSlots.filter((slot) => {
+          const minute = dayjs(slot.time, 'HH:mm').minute();
+          return minute === 0;
+        }),
+      [timeSlots],
+    );
 
     return (
       <div
@@ -32,10 +50,33 @@ export const CustomerTimeHeader: React.FC<CustomerTimeHeaderProps> = memo(
           className="relative flex shrink-0 h-full"
           style={{ width: `${totalGridWidth}px` }}
         >
-          {/* Time Labels and Vertical Tick Marks positioned on exact Slot Boundaries */}
+          {/* Boundary ticks for all grid boundaries */}
           {timeSlots.map((slot, index) => {
             const x = index * slotWidth;
-            const isFirst = index === 0;
+
+            return (
+              <div
+                key={`tick-${slot.time}`}
+                style={{
+                  position: 'absolute',
+                  left: `${x}px`,
+                }}
+                className="bottom-0 -translate-x-1/2 pointer-events-none select-none"
+              >
+                <div
+                  className={cn(
+                    'w-px',
+                    slot.isMajorHour ? 'h-2.5 bg-[#9fc4af]' : 'h-1.5 bg-[#c8ded2]',
+                  )}
+                />
+              </div>
+            );
+          })}
+
+          {/* Hourly Time Labels (05:00, 06:00, 07:00...) positioned on exact Slot Boundaries */}
+          {headerLabels.map((slot) => {
+            const x = slot.slotIndex * slotWidth;
+            const isFirst = slot.slotIndex === 0;
 
             return (
               <div
@@ -53,12 +94,11 @@ export const CustomerTimeHeader: React.FC<CustomerTimeHeaderProps> = memo(
                 <span className="text-[11px] font-semibold text-slate-700 tracking-tight whitespace-nowrap bg-[#ebf7f0] px-1 pt-1.5 leading-none">
                   {slot.formattedTime}
                 </span>
-                <div className="mt-auto w-px h-2.5 bg-[#9fc4af]" />
               </div>
             );
           })}
 
-          {/* Closing 24:00 boundary marker at final right grid line */}
+          {/* Closing END_TIME (23:00) boundary marker at final right grid line */}
           {timeSlots.length > 0 && (
             <div
               role="columnheader"
@@ -69,7 +109,7 @@ export const CustomerTimeHeader: React.FC<CustomerTimeHeaderProps> = memo(
               className="top-0 bottom-0 z-20 flex flex-col items-center -translate-x-1/2 pointer-events-none select-none"
             >
               <span className="text-[11px] font-semibold text-slate-700 tracking-tight whitespace-nowrap bg-[#ebf7f0] px-1 pt-1.5 leading-none">
-                24:00
+                {SCHEDULER_CONFIG.END_TIME}
               </span>
               <div className="mt-auto w-px h-2.5 bg-[#9fc4af]" />
             </div>
@@ -81,4 +121,6 @@ export const CustomerTimeHeader: React.FC<CustomerTimeHeaderProps> = memo(
 );
 
 CustomerTimeHeader.displayName = 'CustomerTimeHeader';
+
+
 

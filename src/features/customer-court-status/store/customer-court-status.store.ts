@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { CustomerSlotSelection } from '../types/customer-slot';
-import { CUSTOMER_SCHEDULER_CONFIG } from '../constants/customer-scheduler.config';
+import { SCHEDULER_CONFIG } from '../constants/customer-scheduler.config';
 import { CustomerCourtStatusService } from '../services/customer-court-status.service';
 import { useSchedulerSelectionStore } from './scheduler-selection.store';
 
@@ -29,7 +29,7 @@ interface CustomerCourtStatusState {
 export const useCustomerCourtStatusStore = create<CustomerCourtStatusState>((set) => ({
   selectedBranchId: 'branch-q7',
   selectedDate: '2026-09-29', // Defaulting to the screenshot date
-  slotInterval: CUSTOMER_SCHEDULER_CONFIG.DEFAULT_INTERVAL_MINUTES,
+  slotInterval: SCHEDULER_CONFIG.SLOT_DURATION,
   zoomLevel: 1.0,
   isPriceModalOpen: false,
   isCreateBookingOpen: false,

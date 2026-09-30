@@ -1,107 +1,83 @@
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import type { CustomerSlotItem, CustomerSlotSelection } from '../types/customer-slot';
-import { CUSTOMER_SCHEDULER_CONFIG, SLOT_WIDTH } from '../constants/customer-scheduler.config';
+import {
+  CUSTOMER_SCHEDULER_CONFIG,
+  SCHEDULER_CONFIG,
+  SLOT_WIDTH,
+} from '../constants/customer-scheduler.config';
+import {
+  type GeneratedTimeSlot,
+  parseTimeToMinutes,
+  minutesToTime,
+  differenceInHours,
+  generateTimeSlots,
+  calculateBookingWidth,
+  calculateSelectedTimeRange,
+} from '../utils/time-slot.utils';
 
 dayjs.extend(customParseFormat);
 
-export interface CustomerGeneratedTimeSlot {
-  time: string; // "05:00", "05:30"
-  formattedTime: string; // "5:00", "5:30"
-  formattedHour: string; // "5:00", "6:00" or empty for half-hours
-  isMajorHour: boolean;
-  slotIndex: number;
-  minutesFromStart: number;
-}
+export type CustomerGeneratedTimeSlot = GeneratedTimeSlot;
 
 export class CustomerCourtStatusService {
   /**
    * Convert "HH:mm" to total minutes from 00:00
    */
   public static parseTimeToMinutes(timeStr: string): number {
-    const parts = timeStr.split(':');
-    const hours = parseInt(parts[0] ?? '0', 10);
-    const minutes = parseInt(parts[1] ?? '0', 10);
-    return hours * 60 + minutes;
+    return parseTimeToMinutes(timeStr);
   }
 
   /**
    * Convert total minutes from 00:00 to "HH:mm"
    */
   public static minutesToTime(minutes: number): string {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+    return minutesToTime(minutes);
   }
 
   /**
-   * Generate array of time slots from START_TIME to END_TIME
+   * Calculate difference in hours between endTime and startTime
+   */
+  public static differenceInHours(endTime: string, startTime: string): number {
+    return differenceInHours(endTime, startTime);
+  }
+
+  /**
+   * Generate array of time slots from START_TIME ("05:00") to END_TIME ("23:00")
+   * with default 60-minute slot duration (18 cells).
    */
   public static generateTimeSlots(
-    startTimeStr: string = CUSTOMER_SCHEDULER_CONFIG.START_TIME,
-    endTimeStr: string = CUSTOMER_SCHEDULER_CONFIG.END_TIME,
-    intervalMinutes: number = CUSTOMER_SCHEDULER_CONFIG.DEFAULT_INTERVAL_MINUTES,
+    startTimeStr: string = SCHEDULER_CONFIG.START_TIME,
+    endTimeStr: string = SCHEDULER_CONFIG.END_TIME,
+    intervalMinutes: number = SCHEDULER_CONFIG.SLOT_DURATION,
   ): CustomerGeneratedTimeSlot[] {
-    const startMinutes = this.parseTimeToMinutes(startTimeStr);
-    let endMinutes = this.parseTimeToMinutes(endTimeStr);
-    if (endMinutes <= startMinutes) {
-      endMinutes = 24 * 60;
-    }
-
-    const slots: CustomerGeneratedTimeSlot[] = [];
-    let current = startMinutes;
-    let slotIndex = 0;
-
-    while (current < endMinutes) {
-      const hours = Math.floor(current / 60);
-      const minutes = current % 60;
-      const isMajorHour = minutes === 0;
-      const time = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-      const formattedTime = `${hours}:${minutes.toString().padStart(2, '0')}`;
-      const formattedHour = isMajorHour ? `${hours}:00` : '';
-
-      slots.push({
-        time,
-        formattedTime,
-        formattedHour,
-        isMajorHour,
-        slotIndex,
-        minutesFromStart: current - startMinutes,
-      });
-
-      current += intervalMinutes;
-      slotIndex++;
-    }
-
-    return slots;
+    return generateTimeSlots(startTimeStr, endTimeStr, intervalMinutes);
   }
 
   /**
-   * Calculate slot block position in pixels
+   * Calculate slot block position and width in pixels based on SLOT_DURATION (default 60 minutes)
    */
   public static calculateSlotDimensions(
     startTime: string,
     endTime: string,
     slotWidth: number = SLOT_WIDTH,
-    intervalMinutes: number = CUSTOMER_SCHEDULER_CONFIG.DEFAULT_INTERVAL_MINUTES,
-    schedulerStartTime: string = CUSTOMER_SCHEDULER_CONFIG.START_TIME,
+    intervalMinutes: number = SCHEDULER_CONFIG.SLOT_DURATION,
+    schedulerStartTime: string = SCHEDULER_CONFIG.START_TIME,
   ): { left: number; width: number } {
-    const baseStart = this.parseTimeToMinutes(schedulerStartTime);
-    const start = this.parseTimeToMinutes(startTime);
-    const end = this.parseTimeToMinutes(endTime);
-
-    const minutesOffset = Math.max(0, start - baseStart);
-    const durationMinutes = Math.max(intervalMinutes, end - start);
-
-    const pxPerMinute = slotWidth / intervalMinutes;
-    const left = minutesOffset * pxPerMinute;
-    const width = durationMinutes * pxPerMinute;
-
-    return {
-      left: Math.round(left),
-      width: Math.max(16, Math.round(width)),
-    };
+    const { left, width } = calculateBookingWidth(
+      startTime,
+      endTime,
+      slotWidth,
+      intervalMinutes,
+      schedulerStartTime,
+    );
+    return { left, width };
   }
+
+  /**
+   * Alias for calculateBookingWidth utility
+   */
+  public static calculateBookingWidth = calculateBookingWidth;
 
   /**
    * Find if a slot overlaps with any occupied slot for a specific court
@@ -110,13 +86,15 @@ export class CustomerCourtStatusService {
     slots: CustomerSlotItem[],
     courtId: string,
     slotTime: string,
+    slotDuration: number = SCHEDULER_CONFIG.SLOT_DURATION,
   ): CustomerSlotItem | undefined {
-    const targetMinutes = this.parseTimeToMinutes(slotTime);
+    const slotStartMin = this.parseTimeToMinutes(slotTime);
+    const slotEndMin = slotStartMin + slotDuration;
     return slots.find((s) => {
       if (s.courtId !== courtId) return false;
       const startMin = this.parseTimeToMinutes(s.startTime);
       const endMin = this.parseTimeToMinutes(s.endTime);
-      return targetMinutes >= startMin && targetMinutes < endMin;
+      return Math.max(slotStartMin, startMin) < Math.min(slotEndMin, endMin);
     });
   }
 
@@ -151,38 +129,21 @@ export class CustomerCourtStatusService {
   }
 
   /**
-   * Compute consecutive slot range from selected slot array
+   * Compute consecutive slot range from selected slot array using SLOT_DURATION (60 minutes)
    */
   public static calculateRangeFromSlots(
     courtId: string,
     courtName: string,
     selectedSlotTimes: string[],
-    intervalMinutes: number = CUSTOMER_SCHEDULER_CONFIG.DEFAULT_INTERVAL_MINUTES,
+    intervalMinutes: number = CUSTOMER_SCHEDULER_CONFIG.SLOT_DURATION,
   ): CustomerSlotSelection | null {
-    if (selectedSlotTimes.length === 0) return null;
-
-    const sortedMinutes = selectedSlotTimes
-      .map((t) => this.parseTimeToMinutes(t))
-      .sort((a, b) => a - b);
-
-    const minMinutes = sortedMinutes[0];
-    const maxMinutes = sortedMinutes[sortedMinutes.length - 1];
-
-    if (minMinutes === undefined || maxMinutes === undefined) return null;
-
-    const startTime = this.minutesToTime(minMinutes);
-    const endTime = this.minutesToTime(maxMinutes + intervalMinutes);
-    const durationMinutes = (maxMinutes + intervalMinutes) - minMinutes;
-
-    return {
-      courtId,
-      courtName,
-      startTime,
-      endTime,
-      selectedSlots: selectedSlotTimes,
-      durationMinutes,
-    };
+    return calculateSelectedTimeRange(courtId, courtName, selectedSlotTimes, intervalMinutes);
   }
+
+  /**
+   * Alias for calculateSelectedTimeRange utility
+   */
+  public static calculateSelectedTimeRange = calculateSelectedTimeRange;
 
   /**
    * Check if a given date string (YYYY-MM-DD) is in the past

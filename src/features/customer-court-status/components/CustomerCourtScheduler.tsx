@@ -2,7 +2,11 @@ import React, { memo, useMemo } from 'react';
 import type { CustomerCourt } from '../types/customer-court';
 import type { CustomerSlotItem } from '../types/customer-slot';
 import { CustomerCourtStatusService } from '../services/customer-court-status.service';
-import { CUSTOMER_SCHEDULER_CONFIG, SLOT_WIDTH } from '../constants/customer-scheduler.config';
+import {
+  CUSTOMER_SCHEDULER_CONFIG,
+  SCHEDULER_CONFIG,
+  SLOT_WIDTH,
+} from '../constants/customer-scheduler.config';
 import { CustomerTimeHeader } from './CustomerTimeHeader';
 import { CustomerCourtRow } from './CustomerCourtRow';
 import { CustomerAvailabilityLayer } from './CustomerAvailabilityLayer';
@@ -11,12 +15,12 @@ import { useCustomerSchedulerSelection } from '../hooks/useCustomerSchedulerSele
 interface CustomerCourtSchedulerProps {
   courts: CustomerCourt[];
   slots: CustomerSlotItem[];
-  slotInterval: number;
+  slotInterval?: number;
   zoomLevel: number;
 }
 
 export const CustomerCourtScheduler: React.FC<CustomerCourtSchedulerProps> = memo(
-  ({ courts, slots, slotInterval, zoomLevel }) => {
+  ({ courts, slots, slotInterval = SCHEDULER_CONFIG.SLOT_DURATION, zoomLevel }) => {
     // Dynamic slot width derived from single source of truth SLOT_WIDTH = 80
     const slotWidth = useMemo(() => {
       const computed = Math.round(SLOT_WIDTH * zoomLevel);
@@ -26,12 +30,12 @@ export const CustomerCourtScheduler: React.FC<CustomerCourtSchedulerProps> = mem
       );
     }, [zoomLevel]);
 
-    // Generate time slots
+    // Generate 60-minute time slots from 05:00 to 23:00 (18 cells)
     const timeSlots = useMemo(
       () =>
         CustomerCourtStatusService.generateTimeSlots(
-          CUSTOMER_SCHEDULER_CONFIG.START_TIME,
-          CUSTOMER_SCHEDULER_CONFIG.END_TIME,
+          SCHEDULER_CONFIG.START_TIME,
+          SCHEDULER_CONFIG.END_TIME,
           slotInterval,
         ),
       [slotInterval],

@@ -307,7 +307,7 @@ export const CustomerCourtStatusPage: React.FC = () => {
                       <span className="size-2.5 rounded-full bg-emerald-500" />
                       <h3 className="font-bold text-sm text-slate-900">{activeCourt.courtName}</h3>
                     </div>
-                    <span className="text-[11px] text-slate-500">Khung giờ hoạt động 05:00 - 24:00</span>
+                    <span className="text-[11px] text-slate-500">Khung giờ hoạt động 05:00 - 23:00</span>
                   </div>
 
                   {/* Hourly availability summary */}

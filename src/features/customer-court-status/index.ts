@@ -11,6 +11,8 @@ export * from './components/MobileCourtSelect';
 export * from './components/CustomerDatePickerDialog';
 export * from './services/customer-court-status.service';
 export * from './constants/customer-scheduler.config';
+export * from './utils/time-slot.utils';
 export * from './hooks/useCustomerCourtStatus';
 export * from './hooks/useCustomerSchedulerSelection';
+
 

@@ -74,8 +74,8 @@ let inMemorySlots: CustomerSlotItem[] = [
   { courtId: 'court-3', startTime: '17:00', endTime: '22:00', status: 'BOOKED' },
 
   // Court 4
-  { courtId: 'court-4', startTime: '05:00', endTime: '05:30', status: 'LOCKED' },
-  { courtId: 'court-4', startTime: '05:30', endTime: '07:00', status: 'BOOKED' },
+  { courtId: 'court-4', startTime: '05:00', endTime: '06:00', status: 'LOCKED' },
+  { courtId: 'court-4', startTime: '06:00', endTime: '07:00', status: 'BOOKED' },
   { courtId: 'court-4', startTime: '07:00', endTime: '11:00', status: 'LOCKED' },
   { courtId: 'court-4', startTime: '19:00', endTime: '21:00', status: 'BOOKED' },
 
@@ -135,7 +135,6 @@ export const getMockAvailableSlots = (
       { startTime: '18:00', endTime: '19:00' },
       { startTime: '21:00', endTime: '22:00' },
       { startTime: '22:00', endTime: '23:00' },
-      { startTime: '23:00', endTime: '24:00' },
     ],
   };
   return createSuccessResponse(data);

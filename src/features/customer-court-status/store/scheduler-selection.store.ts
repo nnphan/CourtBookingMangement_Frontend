@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { SCHEDULER_CONFIG } from '../constants/customer-scheduler.config';
 
 export interface SchedulerSelectionState {
   selectedCourtId: string | null;
@@ -45,7 +46,7 @@ export const useSchedulerSelectionStore = create<SchedulerSelectionState>((set) 
       selectedSlots,
       startTime,
       endTime,
-      durationMinutes: durationMinutes ?? 0,
+      durationMinutes: durationMinutes ?? selectedSlots.length * SCHEDULER_CONFIG.SLOT_DURATION,
       isSelecting: false,
     }),
 
@@ -65,3 +66,4 @@ export const useSchedulerSelectionStore = create<SchedulerSelectionState>((set) 
 
 // Single source of truth export
 export const schedulerSelectionStore = useSchedulerSelectionStore;
+

@@ -24,28 +24,29 @@ export class SchedulerService {
   }
 
   /**
-   * Generate array of TimeSlot instances based on start time, end time, and interval
+   * Generate array of TimeSlot instances based on start time, end time, and slot duration (default 60 minutes)
    */
   public static generateTimeSlots(
     startTimeStr: string = SCHEDULER_CONFIG.START_TIME,
     endTimeStr: string = SCHEDULER_CONFIG.END_TIME,
-    intervalMinutes: number = SCHEDULER_CONFIG.DEFAULT_INTERVAL_MINUTES,
+    intervalMinutes: number = SCHEDULER_CONFIG.SLOT_DURATION,
   ): TimeSlot[] {
     const startMinutes = this.parseTimeToMinutes(startTimeStr);
     let endMinutes = this.parseTimeToMinutes(endTimeStr);
     if (endMinutes <= startMinutes) {
-      endMinutes = 24 * 60; // 24:00
+      endMinutes = 23 * 60; // 23:00
     }
 
+    const safeInterval = intervalMinutes > 0 ? intervalMinutes : SCHEDULER_CONFIG.SLOT_DURATION;
     const slots: TimeSlot[] = [];
     let current = startMinutes;
     let slotIndex = 0;
 
-    while (current <= endMinutes) {
+    while (current < endMinutes) {
       const hours = Math.floor(current / 60);
       const minutes = current % 60;
-      const formattedTime = `${hours}:${minutes.toString().padStart(2, '0')}`;
-      const time = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      const time = formattedTime;
 
       slots.push({
         time,
@@ -54,7 +55,7 @@ export class SchedulerService {
         minutesFromStart: current - startMinutes,
       });
 
-      current += intervalMinutes;
+      current += safeInterval;
       slotIndex++;
     }
 
@@ -68,18 +69,19 @@ export class SchedulerService {
     startTime: string,
     endTime: string,
     slotWidth: number,
-    intervalMinutes: number = SCHEDULER_CONFIG.DEFAULT_INTERVAL_MINUTES,
+    intervalMinutes: number = SCHEDULER_CONFIG.SLOT_DURATION,
     schedulerStartTime: string = SCHEDULER_CONFIG.START_TIME,
   ): { left: number; width: number } {
     const baseStartMinutes = this.parseTimeToMinutes(schedulerStartTime);
     const bookingStartMinutes = this.parseTimeToMinutes(startTime);
     const bookingEndMinutes = this.parseTimeToMinutes(endTime);
 
+    const safeInterval = intervalMinutes > 0 ? intervalMinutes : SCHEDULER_CONFIG.SLOT_DURATION;
     const minutesOffset = Math.max(0, bookingStartMinutes - baseStartMinutes);
-    const durationMinutes = Math.max(intervalMinutes, bookingEndMinutes - bookingStartMinutes);
+    const durationMinutes = Math.max(safeInterval, bookingEndMinutes - bookingStartMinutes);
 
     // Each intervalMinutes corresponds to slotWidth
-    const pixelsPerMinute = slotWidth / intervalMinutes;
+    const pixelsPerMinute = slotWidth / safeInterval;
 
     const left = minutesOffset * pixelsPerMinute;
     const width = durationMinutes * pixelsPerMinute;
