@@ -10,6 +10,7 @@ export const StatusLegend: React.FC = memo(() => {
     CUSTOMER_COURT_STATUS.BOOKED,
     CUSTOMER_COURT_STATUS.LOCKED,
     CUSTOMER_COURT_STATUS.EVENT,
+    CUSTOMER_COURT_STATUS.PAST,
   ];
 
   return (
@@ -25,6 +26,10 @@ export const StatusLegend: React.FC = memo(() => {
               >
                 !
               </div>
+            ) : item.id === 'PAST' ? (
+              <span
+                className="size-3.5 rounded-xs shadow-xs shrink-0 scheduler-cell--past border border-slate-300"
+              />
             ) : (
               <span
                 className="size-3.5 rounded-xs shadow-xs shrink-0"

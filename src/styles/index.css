@@ -12,7 +12,8 @@
   --color-brand-300: #63b984;
   --color-brand-400: #2f9e5c;
   --color-brand-500: #16853f;
-  --color-brand-600: #0e6534; /* primary action */
+  --color-brand-600: #0e6534;
+  /* primary action */
   --color-brand-700: #0b5129;
   --color-brand-800: #08401f;
   --color-brand-900: #063017;
@@ -61,18 +62,23 @@
     -webkit-text-size-adjust: 100%;
     scroll-padding-top: env(safe-area-inset-top, 0px);
   }
+
   body {
     @apply bg-surface font-sans text-base font-normal text-content-primary antialiased;
   }
+
   :focus-visible {
     outline: 3px solid var(--color-focus);
     outline-offset: 2px;
     border-radius: var(--radius-field);
   }
+
   ::placeholder {
     color: var(--color-content-placeholder);
   }
+
   @media (prefers-reduced-motion: reduce) {
+
     *,
     *::before,
     *::after {
@@ -94,11 +100,54 @@
     url('https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?q=80&w=2070&auto=format&fit=crop') center/cover no-repeat;
 }
 
-@utility bg-gradient-social { background: linear-gradient(to bottom right, #8b5cf6, #3b82f6); }
-@utility bg-gradient-status { background: linear-gradient(to bottom right, #f59e0b, #ef4444); }
-@utility bg-gradient-sales { background: linear-gradient(to bottom right, #ec4899, #ef4444); }
-@utility bg-gradient-inventory { background: linear-gradient(to bottom right, #9f1239, #be123c); }
-@utility bg-gradient-revenue { background: linear-gradient(to bottom right, #f43f5e, #fb7185); }
-@utility bg-gradient-branch { background: linear-gradient(to bottom right, #10b981, #3b82f6); }
-@utility bg-gradient-customer { background: linear-gradient(to bottom right, #0ea5e9, #6366f1); }
-@utility bg-gradient-member { background: linear-gradient(to bottom right, #14b8a6, #0d9488); }
+@utility bg-gradient-social {
+  background: linear-gradient(to bottom right, #8b5cf6, #3b82f6);
+}
+
+@utility bg-gradient-status {
+  background: linear-gradient(to bottom right, #f59e0b, #ef4444);
+}
+
+@utility bg-gradient-sales {
+  background: linear-gradient(to bottom right, #ec4899, #ef4444);
+}
+
+@utility bg-gradient-inventory {
+  background: linear-gradient(to bottom right, #9f1239, #be123c);
+}
+
+@utility bg-gradient-revenue {
+  background: linear-gradient(to bottom right, #f43f5e, #fb7185);
+}
+
+@utility bg-gradient-branch {
+  background: linear-gradient(to bottom right, #10b981, #3b82f6);
+}
+
+@utility bg-gradient-customer {
+  background: linear-gradient(to bottom right, #0ea5e9, #6366f1);
+}
+
+@utility bg-gradient-member {
+  background: linear-gradient(to bottom right, #14b8a6, #0d9488);
+}
+
+/* Past Scheduler Slots Visualization & Disable Styling */
+.scheduler-cell--past {
+  position: relative;
+  background-color: #f1f5f9;
+  /* slate-100 */
+  color: #94a3b8;
+  /* slate-400 */
+  cursor: not-allowed;
+}
+
+.scheduler-cell--past::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(248, 250, 252, 0.75);
+  backdrop-filter: grayscale(30%);
+  -webkit-backdrop-filter: grayscale(30%);
+  pointer-events: none;
+}

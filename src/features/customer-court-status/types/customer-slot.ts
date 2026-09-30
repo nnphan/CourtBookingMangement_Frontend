@@ -6,6 +6,15 @@ export interface CustomerSlotItem {
   startTime: string;
   endTime: string;
   status: CustomerCourtStatusType;
+  isPast?: boolean;
+}
+
+export interface SchedulerCellModel {
+  courtId: string;
+  startTime: string;
+  endTime: string;
+  status: CustomerCourtStatusType;
+  isPast: boolean;
 }
 
 export interface CustomerCourtStatusData {

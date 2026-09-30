@@ -196,17 +196,6 @@ export const CustomerCourtStatusPage: React.FC = () => {
 
         {/* Right: Date Picker & Modern Notion/Linear Dropdowns */}
         <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Branch Selector Dropdown (Modern Enterprise Radix UI Select) */}
-          {branches.length > 1 && (
-            <div className="hidden sm:block">
-              <BranchSelectDropdown
-                branches={branches}
-                selectedBranchId={selectedBranchId}
-                onBranchChange={handleBranchChange}
-                variant="header"
-              />
-            </div>
-          )}
 
           {/* Slot Interval Select (Desktop/Tablet) */}
           <div className="hidden lg:block">

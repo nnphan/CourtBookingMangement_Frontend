@@ -156,13 +156,33 @@ export const useCustomerSchedulerSelection = ({
         allSlots.push(CustomerCourtStatusService.minutesToTime(m));
       }
 
-      const totalDuration = newMax - newMin;
+      // Past slot protection: Multi-selection must ignore past slots
+      const validSlots = allSlots.filter(
+        (time) => !CustomerCourtStatusService.isPastSlot(selectedDate, time),
+      );
+
+      if (validSlots.length === 0) {
+        toast.error('Các khung giờ đã chọn đều ở trong quá khứ.', 'Past time slots cannot be booked.');
+        return;
+      }
+
+      const firstSlot = validSlots[0];
+      const lastSlot = validSlots[validSlots.length - 1];
+      if (!firstSlot || !lastSlot) {
+        clearSelection();
+        return;
+      }
+
+      const validStartMin = CustomerCourtStatusService.parseTimeToMinutes(firstSlot);
+      const validEndMin = CustomerCourtStatusService.parseTimeToMinutes(lastSlot) + slotInterval;
+      const totalDuration = validEndMin - validStartMin;
+
       setActiveSelection({
         courtId,
         courtName,
-        startTime: newStartTime,
-        endTime: newEndTime,
-        selectedSlots: allSlots,
+        startTime: CustomerCourtStatusService.minutesToTime(validStartMin),
+        endTime: CustomerCourtStatusService.minutesToTime(validEndMin),
+        selectedSlots: validSlots,
         durationMinutes: totalDuration,
       });
     },

@@ -11,6 +11,7 @@ import {
   SLOT_WIDTH,
 } from '../constants/customer-scheduler.config';
 import { CUSTOMER_COURT_STATUS } from '../types/customer-status';
+import { useCustomerCourtStatusStore } from '../store/customer-court-status.store';
 import { AvailableSlotTooltip } from './AvailableSlotTooltip';
 import { SchedulerCell } from './SchedulerCell';
 import { X } from 'lucide-react';
@@ -44,8 +45,18 @@ export const CustomerCourtRow: React.FC<CustomerCourtRowProps> = memo(
     onSlotClick,
     onClearSelection,
   }) => {
+    const selectedDate = useCustomerCourtStatusStore((s) => s.selectedDate);
     const totalGridWidth = Math.round(timeSlots.length * slotWidth);
     const effectiveTimelineWidth = timelineWidth ?? totalGridWidth + BOUNDARY_PADDING_PX;
+
+    // Performance: Memoize disabled past slots for this date
+    const disabledSlotMap = React.useMemo(() => {
+      const map = new Map<string, boolean>();
+      for (const slot of timeSlots) {
+        map.set(slot.time, CustomerCourtStatusService.isPastSlot(selectedDate, slot.time));
+      }
+      return map;
+    }, [selectedDate, timeSlots]);
 
     // Filter slots belonging to this court that are NOT available
     const courtOccupiedSlots = slots.filter(
@@ -92,17 +103,21 @@ export const CustomerCourtRow: React.FC<CustomerCourtRowProps> = memo(
           style={{ width: `${effectiveTimelineWidth}px` }}
         >
           {/* Base Grid cells for click targets deriving from single source of truth */}
-          {timeSlots.map((slot) => (
-            <SchedulerCell
-              key={slot.time}
-              courtId={court.courtId}
-              courtName={court.courtName}
-              slotTime={slot.time}
-              slotEndTime={slot.endTime}
-              slotWidth={slotWidth}
-              onSlotClick={onSlotClick}
-            />
-          ))}
+          {timeSlots.map((slot) => {
+            const isPast = disabledSlotMap.get(slot.time) ?? false;
+            return (
+              <SchedulerCell
+                key={slot.time}
+                courtId={court.courtId}
+                courtName={court.courtName}
+                slotTime={slot.time}
+                slotEndTime={slot.endTime}
+                slotWidth={slotWidth}
+                isPast={isPast}
+                onSlotClick={onSlotClick}
+              />
+            );
+          })}
 
           {/* Occupied blocks layer (BOOKED, LOCKED, EVENT) */}
           {courtOccupiedSlots.map((slot, index) => {

@@ -8,6 +8,7 @@ import {
 } from '../constants/customer-scheduler.config';
 import { calculateCurrentTimeOffset } from '../utils/time-slot.utils';
 import { useSchedulerDimensions } from '../hooks/useSchedulerDimensions';
+import { useCustomerCourtStatusStore } from '../store/customer-court-status.store';
 import { CustomerTimeHeader } from './CustomerTimeHeader';
 import { CustomerCourtRow } from './CustomerCourtRow';
 import { CustomerAvailabilityLayer } from './CustomerAvailabilityLayer';
@@ -38,6 +39,9 @@ export const CustomerCourtScheduler: React.FC<CustomerCourtSchedulerProps> = mem
     const [canScrollLeft, setCanScrollLeft] = useState<boolean>(false);
     const [canScrollRight, setCanScrollRight] = useState<boolean>(false);
     const [tick, setTick] = useState<number>(0);
+
+    const selectedDate = useCustomerCourtStatusStore((s) => s.selectedDate);
+    const isToday = useMemo(() => CustomerCourtStatusService.isToday(selectedDate), [selectedDate]);
 
     // Dynamic responsive dimensions derived from openTime, closeTime, and container width
     const {
@@ -74,18 +78,23 @@ export const CustomerCourtScheduler: React.FC<CustomerCourtSchedulerProps> = mem
       return () => window.clearInterval(timer);
     }, []);
 
-    // Current time red line position
-    const currentTimeInfo = useMemo(
-      () =>
-        calculateCurrentTimeOffset(
-          slotWidth,
-          slotInterval,
-          normalizedOpenTime,
-          normalizedCloseTime,
-        ),
+    // Current time red line position (Strictly visible only for today)
+    const currentTimeInfo = useMemo(() => {
+      if (!isToday) {
+        return {
+          offsetPx: 0,
+          currentTimeLabel: '',
+          isWithinHours: false,
+        };
+      }
+      return calculateCurrentTimeOffset(
+        slotWidth,
+        slotInterval,
+        normalizedOpenTime,
+        normalizedCloseTime,
+      );
       // eslint-disable-next-line react-hooks/exhaustive-deps
-      [slotWidth, slotInterval, normalizedOpenTime, normalizedCloseTime, tick],
-    );
+    }, [isToday, slotWidth, slotInterval, normalizedOpenTime, normalizedCloseTime, tick]);
 
     // Update horizontal scroll shadow indicators
     const handleScroll = useCallback(() => {
@@ -99,27 +108,27 @@ export const CustomerCourtScheduler: React.FC<CustomerCourtSchedulerProps> = mem
       handleScroll();
     }, [timelineWidth, containerWidth, handleScroll]);
 
-    // Auto-scroll to current time on initial load (only when horizontal scroll is active)
+    // Auto-scroll to current time on initial load (only when horizontal scroll is active and viewing today)
     const scrollToCurrentTime = useCallback(
       (behavior: ScrollBehavior = 'smooth') => {
         const el = scrollContainerRef.current;
-        if (!el) return;
+        if (!el || !isToday) return;
         const targetX = Math.max(0, currentTimeInfo.offsetPx - el.clientWidth / 3);
         el.scrollTo({ left: targetX, behavior });
       },
-      [currentTimeInfo.offsetPx],
+      [isToday, currentTimeInfo.offsetPx],
     );
 
     useEffect(() => {
       const el = scrollContainerRef.current;
-      if (!hasAutoScrolledRef.current && el && slotWidth > 0) {
+      if (!hasAutoScrolledRef.current && el && slotWidth > 0 && isToday) {
         hasAutoScrolledRef.current = true;
         const isOverflowing = el.scrollWidth > el.clientWidth + 8;
         if (isOverflowing && currentTimeInfo.isWithinHours && currentTimeInfo.offsetPx > 240) {
           scrollToCurrentTime('smooth');
         }
       }
-    }, [slotWidth, currentTimeInfo.isWithinHours, currentTimeInfo.offsetPx, scrollToCurrentTime]);
+    }, [slotWidth, isToday, currentTimeInfo.isWithinHours, currentTimeInfo.offsetPx, scrollToCurrentTime]);
 
     const handleScrollBy = useCallback(
       (direction: 'left' | 'right') => {
@@ -140,6 +149,8 @@ export const CustomerCourtScheduler: React.FC<CustomerCourtSchedulerProps> = mem
       handleBookCurrentSelection,
     } = useCustomerSchedulerSelection({ courts, slots, slotInterval });
 
+    const isCurrentTimeVisible = isToday && currentTimeInfo.isWithinHours;
+
     return (
       <div className="relative w-full h-full flex-1 flex flex-col overflow-hidden bg-white select-none">
         {/* Quick Navigation Bar for Mobile & Tablet Horizontal Scroll */}
@@ -158,15 +169,17 @@ export const CustomerCourtScheduler: React.FC<CustomerCourtSchedulerProps> = mem
           </div>
 
           <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => scrollToCurrentTime('smooth')}
-              className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold text-[11px] transition-colors cursor-pointer"
-              title="Cuộn đến giờ hiện tại"
-            >
-              <span className="size-1.5 rounded-full bg-rose-500 animate-pulse" />
-              <span>Hiện tại ({currentTimeInfo.currentTimeLabel})</span>
-            </button>
+            {isToday && (
+              <button
+                type="button"
+                onClick={() => scrollToCurrentTime('smooth')}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold text-[11px] transition-colors cursor-pointer"
+                title="Cuộn đến giờ hiện tại"
+              >
+                <span className="size-1.5 rounded-full bg-rose-500 animate-pulse" />
+                <span>Hiện tại ({currentTimeInfo.currentTimeLabel})</span>
+              </button>
+            )}
 
             <button
               type="button"
@@ -222,10 +235,8 @@ export const CustomerCourtScheduler: React.FC<CustomerCourtSchedulerProps> = mem
                 slotWidth={slotWidth}
                 timelineWidth={timelineWidth}
                 closeTime={normalizedCloseTime}
-                currentTimeOffsetPx={
-                  currentTimeInfo.isWithinHours ? currentTimeInfo.offsetPx : null
-                }
-                currentTimeLabel={currentTimeInfo.currentTimeLabel}
+                currentTimeOffsetPx={isCurrentTimeVisible ? currentTimeInfo.offsetPx : null}
+                currentTimeLabel={isCurrentTimeVisible ? currentTimeInfo.currentTimeLabel : undefined}
               />
 
               {/* Court Rows */}
@@ -241,9 +252,7 @@ export const CustomerCourtScheduler: React.FC<CustomerCourtSchedulerProps> = mem
                     openTime={normalizedOpenTime}
                     slotInterval={slotInterval}
                     activeSelection={activeSelection}
-                    currentTimeOffsetPx={
-                      currentTimeInfo.isWithinHours ? currentTimeInfo.offsetPx : null
-                    }
+                    currentTimeOffsetPx={isCurrentTimeVisible ? currentTimeInfo.offsetPx : null}
                     onSlotClick={handleSlotClick}
                     onClearSelection={clearSelection}
                     isSlotSelected={isSlotSelected}

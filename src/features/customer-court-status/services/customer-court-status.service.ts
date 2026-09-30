@@ -146,26 +146,49 @@ export class CustomerCourtStatusService {
   public static calculateSelectedTimeRange = calculateSelectedTimeRange;
 
   /**
-   * Check if a given date string (YYYY-MM-DD) is in the past
+   * Check if a given date string (YYYY-MM-DD) is today
    */
-  public static isPastDate(dateStr: string): boolean {
-    const today = dayjs().startOf('day');
-    const target = dayjs(dateStr).startOf('day');
-    return target.isBefore(today);
+  public static isToday(dateStr: string): boolean {
+    if (!dateStr) return false;
+    const d = dayjs(dateStr);
+    return d.isValid() && d.isSame(dayjs(), 'day');
   }
 
   /**
-   * Check if a slot time on a specific date is in the past
+   * Check if a given date string (YYYY-MM-DD) is in the past (before today 00:00:00)
+   */
+  public static isPastDate(dateStr: string): boolean {
+    if (!dateStr) return false;
+    const d = dayjs(dateStr);
+    if (!d.isValid()) return false;
+    return d.startOf('day').isBefore(dayjs().startOf('day'));
+  }
+
+  /**
+   * Check if a slot time on a specific date is in the past:
+   * - Selected Date Yesterday -> returns true (all disabled)
+   * - Selected Date Today -> returns slotDateTime.isBefore(now)
+   * - Selected Date Tomorrow -> returns false (all enabled)
    */
   public static isPastSlot(dateStr: string, slotTime: string): boolean {
-    if (this.isPastDate(dateStr)) return true;
-    if (dayjs(dateStr).isAfter(dayjs(), 'day')) return false;
+    if (!dateStr || !slotTime) return false;
+    const now = dayjs();
+    const d = dayjs(dateStr);
+    if (!d.isValid()) return false;
+
+    if (d.startOf('day').isBefore(now.startOf('day'))) return true;
+    if (d.startOf('day').isAfter(now.endOf('day'))) return false;
 
     const [hours, minutes] = slotTime.split(':').map((v) => parseInt(v, 10));
-    if (hours === undefined || minutes === undefined) return false;
+    if (hours === undefined || minutes === undefined || isNaN(hours) || isNaN(minutes)) return false;
 
-    const slotDateTime = dayjs(dateStr).hour(hours).minute(minutes).second(0);
-    return slotDateTime.isBefore(dayjs());
+    const slotDateTime = dayjs(dateStr)
+      .hour(hours)
+      .minute(minutes)
+      .second(0)
+      .millisecond(0);
+
+    return slotDateTime.isBefore(now);
   }
 
   /**

@@ -7,6 +7,7 @@ import { SlotSelectionOverlay } from './SlotSelectionOverlay';
 import { SCHEDULER_CONFIG } from '../constants/scheduler';
 import { SchedulerService } from '../services/scheduler.service';
 import { useCourtStatusStore } from '../store/court-status.store';
+import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 
 interface SchedulerGridProps {
@@ -123,12 +124,20 @@ export const SchedulerGrid: React.FC<SchedulerGridProps> = memo(
                       minWidth: `${Math.max(SCHEDULER_CONFIG.MIN_SLOT_WIDTH, slotWidth)}px`,
                       minHeight: '44px',
                     }}
-                    onClick={isPast ? undefined : () => onSlotClick(court, slot)}
+                    onClick={
+                      isPast
+                        ? () =>
+                            toast.info(
+                              'Khung giờ đã qua không thể đặt lịch.',
+                              'This time slot has already passed.',
+                            )
+                        : () => onSlotClick(court, slot)
+                    }
                     title={cellTitle}
                     className={cn(
                       'group relative h-full shrink-0 border-r border-[#e2e8f0] select-none transition-colors touch-manipulation',
                       isPast
-                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                        ? 'scheduler-cell--past text-slate-400 cursor-not-allowed'
                         : isSelected
                           ? 'bg-emerald-500/25 border-t-2 border-b-2 border-emerald-600 cursor-pointer'
                           : 'cursor-pointer hover:bg-emerald-50/70 active:bg-emerald-100/80',

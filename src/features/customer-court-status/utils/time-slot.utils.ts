@@ -285,3 +285,49 @@ export function calculateSelectedTimeRange(
   };
 }
 
+/**
+ * Check if a given date string (YYYY-MM-DD) is today
+ */
+export function isToday(dateStr: string): boolean {
+  if (!dateStr) return false;
+  const d = dayjs(dateStr);
+  return d.isValid() && d.isSame(dayjs(), 'day');
+}
+
+/**
+ * Check if a given date string (YYYY-MM-DD) is in the past (before today 00:00:00)
+ */
+export function isPastDate(dateStr: string): boolean {
+  if (!dateStr) return false;
+  const d = dayjs(dateStr);
+  if (!d.isValid()) return false;
+  return d.startOf('day').isBefore(dayjs().startOf('day'));
+}
+
+/**
+ * Check if a slot time on a specific date is in the past:
+ * - Selected Date Yesterday -> returns true (all disabled)
+ * - Selected Date Today -> returns slotDateTime.isBefore(now)
+ * - Selected Date Tomorrow -> returns false (all enabled)
+ */
+export function isPastSlot(selectedDate: string, startTime: string): boolean {
+  if (!selectedDate || !startTime) return false;
+  const now = dayjs();
+  const d = dayjs(selectedDate);
+  if (!d.isValid()) return false;
+
+  if (d.startOf('day').isBefore(now.startOf('day'))) return true;
+  if (d.startOf('day').isAfter(now.endOf('day'))) return false;
+
+  const [hours, minutes] = startTime.split(':').map((v) => parseInt(v, 10));
+  if (hours === undefined || minutes === undefined || isNaN(hours) || isNaN(minutes)) return false;
+
+  const slotDateTime = dayjs(selectedDate)
+    .hour(hours)
+    .minute(minutes)
+    .second(0)
+    .millisecond(0);
+
+  return slotDateTime.isBefore(now);
+}
+
