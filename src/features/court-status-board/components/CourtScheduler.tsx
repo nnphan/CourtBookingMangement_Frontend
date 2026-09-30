@@ -9,6 +9,7 @@ import { SCHEDULER_CONFIG } from '../constants/scheduler';
 import { useCourtStatusStore } from '../store/court-status.store';
 import { useSchedulerVirtualization } from '../hooks/useSchedulerVirtualization';
 import { useSlotSelection } from '../hooks/useSlotSelection';
+import { useSchedulerDimensions } from '../hooks/useSchedulerDimensions';
 import { TimeHeader } from './TimeHeader';
 import { CourtColumn } from './CourtColumn';
 import { SchedulerGrid } from './SchedulerGrid';
@@ -18,6 +19,8 @@ import { toast } from '@/lib/toast';
 interface CourtSchedulerProps {
   courts: CourtItem[];
   bookings: BookingItem[];
+  openTime?: string;
+  closeTime?: string;
   slotInterval: number;
   dateLabel: { dayOfWeek: string; formattedDate: string };
   zoomLevel: number;
@@ -43,6 +46,8 @@ export const CourtScheduler: React.FC<CourtSchedulerProps> = memo(
   ({
     courts,
     bookings,
+    openTime = SCHEDULER_CONFIG.START_TIME,
+    closeTime = SCHEDULER_CONFIG.END_TIME,
     slotInterval,
     dateLabel,
     zoomLevel,
@@ -61,56 +66,39 @@ export const CourtScheduler: React.FC<CourtSchedulerProps> = memo(
     const containerRef = useRef<HTMLDivElement>(null);
     const hasAutoScrolledRef = useRef<string | null>(null);
 
-    const [viewportWidth, setViewportWidth] = useState<number>(() =>
-      typeof window !== 'undefined' ? window.innerWidth : 1280,
-    );
-    const [containerWidth, setContainerWidth] = useState<number>(0);
     const [showLeftShadow, setShowLeftShadow] = useState(false);
-    const [showRightShadow, setShowRightShadow] = useState(true);
+    const [showRightShadow, setShowRightShadow] = useState(false);
     const [nowTick, setNowTick] = useState<number>(() => Date.now());
 
     const selectedDate = useCourtStatusStore((s) => s.selectedDate);
     const isPastDate = useMemo(() => SchedulerService.isPastDate(selectedDate), [selectedDate]);
 
-    // Generate time slots based on interval (60 min default)
+    // Dynamic responsive dimensions derived from branch operating hours and container width
+    const {
+      slotWidth,
+      gridWidth: totalGridWidth,
+      timelineWidth,
+      openTime: normalizedOpenTime,
+      closeTime: normalizedCloseTime,
+    } = useSchedulerDimensions({
+      containerRef,
+      openTime,
+      closeTime,
+      slotInterval,
+      courtColumnWidth: SCHEDULER_CONFIG.TOTAL_LEFT_COLUMN_WIDTH,
+      zoomLevel,
+    });
+
+    // Generate time slots based on branch operating hours and interval
     const timeSlots = useMemo(
       () =>
         SchedulerService.generateTimeSlots(
-          SCHEDULER_CONFIG.START_TIME,
-          SCHEDULER_CONFIG.END_TIME,
+          normalizedOpenTime,
+          normalizedCloseTime,
           slotInterval,
         ),
-      [slotInterval],
+      [normalizedOpenTime, normalizedCloseTime, slotInterval],
     );
-
-    // Track viewport & container resize for responsive slot width and 100% width expansion
-    useEffect(() => {
-      const handleResize = () => {
-        setViewportWidth(window.innerWidth);
-        if (containerRef.current) {
-          setContainerWidth(containerRef.current.clientWidth);
-        }
-      };
-
-      handleResize();
-      window.addEventListener('resize', handleResize);
-
-      let observer: ResizeObserver | null = null;
-      if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
-        observer = new ResizeObserver((entries) => {
-          const entry = entries[0];
-          if (entry) {
-            setContainerWidth(entry.contentRect.width);
-          }
-        });
-        observer.observe(containerRef.current);
-      }
-
-      return () => {
-        window.removeEventListener('resize', handleResize);
-        observer?.disconnect();
-      };
-    }, []);
 
     // Refresh current time indicator every 60 seconds
     useEffect(() => {
@@ -119,28 +107,6 @@ export const CourtScheduler: React.FC<CourtSchedulerProps> = memo(
       }, 60_000);
       return () => window.clearInterval(interval);
     }, []);
-
-    // Calculate responsive & dynamic slot width based on breakpoint, container width, and zoom level
-    const slotWidth = useMemo(() => {
-      const responsiveBase =
-        viewportWidth >= 1280
-          ? SCHEDULER_CONFIG.RESPONSIVE_SLOT_WIDTH.DESKTOP
-          : viewportWidth >= 768
-            ? SCHEDULER_CONFIG.RESPONSIVE_SLOT_WIDTH.TABLET
-            : SCHEDULER_CONFIG.RESPONSIVE_SLOT_WIDTH.MOBILE;
-
-      const availableTimelineWidth = Math.max(
-        0,
-        containerWidth - SCHEDULER_CONFIG.TOTAL_LEFT_COLUMN_WIDTH - 28,
-      );
-      const expandedBase =
-        timeSlots.length > 0
-          ? Math.max(responsiveBase, Math.floor(availableTimelineWidth / timeSlots.length))
-          : responsiveBase;
-
-      const computed = Math.round(expandedBase * zoomLevel);
-      return Math.max(SCHEDULER_CONFIG.MIN_SLOT_WIDTH, Math.min(SCHEDULER_CONFIG.MAX_SLOT_WIDTH, computed));
-    }, [viewportWidth, containerWidth, timeSlots.length, zoomLevel]);
 
     // Multi time slot click-to-select hook
     const {
@@ -158,10 +124,6 @@ export const CourtScheduler: React.FC<CourtSchedulerProps> = memo(
       overscan: SCHEDULER_CONFIG.OVERSCAN_ROWS,
     });
 
-    const totalGridWidth = useMemo(() => {
-      return timeSlots.length * slotWidth;
-    }, [timeSlots.length, slotWidth]);
-
     // Current time indicator offset & label (when selectedDate is today)
     const { currentTimeOffsetPx, currentTimeLabel } = useMemo(() => {
       void nowTick;
@@ -170,8 +132,8 @@ export const CourtScheduler: React.FC<CourtSchedulerProps> = memo(
       }
       const now = dayjs();
       const currentMinutes = now.hour() * 60 + now.minute();
-      const startMinutes = SchedulerService.parseTimeToMinutes(SCHEDULER_CONFIG.START_TIME);
-      const endMinutes = SchedulerService.parseTimeToMinutes(SCHEDULER_CONFIG.END_TIME);
+      const startMinutes = SchedulerService.parseTimeToMinutes(normalizedOpenTime);
+      const endMinutes = SchedulerService.parseTimeToMinutes(normalizedCloseTime);
 
       if (currentMinutes < startMinutes || currentMinutes > endMinutes) {
         return { currentTimeOffsetPx: null, currentTimeLabel: undefined };
@@ -183,7 +145,7 @@ export const CourtScheduler: React.FC<CourtSchedulerProps> = memo(
         currentTimeOffsetPx: offsetPx,
         currentTimeLabel: now.format('HH:mm'),
       };
-    }, [selectedDate, slotInterval, slotWidth, nowTick]);
+    }, [selectedDate, normalizedOpenTime, normalizedCloseTime, slotInterval, slotWidth, nowTick]);
 
     // Update horizontal scroll shadow state
     const updateScrollShadows = useCallback(() => {
@@ -196,15 +158,16 @@ export const CourtScheduler: React.FC<CourtSchedulerProps> = memo(
 
     useEffect(() => {
       updateScrollShadows();
-    }, [slotWidth, totalGridWidth, updateScrollShadows]);
+    }, [slotWidth, timelineWidth, updateScrollShadows]);
 
-    // Auto-scroll to current time when viewing today's schedule
+    // Auto-scroll to current time when viewing today's schedule (only if horizontally scrollable)
     useEffect(() => {
       const el = containerRef.current;
       if (!el) return;
       if (hasAutoScrolledRef.current === selectedDate) return;
 
-      if (currentTimeOffsetPx !== null && currentTimeOffsetPx > 0) {
+      const isOverflowing = el.scrollWidth > el.clientWidth + 8;
+      if (isOverflowing && currentTimeOffsetPx !== null && currentTimeOffsetPx > 0) {
         const targetScroll = Math.max(0, currentTimeOffsetPx - slotWidth * 1.5);
         el.scrollTo({ left: targetScroll, behavior: 'smooth' });
         hasAutoScrolledRef.current = selectedDate;
@@ -310,7 +273,7 @@ export const CourtScheduler: React.FC<CourtSchedulerProps> = memo(
           {/* Main Table Structure */}
           <div
             style={{
-              width: `${SCHEDULER_CONFIG.TOTAL_LEFT_COLUMN_WIDTH + totalGridWidth + 28}px`,
+              width: `${SCHEDULER_CONFIG.TOTAL_LEFT_COLUMN_WIDTH + timelineWidth}px`,
               minWidth: '100%',
             }}
           >
@@ -318,6 +281,8 @@ export const CourtScheduler: React.FC<CourtSchedulerProps> = memo(
             <TimeHeader
               timeSlots={timeSlots}
               slotWidth={slotWidth}
+              timelineWidth={timelineWidth}
+              closeTime={normalizedCloseTime}
               currentTimeOffsetPx={currentTimeOffsetPx}
               currentTimeLabel={currentTimeLabel}
             />
@@ -336,6 +301,8 @@ export const CourtScheduler: React.FC<CourtSchedulerProps> = memo(
                 timeSlots={timeSlots}
                 bookings={bookings}
                 slotWidth={slotWidth}
+                timelineWidth={timelineWidth}
+                openTime={normalizedOpenTime}
                 slotInterval={slotInterval}
                 virtualRows={virtualRows}
                 totalHeight={totalVirtualHeight}

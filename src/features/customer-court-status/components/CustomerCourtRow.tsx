@@ -4,8 +4,10 @@ import type { CustomerSlotItem, CustomerSlotSelection } from '../types/customer-
 import { CustomerCourtStatusService } from '../services/customer-court-status.service';
 import type { CustomerGeneratedTimeSlot } from '../services/customer-court-status.service';
 import {
+  BOUNDARY_PADDING_PX,
   COURT_COLUMN_WIDTH,
   CUSTOMER_SCHEDULER_CONFIG,
+  SCHEDULER_CONFIG,
   SLOT_WIDTH,
 } from '../constants/customer-scheduler.config';
 import { CUSTOMER_COURT_STATUS } from '../types/customer-status';
@@ -18,6 +20,8 @@ interface CustomerCourtRowProps {
   slots: CustomerSlotItem[];
   timeSlots: CustomerGeneratedTimeSlot[];
   slotWidth?: number;
+  timelineWidth?: number;
+  openTime?: string;
   slotInterval: number;
   activeSelection: CustomerSlotSelection | null;
   currentTimeOffsetPx?: number | null;
@@ -32,12 +36,17 @@ export const CustomerCourtRow: React.FC<CustomerCourtRowProps> = memo(
     slots,
     timeSlots,
     slotWidth = SLOT_WIDTH,
+    timelineWidth,
+    openTime = SCHEDULER_CONFIG.START_TIME,
     slotInterval,
     activeSelection,
     currentTimeOffsetPx = null,
     onSlotClick,
     onClearSelection,
   }) => {
+    const totalGridWidth = Math.round(timeSlots.length * slotWidth);
+    const effectiveTimelineWidth = timelineWidth ?? totalGridWidth + BOUNDARY_PADDING_PX;
+
     // Filter slots belonging to this court that are NOT available
     const courtOccupiedSlots = slots.filter(
       (s) => s.courtId === court.courtId && s.status !== 'AVAILABLE',
@@ -54,6 +63,7 @@ export const CustomerCourtRow: React.FC<CustomerCourtRowProps> = memo(
             activeSelection.endTime,
             slotWidth,
             slotInterval,
+            openTime,
           )
         : null;
 
@@ -66,7 +76,7 @@ export const CustomerCourtRow: React.FC<CustomerCourtRowProps> = memo(
         }}
         className="flex border-b border-slate-200 hover:bg-slate-50/40 transition-colors relative"
       >
-        {/* Sticky Court Column on left (140px) */}
+        {/* Sticky Court Column on left */}
         <div
           role="rowheader"
           style={{ width: `${COURT_COLUMN_WIDTH}px` }}
@@ -79,7 +89,7 @@ export const CustomerCourtRow: React.FC<CustomerCourtRowProps> = memo(
         {/* Schedule Grid Track */}
         <div
           className="relative flex shrink-0"
-          style={{ width: `${timeSlots.length * slotWidth}px` }}
+          style={{ width: `${effectiveTimelineWidth}px` }}
         >
           {/* Base Grid cells for click targets deriving from single source of truth */}
           {timeSlots.map((slot) => (
@@ -101,6 +111,7 @@ export const CustomerCourtRow: React.FC<CustomerCourtRowProps> = memo(
               slot.endTime,
               slotWidth,
               slotInterval,
+              openTime,
             );
             const statusConfig = CUSTOMER_COURT_STATUS[slot.status];
 

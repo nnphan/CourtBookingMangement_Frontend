@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { useSchedulerSelectionStore } from '../store/scheduler-selection.store';
-import { SLOT_WIDTH } from '../constants/customer-scheduler.config';
+import { MIN_SLOT_WIDTH, SLOT_WIDTH } from '../constants/customer-scheduler.config';
 import { cn } from '@/lib/utils';
 
 interface SchedulerCellProps {
@@ -30,7 +30,7 @@ export const SchedulerCell: React.FC<SchedulerCellProps> = memo(
         aria-label={`${courtName} ${rangeLabel} ${isSelected ? 'đang chọn' : 'trống'}`}
         style={{
           width: `${slotWidth}px`,
-          minWidth: '80px',
+          minWidth: `${Math.max(MIN_SLOT_WIDTH, slotWidth)}px`,
           minHeight: '44px',
         }}
         onClick={() => onSlotClick(courtId, slotTime)}

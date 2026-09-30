@@ -6,10 +6,8 @@ import {
   COURT_COLUMN_WIDTH,
   SCHEDULER_CONFIG,
 } from '../constants/customer-scheduler.config';
-import {
-  calculateCurrentTimeOffset,
-  getResponsiveSlotWidth,
-} from '../utils/time-slot.utils';
+import { calculateCurrentTimeOffset } from '../utils/time-slot.utils';
+import { useSchedulerDimensions } from '../hooks/useSchedulerDimensions';
 import { CustomerTimeHeader } from './CustomerTimeHeader';
 import { CustomerCourtRow } from './CustomerCourtRow';
 import { CustomerAvailabilityLayer } from './CustomerAvailabilityLayer';
@@ -19,62 +17,54 @@ import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 interface CustomerCourtSchedulerProps {
   courts: CustomerCourt[];
   slots: CustomerSlotItem[];
+  openTime?: string;
+  closeTime?: string;
   slotInterval?: number;
   zoomLevel: number;
 }
 
 export const CustomerCourtScheduler: React.FC<CustomerCourtSchedulerProps> = memo(
-  ({ courts, slots, slotInterval = SCHEDULER_CONFIG.SLOT_DURATION, zoomLevel }) => {
+  ({
+    courts,
+    slots,
+    openTime = SCHEDULER_CONFIG.START_TIME,
+    closeTime = SCHEDULER_CONFIG.END_TIME,
+    slotInterval = SCHEDULER_CONFIG.SLOT_DURATION,
+    zoomLevel,
+  }) => {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const hasAutoScrolledRef = useRef<boolean>(false);
 
-    const [viewportWidth, setViewportWidth] = useState<number>(() =>
-      typeof window !== 'undefined' ? window.innerWidth : 1280,
-    );
-    const [containerWidth, setContainerWidth] = useState<number>(0);
     const [canScrollLeft, setCanScrollLeft] = useState<boolean>(false);
-    const [canScrollRight, setCanScrollRight] = useState<boolean>(true);
+    const [canScrollRight, setCanScrollRight] = useState<boolean>(false);
     const [tick, setTick] = useState<number>(0);
 
-    // Generate 60-minute time slots from 05:00 to 23:00 (18 cells)
+    // Dynamic responsive dimensions derived from openTime, closeTime, and container width
+    const {
+      slotWidth,
+      timelineWidth,
+      openTime: normalizedOpenTime,
+      closeTime: normalizedCloseTime,
+      containerWidth,
+    } = useSchedulerDimensions({
+      containerRef: scrollContainerRef,
+      openTime,
+      closeTime,
+      slotInterval,
+      courtColumnWidth: COURT_COLUMN_WIDTH,
+      zoomLevel,
+    });
+
+    // Generate time slots based on branch operating hours (openTime -> closeTime)
     const timeSlots = useMemo(
       () =>
         CustomerCourtStatusService.generateTimeSlots(
-          SCHEDULER_CONFIG.START_TIME,
-          SCHEDULER_CONFIG.END_TIME,
+          normalizedOpenTime,
+          normalizedCloseTime,
           slotInterval,
         ),
-      [slotInterval],
+      [normalizedOpenTime, normalizedCloseTime, slotInterval],
     );
-
-    // Observe viewport & container width for 100% full-width responsive slot sizing
-    useEffect(() => {
-      const updateDimensions = () => {
-        setViewportWidth(window.innerWidth);
-        if (scrollContainerRef.current) {
-          setContainerWidth(scrollContainerRef.current.clientWidth);
-        }
-      };
-
-      updateDimensions();
-      window.addEventListener('resize', updateDimensions);
-
-      let observer: ResizeObserver | null = null;
-      if (typeof ResizeObserver !== 'undefined' && scrollContainerRef.current) {
-        observer = new ResizeObserver((entries) => {
-          const entry = entries[0];
-          if (entry) {
-            setContainerWidth(Math.floor(entry.contentRect.width));
-          }
-        });
-        observer.observe(scrollContainerRef.current);
-      }
-
-      return () => {
-        window.removeEventListener('resize', updateDimensions);
-        observer?.disconnect();
-      };
-    }, []);
 
     // Refresh current time indicator every minute
     useEffect(() => {
@@ -84,36 +74,17 @@ export const CustomerCourtScheduler: React.FC<CustomerCourtSchedulerProps> = mem
       return () => window.clearInterval(timer);
     }, []);
 
-    // Responsive slot width: 100px Desktop (>=1280), 90px Tablet (768-1279), 80px Mobile (<768)
-    // Expands automatically when screen is wider so scheduler uses 100% available width
-    const slotWidth = useMemo(
-      () =>
-        getResponsiveSlotWidth(
-          viewportWidth,
-          containerWidth,
-          timeSlots.length,
-          zoomLevel,
-          COURT_COLUMN_WIDTH,
-        ),
-      [viewportWidth, containerWidth, timeSlots.length, zoomLevel],
-    );
-
-    const totalGridWidth = useMemo(
-      () => timeSlots.length * slotWidth,
-      [timeSlots.length, slotWidth],
-    );
-
     // Current time red line position
     const currentTimeInfo = useMemo(
       () =>
         calculateCurrentTimeOffset(
           slotWidth,
           slotInterval,
-          SCHEDULER_CONFIG.START_TIME,
-          SCHEDULER_CONFIG.END_TIME,
+          normalizedOpenTime,
+          normalizedCloseTime,
         ),
       // eslint-disable-next-line react-hooks/exhaustive-deps
-      [slotWidth, slotInterval, tick],
+      [slotWidth, slotInterval, normalizedOpenTime, normalizedCloseTime, tick],
     );
 
     // Update horizontal scroll shadow indicators
@@ -126,9 +97,9 @@ export const CustomerCourtScheduler: React.FC<CustomerCourtSchedulerProps> = mem
 
     useEffect(() => {
       handleScroll();
-    }, [totalGridWidth, containerWidth, handleScroll]);
+    }, [timelineWidth, containerWidth, handleScroll]);
 
-    // Auto-scroll to current time on initial load
+    // Auto-scroll to current time on initial load (only when horizontal scroll is active)
     const scrollToCurrentTime = useCallback(
       (behavior: ScrollBehavior = 'smooth') => {
         const el = scrollContainerRef.current;
@@ -140,9 +111,11 @@ export const CustomerCourtScheduler: React.FC<CustomerCourtSchedulerProps> = mem
     );
 
     useEffect(() => {
-      if (!hasAutoScrolledRef.current && scrollContainerRef.current && slotWidth > 0) {
+      const el = scrollContainerRef.current;
+      if (!hasAutoScrolledRef.current && el && slotWidth > 0) {
         hasAutoScrolledRef.current = true;
-        if (currentTimeInfo.isWithinHours && currentTimeInfo.offsetPx > 240) {
+        const isOverflowing = el.scrollWidth > el.clientWidth + 8;
+        if (isOverflowing && currentTimeInfo.isWithinHours && currentTimeInfo.offsetPx > 240) {
           scrollToCurrentTime('smooth');
         }
       }
@@ -174,7 +147,9 @@ export const CustomerCourtScheduler: React.FC<CustomerCourtSchedulerProps> = mem
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1 font-medium text-slate-700">
               <Clock className="size-3.5 text-emerald-600" />
-              <span>Khung giờ: 05:00 - 23:00 ({slotInterval} phút/ô)</span>
+              <span>
+                Khung giờ: {normalizedOpenTime} - {normalizedCloseTime} ({slotInterval} phút/ô)
+              </span>
             </span>
             <span className="hidden sm:inline text-slate-400">•</span>
             <span className="hidden sm:inline text-slate-500">
@@ -237,7 +212,7 @@ export const CustomerCourtScheduler: React.FC<CustomerCourtSchedulerProps> = mem
           >
             <div
               style={{
-                width: `${COURT_COLUMN_WIDTH + totalGridWidth + 28}px`,
+                width: `${COURT_COLUMN_WIDTH + timelineWidth}px`,
                 minWidth: '100%',
               }}
             >
@@ -245,6 +220,8 @@ export const CustomerCourtScheduler: React.FC<CustomerCourtSchedulerProps> = mem
               <CustomerTimeHeader
                 timeSlots={timeSlots}
                 slotWidth={slotWidth}
+                timelineWidth={timelineWidth}
+                closeTime={normalizedCloseTime}
                 currentTimeOffsetPx={
                   currentTimeInfo.isWithinHours ? currentTimeInfo.offsetPx : null
                 }
@@ -260,6 +237,8 @@ export const CustomerCourtScheduler: React.FC<CustomerCourtSchedulerProps> = mem
                     slots={slots}
                     timeSlots={timeSlots}
                     slotWidth={slotWidth}
+                    timelineWidth={timelineWidth}
+                    openTime={normalizedOpenTime}
                     slotInterval={slotInterval}
                     activeSelection={activeSelection}
                     currentTimeOffsetPx={

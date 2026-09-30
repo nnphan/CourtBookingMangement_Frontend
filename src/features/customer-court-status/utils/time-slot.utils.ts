@@ -1,8 +1,10 @@
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import {
+  BOUNDARY_PADDING_PX,
   COURT_COLUMN_WIDTH,
-  RESPONSIVE_SLOT_WIDTH,
+  MAX_SLOT_WIDTH,
+  MIN_SLOT_WIDTH,
   SCHEDULER_CONFIG,
   SLOT_WIDTH,
 } from '../constants/customer-scheduler.config';
@@ -40,6 +42,29 @@ export function minutesToTime(minutes: number): string {
 }
 
 /**
+ * Normalize branch openTime and closeTime to whole-hour boundaries (e.g. "05:00" -> "23:00")
+ */
+export function normalizeOperatingHours(
+  openTime: string = SCHEDULER_CONFIG.START_TIME,
+  closeTime: string = SCHEDULER_CONFIG.END_TIME,
+): { openTime: string; closeTime: string; totalHours: number } {
+  const rawOpenMin = parseTimeToMinutes(openTime);
+  const rawCloseMin = parseTimeToMinutes(closeTime);
+
+  const openHour = Math.max(0, Math.min(22, Math.floor(rawOpenMin / 60)));
+  let closeHour = Math.max(openHour + 1, Math.min(24, Math.floor(rawCloseMin / 60)));
+  if (closeHour <= openHour) {
+    closeHour = 23;
+  }
+
+  return {
+    openTime: `${openHour.toString().padStart(2, '0')}:00`,
+    closeTime: `${closeHour.toString().padStart(2, '0')}:00`,
+    totalHours: closeHour - openHour,
+  };
+}
+
+/**
  * Calculate difference in hours between endTime and startTime
  */
 export function differenceInHours(endTime: string, startTime: string): number {
@@ -49,11 +74,56 @@ export function differenceInHours(endTime: string, startTime: string): number {
 }
 
 /**
- * Compute responsive slot width based on viewport width and available container width:
- * - Desktop (>= 1280px): 100px per slot
- * - Tablet (768px - 1279px): 90px per slot
- * - Mobile (< 768px): 80px per slot
- * Expands dynamically if the container is wider than total slots width so 100% width is used.
+ * Calculate adaptive slot width based on container width, operating hours (totalSlots), and zoom level.
+ * Clamped between MIN_SLOT_WIDTH (60px) and MAX_SLOT_WIDTH (140px).
+ */
+export function calculateAdaptiveSlotWidth(params: {
+  containerWidth: number;
+  totalSlots: number;
+  courtColumnWidth?: number;
+  boundaryPaddingPx?: number;
+  zoomLevel?: number;
+  minSlotWidth?: number;
+  maxSlotWidth?: number;
+}): {
+  slotWidth: number;
+  availableWidth: number;
+  gridWidth: number;
+  timelineWidth: number;
+} {
+  const {
+    containerWidth,
+    totalSlots,
+    courtColumnWidth = COURT_COLUMN_WIDTH,
+    boundaryPaddingPx = BOUNDARY_PADDING_PX,
+    zoomLevel = 1.0,
+    minSlotWidth = MIN_SLOT_WIDTH,
+    maxSlotWidth = MAX_SLOT_WIDTH,
+  } = params;
+
+  const safeSlots = Math.max(1, totalSlots);
+  const availableWidth = Math.max(0, containerWidth - courtColumnWidth - boundaryPaddingPx);
+
+  const rawCalculatedWidth =
+    availableWidth > 0 ? (availableWidth / safeSlots) * zoomLevel : minSlotWidth * zoomLevel;
+
+  const slotWidth = Number(
+    Math.max(minSlotWidth, Math.min(rawCalculatedWidth, maxSlotWidth)).toFixed(2),
+  );
+
+  const gridWidth = Math.round(safeSlots * slotWidth);
+  const timelineWidth = gridWidth + boundaryPaddingPx;
+
+  return {
+    slotWidth,
+    availableWidth,
+    gridWidth,
+    timelineWidth,
+  };
+}
+
+/**
+ * Compute responsive slot width based on container width and slot count.
  */
 export function getResponsiveSlotWidth(
   viewportWidth: number,
@@ -62,22 +132,13 @@ export function getResponsiveSlotWidth(
   zoomLevel: number = 1.0,
   courtColumnWidth: number = COURT_COLUMN_WIDTH,
 ): number {
-  let baseWidth: number = RESPONSIVE_SLOT_WIDTH.DESKTOP;
-  if (viewportWidth < 768) {
-    baseWidth = RESPONSIVE_SLOT_WIDTH.MOBILE;
-  } else if (viewportWidth < 1280) {
-    baseWidth = RESPONSIVE_SLOT_WIDTH.TABLET;
-  }
-
-  const zoomedWidth = Math.max(80, Math.min(160, Math.round(baseWidth * zoomLevel)));
-
-  if (containerWidth > courtColumnWidth && slotCount > 0) {
-    const availableGridWidth = containerWidth - courtColumnWidth;
-    const expandedSlotWidth = Math.floor(availableGridWidth / slotCount);
-    return Math.max(zoomedWidth, expandedSlotWidth);
-  }
-
-  return zoomedWidth;
+  const effectiveContainerWidth = containerWidth > 0 ? containerWidth : viewportWidth;
+  return calculateAdaptiveSlotWidth({
+    containerWidth: effectiveContainerWidth,
+    totalSlots: slotCount,
+    courtColumnWidth,
+    zoomLevel,
+  }).slotWidth;
 }
 
 /**

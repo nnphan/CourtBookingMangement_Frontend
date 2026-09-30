@@ -243,6 +243,8 @@ export const CustomerCourtStatusPage: React.FC = () => {
             <CustomerCourtScheduler
               courts={courts}
               slots={slots}
+              openTime={currentBranch.openTime}
+              closeTime={currentBranch.closeTime}
               slotInterval={slotInterval}
               zoomLevel={zoomLevel}
             />

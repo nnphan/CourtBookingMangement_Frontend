@@ -9,6 +9,7 @@ interface BookingLayerProps {
   bookings: BookingItem[];
   slotWidth: number;
   slotInterval: number;
+  openTime?: string;
   rowHeight?: number;
   onSelectBooking: (booking: BookingItem) => void;
   onEditBooking: (booking: BookingItem) => void;
@@ -25,6 +26,7 @@ export const BookingLayer: React.FC<BookingLayerProps> = memo(
     bookings,
     slotWidth,
     slotInterval,
+    openTime,
     rowHeight = 44,
     onSelectBooking,
     onEditBooking,
@@ -43,6 +45,7 @@ export const BookingLayer: React.FC<BookingLayerProps> = memo(
             b.endTime,
             slotWidth,
             slotInterval,
+            openTime,
           );
 
           return (

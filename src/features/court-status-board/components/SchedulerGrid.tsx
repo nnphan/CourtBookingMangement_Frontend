@@ -14,6 +14,8 @@ interface SchedulerGridProps {
   timeSlots: TimeSlot[];
   bookings: BookingItem[];
   slotWidth: number;
+  timelineWidth?: number;
+  openTime?: string;
   slotInterval: number;
   virtualRows: { index: number; start: number; size: number }[];
   totalHeight: number;
@@ -21,7 +23,7 @@ interface SchedulerGridProps {
   activeSelection: SlotSelectionRange | null;
   currentTimeOffsetPx?: number | null;
   onSlotClick: (court: CourtItem, slot: TimeSlot) => void;
-  isSlotSelected: (courtId: string, slotTime: string) => boolean;
+  isSlotSelected: (courtId: string, slotTime: string) => void | boolean;
   onConfirmSelection: (selection: SlotSelectionRange) => void;
   onClearSelection: () => void;
   onSelectBooking: (booking: BookingItem) => void;
@@ -38,6 +40,8 @@ export const SchedulerGrid: React.FC<SchedulerGridProps> = memo(
     timeSlots,
     bookings,
     slotWidth,
+    timelineWidth,
+    openTime = SCHEDULER_CONFIG.START_TIME,
     slotInterval,
     virtualRows,
     totalHeight,
@@ -56,6 +60,7 @@ export const SchedulerGrid: React.FC<SchedulerGridProps> = memo(
     onCancelBooking,
   }) => {
     const selectedDate = useCourtStatusStore((s) => s.selectedDate);
+    const effectiveTimelineWidth = timelineWidth ?? totalWidth + SCHEDULER_CONFIG.BOUNDARY_PADDING_PX;
 
     // Performance: Memoize disabled slot calculation for all slots on the current date
     const disabledSlotMap = useMemo(() => {
@@ -69,7 +74,7 @@ export const SchedulerGrid: React.FC<SchedulerGridProps> = memo(
     return (
       <div
         style={{
-          width: `${totalWidth}px`,
+          width: `${effectiveTimelineWidth}px`,
           height: `${totalHeight}px`,
           position: 'relative',
         }}
@@ -89,7 +94,7 @@ export const SchedulerGrid: React.FC<SchedulerGridProps> = memo(
                 position: 'absolute',
                 top: 0,
                 left: 0,
-                width: `${totalWidth}px`,
+                width: `${effectiveTimelineWidth}px`,
                 height: `${virtualRow.size}px`,
                 minHeight: '44px',
                 transform: `translateY(${virtualRow.start}px)`,
@@ -99,7 +104,7 @@ export const SchedulerGrid: React.FC<SchedulerGridProps> = memo(
               {/* Background grid cells with past slot protection & click-to-select support */}
               {timeSlots.map((slot) => {
                 const isPast = disabledSlotMap.get(slot.time) ?? false;
-                const isSelected = !isPast && isSlotSelected(court.id, slot.time);
+                const isSelected = !isPast && Boolean(isSlotSelected(court.id, slot.time));
 
                 const cellTitle = isPast
                   ? 'Past time slots cannot be booked.'
@@ -115,7 +120,7 @@ export const SchedulerGrid: React.FC<SchedulerGridProps> = memo(
                     aria-disabled={isPast ? 'true' : undefined}
                     style={{
                       width: `${slotWidth}px`,
-                      minWidth: '80px',
+                      minWidth: `${Math.max(SCHEDULER_CONFIG.MIN_SLOT_WIDTH, slotWidth)}px`,
                       minHeight: '44px',
                     }}
                     onClick={isPast ? undefined : () => onSlotClick(court, slot)}
@@ -152,6 +157,7 @@ export const SchedulerGrid: React.FC<SchedulerGridProps> = memo(
                   selection={activeSelection}
                   slotWidth={slotWidth}
                   slotInterval={slotInterval}
+                  openTime={openTime}
                   rowHeight={virtualRow.size || SCHEDULER_CONFIG.ROW_HEIGHT}
                   onConfirm={onConfirmSelection}
                   onClear={onClearSelection}
@@ -165,6 +171,7 @@ export const SchedulerGrid: React.FC<SchedulerGridProps> = memo(
                 bookings={bookings}
                 slotWidth={slotWidth}
                 slotInterval={slotInterval}
+                openTime={openTime}
                 rowHeight={virtualRow.size || SCHEDULER_CONFIG.ROW_HEIGHT}
                 onSelectBooking={onSelectBooking}
                 onEditBooking={onEditBooking}

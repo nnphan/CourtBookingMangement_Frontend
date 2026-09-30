@@ -80,6 +80,11 @@ export const CourtStatusPage: React.FC = () => {
 
   const isPastDate = useMemo(() => SchedulerService.isPastDate(selectedDate), [selectedDate]);
 
+  const currentBranch = useMemo(
+    () => branches.find((b) => b.id === selectedBranch) ?? branches[0],
+    [branches, selectedBranch],
+  );
+
   const handleOpenCreateBooking = useCallback(
     (initial?: {
       courtId?: string;
@@ -244,6 +249,8 @@ export const CourtStatusPage: React.FC = () => {
             <CourtScheduler
               courts={courts}
               bookings={bookings}
+              openTime={currentBranch?.openTime}
+              closeTime={currentBranch?.closeTime}
               slotInterval={slotInterval}
               dateLabel={dateLabel}
               zoomLevel={zoomLevel}

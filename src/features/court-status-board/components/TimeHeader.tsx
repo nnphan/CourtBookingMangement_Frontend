@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import type { TimeSlot } from '../types/common';
 import { Menu } from 'lucide-react';
-import { SCHEDULER_CONFIG, SLOT_WIDTH } from '../constants/scheduler';
+import { BOUNDARY_PADDING_PX, SCHEDULER_CONFIG, SLOT_WIDTH } from '../constants/scheduler';
 import { cn } from '@/lib/utils';
 
 dayjs.extend(customParseFormat);
@@ -11,6 +11,8 @@ dayjs.extend(customParseFormat);
 interface TimeHeaderProps {
   timeSlots: TimeSlot[];
   slotWidth?: number;
+  timelineWidth?: number;
+  closeTime?: string;
   currentTimeOffsetPx?: number | null;
   currentTimeLabel?: string;
 }
@@ -19,15 +21,20 @@ export const TimeHeader: React.FC<TimeHeaderProps> = memo(
   ({
     timeSlots,
     slotWidth = SLOT_WIDTH,
+    timelineWidth,
+    closeTime = SCHEDULER_CONFIG.END_TIME,
     currentTimeOffsetPx = null,
     currentTimeLabel,
   }) => {
-    // Separate timeline header labels (60-minute major hours: minute === 0) from 30-minute scheduler slots
+    const totalGridWidth = Math.round(timeSlots.length * slotWidth);
+    const effectiveTimelineWidth = timelineWidth ?? totalGridWidth + BOUNDARY_PADDING_PX;
+
+    // Separate timeline header labels (60-minute major hours: minute === 0)
     const headerLabels = useMemo(
       () =>
         timeSlots.filter((slot) => {
           const minute = dayjs(slot.time, 'HH:mm').minute();
-          return minute === 0 || slot.time.endsWith(':00');
+          return minute === 0 || slot.time.endsWith(':00') || slot.minutesFromStart % 60 === 0;
         }),
       [timeSlots],
     );
@@ -39,7 +46,7 @@ export const TimeHeader: React.FC<TimeHeaderProps> = memo(
         style={{ height: `${SCHEDULER_CONFIG.TIME_HEADER_HEIGHT}px` }}
         className="sticky top-0 z-30 flex w-full select-none border-b border-[#c8ded2] bg-[#ebf6f0] shadow-2xs"
       >
-        {/* Top Left Corner Header (matches 140px court column width) */}
+        {/* Top Left Corner Header */}
         <div
           style={{ width: `${SCHEDULER_CONFIG.TOTAL_LEFT_COLUMN_WIDTH}px` }}
           className="sticky left-0 z-40 flex shrink-0 items-center justify-between border-r border-[#c8ded2] bg-[#ebf6f0] px-3 text-slate-700 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]"
@@ -54,14 +61,14 @@ export const TimeHeader: React.FC<TimeHeaderProps> = memo(
           </button>
         </div>
 
-        {/* Time Slots Header */}
+        {/* Time Slots Header (reserves space for closing boundary label) */}
         <div
           className="relative flex shrink-0 h-full"
-          style={{ width: `${timeSlots.length * slotWidth}px` }}
+          style={{ width: `${effectiveTimelineWidth}px` }}
         >
           {/* Subtle boundary ticks for all grid boundaries */}
           {timeSlots.map((slot, index) => {
-            const x = index * slotWidth;
+            const x = Math.round(index * slotWidth);
             const isMajorHour = slot.time.endsWith(':00');
 
             return (
@@ -85,7 +92,7 @@ export const TimeHeader: React.FC<TimeHeaderProps> = memo(
 
           {/* Hourly Time Labels (05:00, 06:00, 07:00...) positioned at exact Slot Boundaries */}
           {headerLabels.map((slot) => {
-            const x = slot.slotIndex * slotWidth;
+            const x = Math.round(slot.slotIndex * slotWidth);
             const isFirst = slot.slotIndex === 0;
 
             return (
@@ -108,18 +115,18 @@ export const TimeHeader: React.FC<TimeHeaderProps> = memo(
             );
           })}
 
-          {/* Closing END_TIME (23:00) boundary marker at final right grid line */}
+          {/* Closing END_TIME (e.g. 23:00) boundary marker at final right grid line */}
           {timeSlots.length > 0 && (
             <div
               role="columnheader"
               style={{
                 position: 'absolute',
-                left: `${timeSlots.length * slotWidth}px`,
+                left: `${totalGridWidth}px`,
               }}
               className="top-0 bottom-0 z-20 flex flex-col items-center -translate-x-1/2 pointer-events-none select-none"
             >
               <span className="text-xs font-bold text-slate-700 tracking-tight whitespace-nowrap bg-[#ebf6f0] px-1.5 pt-2 leading-none">
-                {SCHEDULER_CONFIG.END_TIME}
+                {closeTime}
               </span>
               <div className="mt-auto w-px h-2.5 bg-[#8ab89f]" />
             </div>

@@ -1,10 +1,13 @@
+export const MIN_SLOT_WIDTH = 60;
+export const MAX_SLOT_WIDTH = 140;
 export const SLOT_WIDTH = 80;
 export const COURT_COLUMN_WIDTH = 90;
+export const BOUNDARY_PADDING_PX = 28;
 
 export const RESPONSIVE_SLOT_WIDTH = {
   DESKTOP: 100, // >= 1280px
   TABLET: 90,   // 768px - 1279px
-  MOBILE: 80,   // < 768px
+  MOBILE: 60,   // < 768px
 } as const;
 
 export const SCHEDULER_CONFIG = {
@@ -12,7 +15,10 @@ export const SCHEDULER_CONFIG = {
   END_TIME: '23:00',
   SLOT_DURATION: 60,
   SLOT_WIDTH,
+  MIN_SLOT_WIDTH,
+  MAX_SLOT_WIDTH,
   COURT_COLUMN_WIDTH,
+  BOUNDARY_PADDING_PX,
 } as const;
 
 export const CUSTOMER_SCHEDULER_CONFIG = {
@@ -27,8 +33,9 @@ export const CUSTOMER_SCHEDULER_CONFIG = {
   COURT_COLUMN_WIDTH,
   SLOT_WIDTH,
   BASE_SLOT_WIDTH: SLOT_WIDTH,
-  MIN_SLOT_WIDTH: 80,
-  MAX_SLOT_WIDTH: 160,
+  MIN_SLOT_WIDTH,
+  MAX_SLOT_WIDTH,
+  BOUNDARY_PADDING_PX,
   OVERSCAN_ROWS: 5,
 } as const;
 
@@ -37,4 +44,5 @@ export const CUSTOMER_HOTLINE = {
   PHONE_2: '0988.780.723',
   LABEL: 'Lưu ý: Nếu bạn cần đặt lịch cố định vui lòng liên hệ: 028.2204.4789 hoặc 0988.780.723 để được hỗ trợ',
 } as const;
+
 
