@@ -12,7 +12,10 @@ export const paths = {
   customerCreate: '/customers/new',
   customerEdit: (id: string = ':id') => `/customers/${id}/edit`,
   customerCourtStatus: '/customer/court-status',
-  customerBranchCourtStatus: (branchId: string = ':branchId') =>
-    `/customer/branches/${branchId}/court-status`,
+  customerBranchCourtStatus: (branchId: string = ':branchId', date?: string) =>
+    date
+      ? `/customer/branches/${branchId}/court-status?date=${encodeURIComponent(date)}`
+      : `/customer/branches/${branchId}/court-status`,
   notFound: '*',
 } as const;
+

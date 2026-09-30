@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 import dayjs from 'dayjs';
 import {
   ArrowLeft,
@@ -8,6 +8,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { paths } from '@/app/router/paths';
+import { useBranchSearchStore } from '@/features/branch-discovery/store/branch-search.store';
 import { useCustomerCourtStatus } from '../hooks/useCustomerCourtStatus';
 import { useCustomerCourtStatusStore } from '../store/customer-court-status.store';
 import { StatusLegend } from '../components/StatusLegend';
@@ -22,21 +23,57 @@ import { BranchSelectDropdown } from '../components/BranchSelectDropdown';
 import { SlotIntervalSelect } from '../components/SlotIntervalSelect';
 import { CustomerDatePickerDialog } from '../components/CustomerDatePickerDialog';
 
+interface NavigationLocationState {
+  branchId?: string;
+  branchName?: string;
+  selectedDate?: string;
+}
+
 export const CustomerCourtStatusPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { branchId: paramBranchId } = useParams<{ branchId?: string }>();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const queryBranchId = searchParams.get('branchId');
   const targetBranchId = paramBranchId || queryBranchId;
 
-  // Zustand Store
+  const queryDate = searchParams.get('date');
+  const locationState = location.state as NavigationLocationState | null;
+  const stateDate = locationState?.selectedDate;
+
+  // Zustand Stores
+  const searchStoreDate = useBranchSearchStore((s) => s.selectedDate);
   const selectedBranchId = useCustomerCourtStatusStore((s) => s.selectedBranchId);
   const setSelectedBranchId = useCustomerCourtStatusStore((s) => s.setSelectedBranchId);
-  const selectedDate = useCustomerCourtStatusStore((s) => s.selectedDate);
+  const storeDate = useCustomerCourtStatusStore((s) => s.selectedDate);
   const setSelectedDate = useCustomerCourtStatusStore((s) => s.setSelectedDate);
   const slotInterval = useCustomerCourtStatusStore((s) => s.slotInterval);
   const setSlotInterval = useCustomerCourtStatusStore((s) => s.setSlotInterval);
   const zoomLevel = useCustomerCourtStatusStore((s) => s.zoomLevel);
+
+  // Single Source of Truth Date Resolution
+  // Priority: 1. Route Date (?date= or location.state) -> 2. Store Date -> 3. Today
+  const routeDate = useMemo(() => {
+    if (queryDate && dayjs(queryDate).isValid()) {
+      return dayjs(queryDate).format('YYYY-MM-DD');
+    }
+    if (stateDate && dayjs(stateDate).isValid()) {
+      return dayjs(stateDate).format('YYYY-MM-DD');
+    }
+    return null;
+  }, [queryDate, stateDate]);
+
+  const selectedDate = useMemo(() => {
+    return (
+      routeDate ??
+      (searchStoreDate && dayjs(searchStoreDate).isValid() ? searchStoreDate : null) ??
+      (storeDate && dayjs(storeDate).isValid() ? storeDate : null) ??
+      dayjs().format('YYYY-MM-DD')
+    );
+  }, [routeDate, searchStoreDate, storeDate]);
+
+  const activeBranchId = targetBranchId || selectedBranchId;
 
   // Sync route parameter branchId into Zustand store
   useEffect(() => {
@@ -44,6 +81,23 @@ export const CustomerCourtStatusPage: React.FC = () => {
       setSelectedBranchId(targetBranchId);
     }
   }, [targetBranchId, selectedBranchId, setSelectedBranchId]);
+
+  // Sync resolved selectedDate into store and URL query string for deep linking & refresh persistence
+  useEffect(() => {
+    if (selectedDate !== storeDate) {
+      setSelectedDate(selectedDate);
+    }
+    if (queryDate !== selectedDate) {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('date', selectedDate);
+          return next;
+        },
+        { replace: true },
+      );
+    }
+  }, [selectedDate, storeDate, queryDate, setSelectedDate, setSearchParams]);
 
   // TanStack Query Server State
   const {
@@ -57,13 +111,33 @@ export const CustomerCourtStatusPage: React.FC = () => {
     refetch,
     createBooking,
     isCreating,
-  } = useCustomerCourtStatus();
+  } = useCustomerCourtStatus(activeBranchId, selectedDate);
 
   const [isDatePickerOpen, setIsDatePickerOpen] = useState<boolean>(false);
 
   const handleBack = useCallback(() => {
     navigate(-1);
   }, [navigate]);
+
+  // Helper to update both store and URL query string when user changes date on this page
+  const updateSelectedDate = useCallback(
+    (newDate: string) => {
+      const normalized =
+        newDate && dayjs(newDate).isValid()
+          ? dayjs(newDate).format('YYYY-MM-DD')
+          : dayjs().format('YYYY-MM-DD');
+      setSelectedDate(normalized);
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('date', normalized);
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSelectedDate, setSearchParams],
+  );
 
   // Date Navigation
   const formattedDisplayDate = useMemo(() => {
@@ -72,25 +146,25 @@ export const CustomerCourtStatusPage: React.FC = () => {
 
   const handlePrevDay = useCallback(() => {
     const prev = dayjs(selectedDate).subtract(1, 'day').format('YYYY-MM-DD');
-    setSelectedDate(prev);
-  }, [selectedDate, setSelectedDate]);
+    updateSelectedDate(prev);
+  }, [selectedDate, updateSelectedDate]);
 
   const handleNextDay = useCallback(() => {
     const next = dayjs(selectedDate).add(1, 'day').format('YYYY-MM-DD');
-    setSelectedDate(next);
-  }, [selectedDate, setSelectedDate]);
+    updateSelectedDate(next);
+  }, [selectedDate, updateSelectedDate]);
 
   const handleBranchChange = (newBranchId: string) => {
     setSelectedBranchId(newBranchId);
-    navigate(paths.customerBranchCourtStatus(newBranchId), { replace: true });
+    navigate(paths.customerBranchCourtStatus(newBranchId, selectedDate), { replace: true });
   };
 
   // Resolve current branch information
   const currentBranch = useMemo(() => {
-    const found = branches.find((b) => b.id === selectedBranchId);
+    const found = branches.find((b) => b.id === activeBranchId);
     if (found) return found;
     return {
-      id: selectedBranchId,
+      id: activeBranchId,
       branchName: statusData?.branchName || 'TMT Badminton Club',
       branchCode: 'CLB',
       address: '123 Nguyễn Thị Thập, Quận 7, TP.HCM',
@@ -99,7 +173,7 @@ export const CustomerCourtStatusPage: React.FC = () => {
       rating: 4.9,
       isActive: true,
     };
-  }, [branches, selectedBranchId, statusData?.branchName]);
+  }, [branches, activeBranchId, statusData?.branchName]);
 
   return (
     <div className="flex flex-col min-h-screen w-full bg-[#0d6838] text-white">
@@ -266,7 +340,7 @@ export const CustomerCourtStatusPage: React.FC = () => {
         isOpen={isDatePickerOpen}
         onClose={() => setIsDatePickerOpen(false)}
         selectedDate={selectedDate}
-        onConfirmDate={setSelectedDate}
+        onConfirmDate={updateSelectedDate}
       />
     </div>
   );

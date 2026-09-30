@@ -1,8 +1,10 @@
 import { create } from 'zustand';
+import dayjs from '@/lib/dayjs';
 import type { CustomerSlotSelection } from '../types/customer-slot';
 import { SCHEDULER_CONFIG } from '../constants/customer-scheduler.config';
 import { CustomerCourtStatusService } from '../services/customer-court-status.service';
 import { useSchedulerSelectionStore } from './scheduler-selection.store';
+import { useBranchSearchStore } from '@/features/branch-discovery/store/branch-search.store';
 
 interface CustomerCourtStatusState {
   selectedBranchId: string;
@@ -26,9 +28,24 @@ interface CustomerCourtStatusState {
   clearSelection: () => void;
 }
 
+const getInitialDate = (): string => {
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search);
+    const urlDate = params.get('date');
+    if (urlDate && dayjs(urlDate, 'YYYY-MM-DD', true).isValid()) {
+      return urlDate;
+    }
+  }
+  const searchStoreDate = useBranchSearchStore.getState().selectedDate;
+  if (searchStoreDate && dayjs(searchStoreDate).isValid()) {
+    return searchStoreDate;
+  }
+  return dayjs().format('YYYY-MM-DD');
+};
+
 export const useCustomerCourtStatusStore = create<CustomerCourtStatusState>((set) => ({
   selectedBranchId: 'branch-q7',
-  selectedDate: '2026-09-29', // Defaulting to the screenshot date
+  selectedDate: getInitialDate(),
   slotInterval: SCHEDULER_CONFIG.SLOT_DURATION,
   zoomLevel: 1.0,
   isPriceModalOpen: false,
@@ -40,8 +57,15 @@ export const useCustomerCourtStatusStore = create<CustomerCourtStatusState>((set
     set({ selectedBranchId, activeSelection: null, isCreateBookingOpen: false });
   },
   setSelectedDate: (selectedDate) => {
+    const validDate =
+      selectedDate && dayjs(selectedDate).isValid()
+        ? dayjs(selectedDate).format('YYYY-MM-DD')
+        : dayjs().format('YYYY-MM-DD');
     useSchedulerSelectionStore.getState().clearSelection();
-    set({ selectedDate, activeSelection: null, isCreateBookingOpen: false });
+    if (useBranchSearchStore.getState().selectedDate !== validDate) {
+      useBranchSearchStore.getState().setSelectedDate(validDate);
+    }
+    set({ selectedDate: validDate, activeSelection: null, isCreateBookingOpen: false });
   },
   setSlotInterval: (slotInterval) => {
     useSchedulerSelectionStore.getState().clearSelection();

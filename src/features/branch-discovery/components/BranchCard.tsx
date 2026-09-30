@@ -220,7 +220,10 @@ export const BranchCard = ({ branch }: BranchCardProps) => {
 
             <button
               type="button"
-              onClick={() => BranchNavigationService.goToCustomerCourtStatus(navigate, branch)}
+              onClick={() => {
+                const selectedDate = useBranchSearchStore.getState().selectedDate;
+                BranchNavigationService.goToCustomerCourtStatus(navigate, branch, selectedDate);
+              }}
               className="flex items-center gap-1.5 rounded-xl bg-brand-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition-transform hover:bg-brand-700 active:scale-95 focus-visible:outline-3 focus-visible:outline-[var(--color-focus)] cursor-pointer"
             >
               <CalendarCheck className="size-3.5" />

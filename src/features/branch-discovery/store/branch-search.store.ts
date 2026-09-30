@@ -32,6 +32,7 @@ interface BranchSearchState {
   setSearchQuery: (query: string) => void;
   setSelectedDistrict: (district: string) => void;
   setSelectedDate: (date: string) => void;
+  resetSelectedDate: () => void;
   setSelectedTimeSlot: (timeSlot: TimeSlotCategory) => void;
   toggleAmenity: (amenity: BranchAmenityId) => void;
   setSelectedCourtSurface: (surface: CourtSurface | 'all') => void;
@@ -78,7 +79,9 @@ export const useBranchSearchStore = create<BranchSearchState>((set) => ({
 
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setSelectedDistrict: (selectedDistrict) => set({ selectedDistrict }),
-  setSelectedDate: (selectedDate) => set({ selectedDate }),
+  setSelectedDate: (selectedDate) =>
+    set({ selectedDate: selectedDate || getTodayDateString() }),
+  resetSelectedDate: () => set({ selectedDate: getTodayDateString() }),
   setSelectedTimeSlot: (selectedTimeSlot) => set({ selectedTimeSlot }),
   toggleAmenity: (amenity) =>
     set((state) => {

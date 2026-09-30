@@ -301,7 +301,8 @@ export const BranchDetailModal = () => {
               onClick={() => {
                 closeDetailModal();
                 if (branch) {
-                  BranchNavigationService.goToCustomerCourtStatus(navigate, branch);
+                  const selectedDate = useBranchSearchStore.getState().selectedDate;
+                  BranchNavigationService.goToCustomerCourtStatus(navigate, branch, selectedDate);
                 }
               }}
               className="flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-xs sm:text-sm font-extrabold text-white shadow-md hover:bg-brand-700 active:scale-95 focus-visible:outline-3 focus-visible:outline-[var(--color-focus)] cursor-pointer"

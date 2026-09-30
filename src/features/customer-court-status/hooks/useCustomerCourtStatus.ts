@@ -4,10 +4,13 @@ import { useCustomerCourtStatusStore } from '../store/customer-court-status.stor
 import type { CustomerCreateBookingPayload } from '../types/customer-slot';
 import { toast } from '@/lib/toast';
 
-export const useCustomerCourtStatus = () => {
+export const useCustomerCourtStatus = (branchIdOverride?: string, dateOverride?: string) => {
   const queryClient = useQueryClient();
-  const selectedBranchId = useCustomerCourtStatusStore((s) => s.selectedBranchId);
-  const selectedDate = useCustomerCourtStatusStore((s) => s.selectedDate);
+  const storeBranchId = useCustomerCourtStatusStore((s) => s.selectedBranchId);
+  const storeDate = useCustomerCourtStatusStore((s) => s.selectedDate);
+
+  const selectedBranchId = branchIdOverride || storeBranchId;
+  const selectedDate = dateOverride || storeDate;
 
   // 1. Branches Query
   const branchesQuery = useQuery({
