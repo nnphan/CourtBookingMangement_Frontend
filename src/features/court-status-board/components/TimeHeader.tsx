@@ -11,10 +11,17 @@ dayjs.extend(customParseFormat);
 interface TimeHeaderProps {
   timeSlots: TimeSlot[];
   slotWidth?: number;
+  currentTimeOffsetPx?: number | null;
+  currentTimeLabel?: string;
 }
 
 export const TimeHeader: React.FC<TimeHeaderProps> = memo(
-  ({ timeSlots, slotWidth = SLOT_WIDTH }) => {
+  ({
+    timeSlots,
+    slotWidth = SLOT_WIDTH,
+    currentTimeOffsetPx = null,
+    currentTimeLabel,
+  }) => {
     // Separate timeline header labels (60-minute major hours: minute === 0) from 30-minute scheduler slots
     const headerLabels = useMemo(
       () =>
@@ -29,13 +36,15 @@ export const TimeHeader: React.FC<TimeHeaderProps> = memo(
       <div
         role="row"
         aria-label="Khung giờ"
-        className="sticky top-0 z-30 flex h-[42px] select-none border-b border-[#c8ded2] bg-[#ebf6f0]"
+        style={{ height: `${SCHEDULER_CONFIG.TIME_HEADER_HEIGHT}px` }}
+        className="sticky top-0 z-30 flex w-full select-none border-b border-[#c8ded2] bg-[#ebf6f0] shadow-2xs"
       >
-        {/* Top Left Corner Header (matches court column width) */}
+        {/* Top Left Corner Header (matches 140px court column width) */}
         <div
           style={{ width: `${SCHEDULER_CONFIG.TOTAL_LEFT_COLUMN_WIDTH}px` }}
-          className="sticky left-0 z-40 flex shrink-0 items-center justify-center border-r border-[#c8ded2] bg-[#ebf6f0] px-2 text-slate-700 shadow-2xs"
+          className="sticky left-0 z-40 flex shrink-0 items-center justify-between border-r border-[#c8ded2] bg-[#ebf6f0] px-3 text-slate-700 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]"
         >
+          <span className="text-xs font-bold text-slate-800">Sân</span>
           <button
             type="button"
             aria-label="Cài đặt bảng lịch"
@@ -50,7 +59,7 @@ export const TimeHeader: React.FC<TimeHeaderProps> = memo(
           className="relative flex shrink-0 h-full"
           style={{ width: `${timeSlots.length * slotWidth}px` }}
         >
-          {/* Subtle boundary ticks for all 30-minute grid boundaries */}
+          {/* Subtle boundary ticks for all grid boundaries */}
           {timeSlots.map((slot, index) => {
             const x = index * slotWidth;
             const isMajorHour = slot.time.endsWith(':00');
@@ -67,7 +76,7 @@ export const TimeHeader: React.FC<TimeHeaderProps> = memo(
                 <div
                   className={cn(
                     'w-px',
-                    isMajorHour ? 'h-2.5 bg-[#9fc4af]' : 'h-1.5 bg-[#c8ded2]',
+                    isMajorHour ? 'h-2.5 bg-[#8ab89f]' : 'h-1.5 bg-[#c8ded2]',
                   )}
                 />
               </div>
@@ -92,7 +101,7 @@ export const TimeHeader: React.FC<TimeHeaderProps> = memo(
                   isFirst ? 'z-50' : 'z-20',
                 )}
               >
-                <span className="text-[11px] font-semibold text-slate-700 tracking-tight whitespace-nowrap bg-[#ebf6f0] px-1 pt-1.5 leading-none">
+                <span className="text-xs font-bold text-slate-700 tracking-tight whitespace-nowrap bg-[#ebf6f0] px-1.5 pt-2 leading-none">
                   {slot.formattedTime}
                 </span>
               </div>
@@ -109,10 +118,28 @@ export const TimeHeader: React.FC<TimeHeaderProps> = memo(
               }}
               className="top-0 bottom-0 z-20 flex flex-col items-center -translate-x-1/2 pointer-events-none select-none"
             >
-              <span className="text-[11px] font-semibold text-slate-700 tracking-tight whitespace-nowrap bg-[#ebf6f0] px-1 pt-1.5 leading-none">
+              <span className="text-xs font-bold text-slate-700 tracking-tight whitespace-nowrap bg-[#ebf6f0] px-1.5 pt-2 leading-none">
                 {SCHEDULER_CONFIG.END_TIME}
               </span>
-              <div className="mt-auto w-px h-2.5 bg-[#9fc4af]" />
+              <div className="mt-auto w-px h-2.5 bg-[#8ab89f]" />
+            </div>
+          )}
+
+          {/* Current Time Indicator Badge in Header */}
+          {currentTimeOffsetPx !== null && (
+            <div
+              style={{
+                position: 'absolute',
+                left: `${currentTimeOffsetPx}px`,
+              }}
+              className="top-0 bottom-0 z-35 flex flex-col items-center -translate-x-1/2 pointer-events-none"
+            >
+              {currentTimeLabel && (
+                <span className="mt-1 rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-bold text-white leading-none shadow-xs whitespace-nowrap">
+                  {currentTimeLabel}
+                </span>
+              )}
+              <div className="mt-auto size-2 rounded-full bg-rose-600 ring-2 ring-white" />
             </div>
           )}
         </div>
@@ -122,5 +149,6 @@ export const TimeHeader: React.FC<TimeHeaderProps> = memo(
 );
 
 TimeHeader.displayName = 'TimeHeader';
+
 
 

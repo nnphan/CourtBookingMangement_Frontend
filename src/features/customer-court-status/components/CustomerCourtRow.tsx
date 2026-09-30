@@ -3,7 +3,11 @@ import type { CustomerCourt } from '../types/customer-court';
 import type { CustomerSlotItem, CustomerSlotSelection } from '../types/customer-slot';
 import { CustomerCourtStatusService } from '../services/customer-court-status.service';
 import type { CustomerGeneratedTimeSlot } from '../services/customer-court-status.service';
-import { CUSTOMER_SCHEDULER_CONFIG, SLOT_WIDTH } from '../constants/customer-scheduler.config';
+import {
+  COURT_COLUMN_WIDTH,
+  CUSTOMER_SCHEDULER_CONFIG,
+  SLOT_WIDTH,
+} from '../constants/customer-scheduler.config';
 import { CUSTOMER_COURT_STATUS } from '../types/customer-status';
 import { AvailableSlotTooltip } from './AvailableSlotTooltip';
 import { SchedulerCell } from './SchedulerCell';
@@ -16,6 +20,7 @@ interface CustomerCourtRowProps {
   slotWidth?: number;
   slotInterval: number;
   activeSelection: CustomerSlotSelection | null;
+  currentTimeOffsetPx?: number | null;
   onSlotClick: (courtId: string, slotTime: string) => void;
   onClearSelection: () => void;
   isSlotSelected: (courtId: string, slotTime: string) => boolean;
@@ -29,6 +34,7 @@ export const CustomerCourtRow: React.FC<CustomerCourtRowProps> = memo(
     slotWidth = SLOT_WIDTH,
     slotInterval,
     activeSelection,
+    currentTimeOffsetPx = null,
     onSlotClick,
     onClearSelection,
   }) => {
@@ -41,26 +47,33 @@ export const CustomerCourtRow: React.FC<CustomerCourtRowProps> = memo(
     const isCurrentCourtSelected = activeSelection?.courtId === court.courtId;
 
     // Selection dimensions
-    const selectionDim = isCurrentCourtSelected && activeSelection
-      ? CustomerCourtStatusService.calculateSlotDimensions(
-          activeSelection.startTime,
-          activeSelection.endTime,
-          slotWidth,
-          slotInterval,
-        )
-      : null;
+    const selectionDim =
+      isCurrentCourtSelected && activeSelection
+        ? CustomerCourtStatusService.calculateBookingWidth(
+            activeSelection.startTime,
+            activeSelection.endTime,
+            slotWidth,
+            slotInterval,
+          )
+        : null;
 
     return (
       <div
-        style={{ height: CUSTOMER_SCHEDULER_CONFIG.ROW_HEIGHT }}
-        className="flex border-b border-slate-200 hover:bg-slate-50/50 transition-colors relative"
+        role="row"
+        style={{
+          height: `${CUSTOMER_SCHEDULER_CONFIG.ROW_HEIGHT}px`,
+          minHeight: '44px',
+        }}
+        className="flex border-b border-slate-200 hover:bg-slate-50/40 transition-colors relative"
       >
-        {/* Sticky Court Column on left */}
+        {/* Sticky Court Column on left (140px) */}
         <div
-          style={{ width: `${CUSTOMER_SCHEDULER_CONFIG.COURT_COL_WIDTH}px` }}
-          className="sticky left-0 z-20 shrink-0 bg-[#ebf7f0] border-r border-[#c8ded2] font-semibold text-xs text-slate-800 flex items-center justify-center select-none"
+          role="rowheader"
+          style={{ width: `${COURT_COLUMN_WIDTH}px` }}
+          className="sticky left-0 z-20 shrink-0 bg-[#ebf7f0] border-r border-[#c8ded2] font-semibold text-xs sm:text-sm text-slate-800 flex items-center gap-2 px-3 select-none shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]"
         >
-          {court.courtName}
+          <span className="size-2 rounded-full bg-emerald-600 shrink-0" />
+          <span className="truncate">{court.courtName}</span>
         </div>
 
         {/* Schedule Grid Track */}
@@ -75,6 +88,7 @@ export const CustomerCourtRow: React.FC<CustomerCourtRowProps> = memo(
               courtId={court.courtId}
               courtName={court.courtName}
               slotTime={slot.time}
+              slotEndTime={slot.endTime}
               slotWidth={slotWidth}
               onSlotClick={onSlotClick}
             />
@@ -82,7 +96,7 @@ export const CustomerCourtRow: React.FC<CustomerCourtRowProps> = memo(
 
           {/* Occupied blocks layer (BOOKED, LOCKED, EVENT) */}
           {courtOccupiedSlots.map((slot, index) => {
-            const dim = CustomerCourtStatusService.calculateSlotDimensions(
+            const dim = CustomerCourtStatusService.calculateBookingWidth(
               slot.startTime,
               slot.endTime,
               slotWidth,
@@ -101,28 +115,32 @@ export const CustomerCourtRow: React.FC<CustomerCourtRowProps> = memo(
                   style={{
                     left: `${dim.left}px`,
                     width: `${dim.width}px`,
+                    minWidth: `${Math.round(dim.cellsSpanned * slotWidth)}px`,
                     backgroundColor: statusConfig.color,
                   }}
-                  className="absolute top-[2px] bottom-[2px] rounded-xs shadow-xs flex items-center justify-center cursor-not-allowed select-none z-10 transition-opacity hover:opacity-90"
+                  className="absolute top-[2px] bottom-[2px] rounded-xs shadow-xs flex items-center justify-center px-2 cursor-not-allowed select-none z-10 transition-opacity hover:opacity-95 overflow-hidden"
                 >
-                  {slot.status === 'EVENT' && (
-                    <span className="text-white text-xs font-bold">!</span>
-                  )}
+                  <span className="text-white text-[11px] font-semibold tracking-tight truncate drop-shadow-2xs">
+                    {slot.status === 'EVENT'
+                      ? `Sự kiện (${slot.startTime} - ${slot.endTime})`
+                      : `${slot.startTime} - ${slot.endTime}`}
+                  </span>
                 </div>
               </AvailableSlotTooltip>
             );
           })}
 
-          {/* Active Selection Overlay Box (Mint green highlight as seen in screenshot) */}
+          {/* Active Selection Overlay Box */}
           {selectionDim && activeSelection && (
             <div
               style={{
                 left: `${selectionDim.left}px`,
                 width: `${selectionDim.width}px`,
+                minWidth: `${Math.round(selectionDim.cellsSpanned * slotWidth)}px`,
               }}
-              className="absolute top-[2px] bottom-[2px] rounded-xs bg-[#D1FAE5] border-2 border-[#059669] shadow-sm z-15 flex items-center justify-between px-1.5 pointer-events-none transition-all duration-150 animate-in fade-in zoom-in-95"
+              className="absolute top-[2px] bottom-[2px] rounded-xs bg-[#D1FAE5] border-2 border-[#059669] shadow-sm z-15 flex items-center justify-between px-2 pointer-events-none transition-all duration-150 animate-in fade-in zoom-in-95"
             >
-              <span className="text-[10px] font-bold text-emerald-900 px-1 bg-white/70 rounded-xs shadow-2xs truncate">
+              <span className="text-[11px] font-bold text-emerald-950 px-1.5 py-0.5 bg-white/85 rounded-xs shadow-2xs truncate">
                 {activeSelection.startTime} - {activeSelection.endTime}
               </span>
               <button
@@ -139,12 +157,23 @@ export const CustomerCourtRow: React.FC<CustomerCourtRowProps> = memo(
                   }
                 }}
                 aria-label="Clear selected time slots"
-                className="pointer-events-auto p-0.5 rounded-full text-emerald-800 hover:text-emerald-950 hover:bg-emerald-200/80 transition-colors cursor-pointer"
+                className="pointer-events-auto p-1 rounded-full text-emerald-800 hover:text-emerald-950 hover:bg-emerald-200/80 transition-colors cursor-pointer"
                 title="✕ Bấm để hủy chọn"
               >
-                <X className="size-3" />
+                <X className="size-3.5" />
               </button>
             </div>
+          )}
+
+          {/* Current Time Indicator Vertical Red Line */}
+          {currentTimeOffsetPx !== null && (
+            <div
+              style={{
+                position: 'absolute',
+                left: `${currentTimeOffsetPx}px`,
+              }}
+              className="top-0 bottom-0 w-[2px] -translate-x-1/2 bg-rose-500/90 pointer-events-none z-25 shadow-[0_0_4px_rgba(244,63,94,0.5)]"
+            />
           )}
         </div>
       </div>
@@ -153,3 +182,4 @@ export const CustomerCourtRow: React.FC<CustomerCourtRowProps> = memo(
 );
 
 CustomerCourtRow.displayName = 'CustomerCourtRow';
+

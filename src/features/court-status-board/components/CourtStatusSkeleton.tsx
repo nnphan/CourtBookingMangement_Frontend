@@ -26,24 +26,26 @@ export const CourtStatusSkeleton: React.FC = memo(() => {
       </div>
 
       {/* Grid Header */}
-      <div className="flex border-b border-slate-200 bg-slate-100">
-        <div className="w-28 h-10 border-r border-slate-200 bg-slate-200" />
-        <div className="flex flex-1 gap-2 p-2">
+      <div className="flex border-b border-slate-200 bg-slate-100 h-11">
+        <div className="w-[140px] shrink-0 border-r border-slate-200 bg-slate-200/70" />
+        <div className="flex flex-1 items-center gap-6 px-4 overflow-hidden">
           {Array.from({ length: 14 }).map((_, i) => (
-            <div key={i} className="h-6 w-16 rounded bg-slate-200" />
+            <div key={i} className="h-4 w-12 shrink-0 rounded bg-slate-200" />
           ))}
         </div>
       </div>
 
       {/* Grid Rows */}
-      <div className="flex-1 space-y-2 p-2">
-        {Array.from({ length: 12 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <div className="h-10 w-28 rounded bg-slate-200 shrink-0" />
-            <div className="flex flex-1 items-center gap-3">
-              <div className="h-10 w-32 rounded bg-slate-200" />
-              <div className="h-10 w-48 rounded bg-slate-200" />
-              <div className="h-10 w-24 rounded bg-slate-200" />
+      <div className="flex-1 divide-y divide-slate-100 overflow-hidden bg-white">
+        {Array.from({ length: 10 }).map((_, i) => (
+          <div key={i} className="flex items-center h-12">
+            <div className="h-full w-[140px] shrink-0 border-r border-slate-200 bg-slate-100/80 flex items-center px-3">
+              <div className="h-3.5 w-20 rounded bg-slate-200" />
+            </div>
+            <div className="flex flex-1 items-center gap-4 px-4 overflow-hidden">
+              <div className="h-8 w-[200px] shrink-0 rounded-md bg-emerald-100/70" />
+              <div className="h-8 w-[100px] shrink-0 rounded-md bg-slate-100" />
+              <div className="h-8 w-[300px] shrink-0 rounded-md bg-rose-100/60" />
             </div>
           </div>
         ))}

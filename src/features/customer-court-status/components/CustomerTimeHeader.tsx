@@ -3,6 +3,7 @@ import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import type { CustomerGeneratedTimeSlot } from '../services/customer-court-status.service';
 import {
+  COURT_COLUMN_WIDTH,
   CUSTOMER_SCHEDULER_CONFIG,
   SCHEDULER_CONFIG,
   SLOT_WIDTH,
@@ -14,10 +15,17 @@ dayjs.extend(customParseFormat);
 interface CustomerTimeHeaderProps {
   timeSlots: CustomerGeneratedTimeSlot[];
   slotWidth?: number;
+  currentTimeOffsetPx?: number | null;
+  currentTimeLabel?: string;
 }
 
 export const CustomerTimeHeader: React.FC<CustomerTimeHeaderProps> = memo(
-  ({ timeSlots, slotWidth = SLOT_WIDTH }) => {
+  ({
+    timeSlots,
+    slotWidth = SLOT_WIDTH,
+    currentTimeOffsetPx = null,
+    currentTimeLabel,
+  }) => {
     const totalGridWidth = timeSlots.length * slotWidth;
 
     // Filter only hourly labels (minute === 0)
@@ -35,14 +43,14 @@ export const CustomerTimeHeader: React.FC<CustomerTimeHeaderProps> = memo(
         role="row"
         aria-label="Khung giờ"
         style={{ height: CUSTOMER_SCHEDULER_CONFIG.TIME_HEADER_HEIGHT }}
-        className="sticky top-0 z-30 flex select-none border-b border-[#c8ded2] bg-[#ebf7f0]"
+        className="sticky top-0 z-30 flex w-full select-none border-b border-[#c8ded2] bg-[#ebf7f0] shadow-2xs"
       >
-        {/* Sticky top-left corner above Court column */}
+        {/* Sticky top-left corner above Court column (140px) */}
         <div
-          style={{ width: `${CUSTOMER_SCHEDULER_CONFIG.COURT_COL_WIDTH}px` }}
-          className="sticky left-0 z-40 shrink-0 bg-[#ebf7f0] border-r border-[#c8ded2] font-semibold text-[11px] text-slate-700 flex items-center justify-center"
+          style={{ width: `${COURT_COLUMN_WIDTH}px` }}
+          className="sticky left-0 z-40 shrink-0 bg-[#ebf7f0] border-r border-[#c8ded2] font-bold text-xs text-slate-800 flex items-center justify-between px-3 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]"
         >
-          Sân
+          <span>Sân</span>
         </div>
 
         {/* Time Slots Header Track */}
@@ -66,7 +74,7 @@ export const CustomerTimeHeader: React.FC<CustomerTimeHeaderProps> = memo(
                 <div
                   className={cn(
                     'w-px',
-                    slot.isMajorHour ? 'h-2.5 bg-[#9fc4af]' : 'h-1.5 bg-[#c8ded2]',
+                    slot.isMajorHour ? 'h-2.5 bg-[#8ab89f]' : 'h-1.5 bg-[#c8ded2]',
                   )}
                 />
               </div>
@@ -91,7 +99,7 @@ export const CustomerTimeHeader: React.FC<CustomerTimeHeaderProps> = memo(
                   isFirst ? 'z-50' : 'z-20',
                 )}
               >
-                <span className="text-[11px] font-semibold text-slate-700 tracking-tight whitespace-nowrap bg-[#ebf7f0] px-1 pt-1.5 leading-none">
+                <span className="text-xs font-bold text-slate-700 tracking-tight whitespace-nowrap bg-[#ebf7f0] px-1.5 pt-2 leading-none">
                   {slot.formattedTime}
                 </span>
               </div>
@@ -108,10 +116,28 @@ export const CustomerTimeHeader: React.FC<CustomerTimeHeaderProps> = memo(
               }}
               className="top-0 bottom-0 z-20 flex flex-col items-center -translate-x-1/2 pointer-events-none select-none"
             >
-              <span className="text-[11px] font-semibold text-slate-700 tracking-tight whitespace-nowrap bg-[#ebf7f0] px-1 pt-1.5 leading-none">
+              <span className="text-xs font-bold text-slate-700 tracking-tight whitespace-nowrap bg-[#ebf7f0] px-1.5 pt-2 leading-none">
                 {SCHEDULER_CONFIG.END_TIME}
               </span>
-              <div className="mt-auto w-px h-2.5 bg-[#9fc4af]" />
+              <div className="mt-auto w-px h-2.5 bg-[#8ab89f]" />
+            </div>
+          )}
+
+          {/* Current Time Indicator Badge in Header */}
+          {currentTimeOffsetPx !== null && (
+            <div
+              style={{
+                position: 'absolute',
+                left: `${currentTimeOffsetPx}px`,
+              }}
+              className="top-0 bottom-0 z-35 flex flex-col items-center -translate-x-1/2 pointer-events-none"
+            >
+              {currentTimeLabel && (
+                <span className="mt-1 rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-bold text-white leading-none shadow-xs whitespace-nowrap">
+                  {currentTimeLabel}
+                </span>
+              )}
+              <div className="mt-auto size-2 rounded-full bg-rose-600 ring-2 ring-white" />
             </div>
           )}
         </div>
@@ -121,6 +147,7 @@ export const CustomerTimeHeader: React.FC<CustomerTimeHeaderProps> = memo(
 );
 
 CustomerTimeHeader.displayName = 'CustomerTimeHeader';
+
 
 
 

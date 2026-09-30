@@ -19,6 +19,7 @@ interface SchedulerGridProps {
   totalHeight: number;
   totalWidth: number;
   activeSelection: SlotSelectionRange | null;
+  currentTimeOffsetPx?: number | null;
   onSlotClick: (court: CourtItem, slot: TimeSlot) => void;
   isSlotSelected: (courtId: string, slotTime: string) => boolean;
   onConfirmSelection: (selection: SlotSelectionRange) => void;
@@ -42,6 +43,7 @@ export const SchedulerGrid: React.FC<SchedulerGridProps> = memo(
     totalHeight,
     totalWidth,
     activeSelection,
+    currentTimeOffsetPx = null,
     onSlotClick,
     isSlotSelected,
     onConfirmSelection,
@@ -89,6 +91,7 @@ export const SchedulerGrid: React.FC<SchedulerGridProps> = memo(
                 left: 0,
                 width: `${totalWidth}px`,
                 height: `${virtualRow.size}px`,
+                minHeight: '44px',
                 transform: `translateY(${virtualRow.start}px)`,
               }}
               className="flex border-b border-[#e2e8f0]"
@@ -110,18 +113,29 @@ export const SchedulerGrid: React.FC<SchedulerGridProps> = memo(
                     role="gridcell"
                     aria-selected={isSelected}
                     aria-disabled={isPast ? 'true' : undefined}
-                    style={{ width: `${slotWidth}px` }}
+                    style={{
+                      width: `${slotWidth}px`,
+                      minWidth: '80px',
+                      minHeight: '44px',
+                    }}
                     onClick={isPast ? undefined : () => onSlotClick(court, slot)}
                     title={cellTitle}
                     className={cn(
-                      'relative h-full shrink-0 border-r border-[#e2e8f0] select-none transition-colors',
+                      'group relative h-full shrink-0 border-r border-[#e2e8f0] select-none transition-colors touch-manipulation',
                       isPast
                         ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                         : isSelected
                           ? 'bg-emerald-500/25 border-t-2 border-b-2 border-emerald-600 cursor-pointer'
-                          : 'cursor-pointer hover:bg-emerald-50/60 active:bg-emerald-100/70',
+                          : 'cursor-pointer hover:bg-emerald-50/70 active:bg-emerald-100/80',
                     )}
                   >
+                    {!isPast && !isSelected && (
+                      <div className="absolute inset-0 hidden group-hover:flex items-center justify-center pointer-events-none">
+                        <span className="text-[10px] font-semibold text-emerald-700/80 bg-emerald-50/90 px-1.5 py-0.5 rounded">
+                          + {slot.formattedTime}
+                        </span>
+                      </div>
+                    )}
                     {isSelected && (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <span className="size-2 rounded-full bg-emerald-600 ring-2 ring-white shadow-xs" />
@@ -162,9 +176,23 @@ export const SchedulerGrid: React.FC<SchedulerGridProps> = memo(
             </div>
           );
         })}
+
+        {/* Current Time Indicator Red Line */}
+        {currentTimeOffsetPx !== null && (
+          <div
+            style={{
+              position: 'absolute',
+              left: `${currentTimeOffsetPx}px`,
+              top: 0,
+              height: `${totalHeight}px`,
+            }}
+            className="w-[2px] -translate-x-1/2 bg-rose-500/90 pointer-events-none z-25 shadow-[0_0_4px_rgba(244,63,94,0.5)]"
+          />
+        )}
       </div>
     );
   },
 );
 
 SchedulerGrid.displayName = 'SchedulerGrid';
+

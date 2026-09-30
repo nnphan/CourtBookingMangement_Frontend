@@ -46,14 +46,14 @@ export const MOCK_CUSTOMER_BRANCHES: CustomerBranch[] = [
 ];
 
 export const MOCK_CUSTOMER_COURTS: CustomerCourt[] = [
-  { courtId: 'court-1', courtName: 'C.Lông 1' },
-  { courtId: 'court-2', courtName: 'C.Lông 2' },
-  { courtId: 'court-3', courtName: 'C.Lông 3' },
-  { courtId: 'court-4', courtName: 'C.Lông 4' },
-  { courtId: 'court-5', courtName: 'C.Lông 5' },
-  { courtId: 'court-6', courtName: 'C.Lông 6' },
-  { courtId: 'court-7', courtName: 'C.Lông 7' },
-  { courtId: 'court-8', courtName: 'C.Lông 8' },
+  { courtId: 'court-1', courtName: 'Sân 1' },
+  { courtId: 'court-2', courtName: 'Sân 2' },
+  { courtId: 'court-3', courtName: 'Sân 3' },
+  { courtId: 'court-4', courtName: 'Sân 4' },
+  { courtId: 'court-5', courtName: 'Sân 5' },
+  { courtId: 'court-6', courtName: 'Sân 6' },
+  { courtId: 'court-7', courtName: 'Sân 7' },
+  { courtId: 'court-8', courtName: 'Sân 8' },
 ];
 
 // Seed slots matching attached screenshot exactly

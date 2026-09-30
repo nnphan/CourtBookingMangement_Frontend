@@ -18,10 +18,8 @@ import { CustomerCreateBookingDialog } from '../components/CustomerCreateBooking
 import { CustomerCourtStatusSkeleton } from '../components/CustomerCourtStatusSkeleton';
 import { CustomerCourtStatusEmpty } from '../components/CustomerCourtStatusEmpty';
 import { CustomerCourtStatusError } from '../components/CustomerCourtStatusError';
-import { CustomerCourtStatusService } from '../services/customer-court-status.service';
 import { BranchSelectDropdown } from '../components/BranchSelectDropdown';
 import { SlotIntervalSelect } from '../components/SlotIntervalSelect';
-import { MobileCourtSelect } from '../components/MobileCourtSelect';
 import { CustomerDatePickerDialog } from '../components/CustomerDatePickerDialog';
 
 export const CustomerCourtStatusPage: React.FC = () => {
@@ -39,7 +37,6 @@ export const CustomerCourtStatusPage: React.FC = () => {
   const slotInterval = useCustomerCourtStatusStore((s) => s.slotInterval);
   const setSlotInterval = useCustomerCourtStatusStore((s) => s.setSlotInterval);
   const zoomLevel = useCustomerCourtStatusStore((s) => s.zoomLevel);
-  const openCreateBooking = useCustomerCourtStatusStore((s) => s.openCreateBooking);
 
   // Sync route parameter branchId into Zustand store
   useEffect(() => {
@@ -62,8 +59,6 @@ export const CustomerCourtStatusPage: React.FC = () => {
     isCreating,
   } = useCustomerCourtStatus();
 
-  // Mobile selected court state
-  const [activeMobileCourtId, setActiveMobileCourtId] = useState<string>('court-1');
   const [isDatePickerOpen, setIsDatePickerOpen] = useState<boolean>(false);
 
   const handleBack = useCallback(() => {
@@ -85,12 +80,6 @@ export const CustomerCourtStatusPage: React.FC = () => {
     setSelectedDate(next);
   }, [selectedDate, setSelectedDate]);
 
-  const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.value) {
-      setSelectedDate(e.target.value);
-    }
-  };
-
   const handleBranchChange = (newBranchId: string) => {
     setSelectedBranchId(newBranchId);
     navigate(paths.customerBranchCourtStatus(newBranchId), { replace: true });
@@ -106,16 +95,11 @@ export const CustomerCourtStatusPage: React.FC = () => {
       branchCode: 'CLB',
       address: '123 Nguyễn Thị Thập, Quận 7, TP.HCM',
       openTime: '05:00',
-      closeTime: '23:30',
+      closeTime: '23:00',
       rating: 4.9,
       isActive: true,
     };
   }, [branches, selectedBranchId, statusData?.branchName]);
-
-  // Mobile active court
-  const activeCourt = useMemo(() => {
-    return courts.find((c) => c.courtId === activeMobileCourtId) || courts[0];
-  }, [courts, activeMobileCourtId]);
 
   return (
     <div className="flex flex-col min-h-screen w-full bg-[#0d6838] text-white">
@@ -220,148 +204,49 @@ export const CustomerCourtStatusPage: React.FC = () => {
         <CustomerNoticeBanner />
       </section>
 
-      {/* 5. MAIN SCHEDULER VIEW */}
-      <main className="flex-1 flex flex-col bg-white">
+      {/* 5. MAIN SCHEDULER VIEW (100% Full Width across Desktop, Tablet & Mobile) */}
+      <main className="flex-1 w-full flex flex-col bg-white overflow-hidden">
+        {/* Mobile Controls Bar (< 640px): Branch & Interval Selectors */}
+        {branches.length > 1 && (
+          <div className="sm:hidden flex items-center gap-2 px-3 py-2 bg-slate-50 border-b border-slate-200">
+            <div className="flex-1">
+              <BranchSelectDropdown
+                branches={branches}
+                selectedBranchId={selectedBranchId}
+                onBranchChange={handleBranchChange}
+                variant="surface"
+              />
+            </div>
+            <SlotIntervalSelect
+              value={slotInterval}
+              onChange={setSlotInterval}
+              className="bg-emerald-800 hover:bg-emerald-700 text-white border-emerald-700"
+            />
+          </div>
+        )}
+
         {isLoading ? (
           <CustomerCourtStatusSkeleton />
         ) : isError ? (
-          <div className="p-6">
+          <div className="p-6 w-full flex-1 flex items-center justify-center">
             <CustomerCourtStatusError
               message={(error as Error)?.message}
               onRetry={() => refetch()}
             />
           </div>
         ) : courts.length === 0 ? (
-          <div className="p-6">
+          <div className="p-6 w-full flex-1 flex items-center justify-center">
             <CustomerCourtStatusEmpty date={selectedDate} />
           </div>
         ) : (
-          <>
-            {/* Desktop & Tablet Scheduler (>= 768px) */}
-            <div className="hidden md:flex flex-1 flex-col">
-              <CustomerCourtScheduler
-                courts={courts}
-                slots={slots}
-                slotInterval={slotInterval}
-                zoomLevel={zoomLevel}
-              />
-            </div>
-
-            {/* Mobile View (< 768px): Privacy-Safe Court Cards */}
-            <div className="md:hidden flex flex-col p-3 space-y-3 bg-slate-50">
-              {/* Branch Selector on Mobile with modern Select */}
-              {branches.length > 1 && (
-                <div className="w-full">
-                  <BranchSelectDropdown
-                    branches={branches}
-                    selectedBranchId={selectedBranchId}
-                    onBranchChange={handleBranchChange}
-                    variant="surface"
-                  />
-                </div>
-              )}
-
-              {/* Date & Court Switcher on Mobile */}
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex-1">
-                  <MobileCourtSelect
-                    courts={courts}
-                    activeCourtId={activeCourt?.courtId || courts[0]?.courtId || ''}
-                    onCourtChange={setActiveMobileCourtId}
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsDatePickerOpen(true)}
-                  aria-label="Chọn ngày xem lịch"
-                  className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1.5 rounded-xl shrink-0 flex items-center gap-1.5 hover:bg-emerald-100/80 cursor-pointer transition-colors"
-                >
-                  <span>{formattedDisplayDate}</span>
-                  <Calendar className="size-3.5 text-emerald-700" />
-                </button>
-              </div>
-
-              {/* Court Quick Tabs */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                {courts.map((court) => (
-                  <button
-                    key={court.courtId}
-                    type="button"
-                    onClick={() => setActiveMobileCourtId(court.courtId)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
-                      (activeCourt?.courtId || courts[0]?.courtId) === court.courtId
-                        ? 'bg-emerald-700 text-white shadow-xs'
-                        : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
-                    }`}
-                  >
-                    {court.courtName}
-                  </button>
-                ))}
-              </div>
-
-              {/* Mobile Court Slot Card */}
-              {activeCourt && (
-                <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs space-y-3">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="size-2.5 rounded-full bg-emerald-500" />
-                      <h3 className="font-bold text-sm text-slate-900">{activeCourt.courtName}</h3>
-                    </div>
-                    <span className="text-[11px] text-slate-500">Khung giờ hoạt động 05:00 - 23:00</span>
-                  </div>
-
-                  {/* Hourly availability summary */}
-                  <div className="space-y-2">
-                    <div className="text-xs font-semibold text-slate-700">Khung giờ phổ biến:</div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { start: '06:00', end: '08:00', label: '06:00 - 08:00 (Sáng)' },
-                        { start: '08:00', end: '10:00', label: '08:00 - 10:00 (Sáng)' },
-                        { start: '14:00', end: '16:00', label: '14:00 - 16:00 (Chiều)' },
-                        { start: '16:00', end: '18:00', label: '16:00 - 18:00 (Chiều)' },
-                        { start: '18:00', end: '20:00', label: '18:00 - 20:00 (Tối)' },
-                        { start: '20:00', end: '22:00', label: '20:00 - 22:00 (Tối)' },
-                      ].map((slot) => {
-                        const isAvailable = CustomerCourtStatusService.isRangeAvailable(
-                          slots,
-                          activeCourt.courtId,
-                          slot.start,
-                          slot.end,
-                        );
-
-                        return (
-                          <button
-                            key={slot.label}
-                            type="button"
-                            disabled={!isAvailable}
-                            onClick={() =>
-                              openCreateBooking({
-                                courtId: activeCourt.courtId,
-                                courtName: activeCourt.courtName,
-                                startTime: slot.start,
-                                endTime: slot.end,
-                                selectedSlots: [slot.start],
-                              })
-                            }
-                            className={`p-2.5 rounded-lg border text-left text-xs font-medium transition-all ${
-                              isAvailable
-                                ? 'bg-emerald-50/60 border-emerald-300 text-emerald-950 hover:bg-emerald-100/80 cursor-pointer shadow-2xs'
-                                : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
-                            }`}
-                          >
-                            <div className="font-semibold">{slot.label}</div>
-                            <div className="text-[10px] mt-0.5 font-normal">
-                              {isAvailable ? '🟢 Còn trống • Đặt ngay' : '🔴 Đã kín / Tạm khóa'}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </>
+          <div className="flex flex-1 flex-col w-full h-full overflow-hidden">
+            <CustomerCourtScheduler
+              courts={courts}
+              slots={slots}
+              slotInterval={slotInterval}
+              zoomLevel={zoomLevel}
+            />
+          </div>
         )}
       </main>
 

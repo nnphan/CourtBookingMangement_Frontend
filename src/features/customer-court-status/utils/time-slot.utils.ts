@@ -1,6 +1,11 @@
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
-import { SCHEDULER_CONFIG, SLOT_WIDTH } from '../constants/customer-scheduler.config';
+import {
+  COURT_COLUMN_WIDTH,
+  RESPONSIVE_SLOT_WIDTH,
+  SCHEDULER_CONFIG,
+  SLOT_WIDTH,
+} from '../constants/customer-scheduler.config';
 import type { CustomerSlotSelection } from '../types/customer-slot';
 
 dayjs.extend(customParseFormat);
@@ -41,6 +46,64 @@ export function differenceInHours(endTime: string, startTime: string): number {
   const startMinutes = parseTimeToMinutes(startTime);
   const endMinutes = parseTimeToMinutes(endTime);
   return Math.max(0, (endMinutes - startMinutes) / 60);
+}
+
+/**
+ * Compute responsive slot width based on viewport width and available container width:
+ * - Desktop (>= 1280px): 100px per slot
+ * - Tablet (768px - 1279px): 90px per slot
+ * - Mobile (< 768px): 80px per slot
+ * Expands dynamically if the container is wider than total slots width so 100% width is used.
+ */
+export function getResponsiveSlotWidth(
+  viewportWidth: number,
+  containerWidth: number = 0,
+  slotCount: number = 18,
+  zoomLevel: number = 1.0,
+  courtColumnWidth: number = COURT_COLUMN_WIDTH,
+): number {
+  let baseWidth: number = RESPONSIVE_SLOT_WIDTH.DESKTOP;
+  if (viewportWidth < 768) {
+    baseWidth = RESPONSIVE_SLOT_WIDTH.MOBILE;
+  } else if (viewportWidth < 1280) {
+    baseWidth = RESPONSIVE_SLOT_WIDTH.TABLET;
+  }
+
+  const zoomedWidth = Math.max(80, Math.min(160, Math.round(baseWidth * zoomLevel)));
+
+  if (containerWidth > courtColumnWidth && slotCount > 0) {
+    const availableGridWidth = containerWidth - courtColumnWidth;
+    const expandedSlotWidth = Math.floor(availableGridWidth / slotCount);
+    return Math.max(zoomedWidth, expandedSlotWidth);
+  }
+
+  return zoomedWidth;
+}
+
+/**
+ * Calculate current time red line indicator X position in pixels
+ */
+export function calculateCurrentTimeOffset(
+  slotWidth: number = SLOT_WIDTH,
+  slotDuration: number = SCHEDULER_CONFIG.SLOT_DURATION,
+  schedulerStartTime: string = SCHEDULER_CONFIG.START_TIME,
+  schedulerEndTime: string = SCHEDULER_CONFIG.END_TIME,
+): { offsetPx: number; currentTimeLabel: string; isWithinHours: boolean } {
+  const now = dayjs();
+  const currentMinutes = now.hour() * 60 + now.minute();
+  const startMinutes = parseTimeToMinutes(schedulerStartTime);
+  const endMinutes = parseTimeToMinutes(schedulerEndTime);
+
+  const isWithinHours = currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+  const clampedMinutes = Math.max(startMinutes, Math.min(endMinutes, currentMinutes));
+  const safeDuration = slotDuration > 0 ? slotDuration : SCHEDULER_CONFIG.SLOT_DURATION;
+  const offsetPx = Math.round(((clampedMinutes - startMinutes) / safeDuration) * slotWidth);
+
+  return {
+    offsetPx,
+    currentTimeLabel: now.format('HH:mm'),
+    isWithinHours,
+  };
 }
 
 /**
@@ -160,3 +223,4 @@ export function calculateSelectedTimeRange(
     durationMinutes,
   };
 }
+
