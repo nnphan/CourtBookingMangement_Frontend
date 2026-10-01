@@ -16,6 +16,8 @@ export const paths = {
     date
       ? `/customer/branches/${branchId}/court-status?date=${encodeURIComponent(date)}`
       : `/customer/branches/${branchId}/court-status`,
+  playerMatching: '/player-matching',
+  playerMatchingDetail: (id: string = ':id') => `/player-matching/${id}`,
   notFound: '*',
 } as const;
 
