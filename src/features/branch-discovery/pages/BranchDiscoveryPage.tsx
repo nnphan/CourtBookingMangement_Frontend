@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { lazy, Suspense, useMemo } from 'react';
 import { DiscoveryHeader } from '../components/DiscoveryHeader';
 import { SearchHeroBar } from '../components/SearchHeroBar';
 import { CategoryFilterChips } from '../components/CategoryFilterChips';
@@ -10,8 +10,16 @@ import { BranchSkeletonGrid } from '../components/BranchSkeletonGrid';
 import { BranchEmptyState } from '../components/BranchEmptyState';
 import { useBranchSearchStore } from '../store/branch-search.store';
 import { useBranches } from '../hooks/useBranches';
-import type { BranchSearchParams } from '../types/branch';
+import type { BranchSearchParams, BadmintonBranch } from '../types/branch';
 import { Sparkles, Trophy, Users, ShieldCheck, HeartHandshake } from 'lucide-react';
+import { QuickActionsSection } from '@/features/player-matching/components/QuickActionsSection';
+
+const LookingForPlayersSection = lazy(
+  () =>
+    import('@/features/player-matching/components/LookingForPlayersSection').then((m) => ({
+      default: m.LookingForPlayersSection,
+    })),
+);
 
 export const BranchDiscoveryPage = () => {
   const {
@@ -68,8 +76,23 @@ export const BranchDiscoveryPage = () => {
         {/* Search Hero Widget */}
         <SearchHeroBar />
 
-        {/* Quick Filter Chips & View Mode Controls */}
-        <CategoryFilterChips />
+        {/* Quick Actions Section */}
+        <QuickActionsSection />
+
+        {/* Looking For Players Section (Featured Active Matches Preview) */}
+        <Suspense
+          fallback={
+            <div className="h-64 w-full rounded-3xl border border-line bg-surface-muted/40 animate-pulse" />
+          }
+        >
+          <LookingForPlayersSection />
+        </Suspense>
+
+        {/* Nearby / Recommended Branches Section */}
+        <div id="branches-section">
+          {/* Quick Filter Chips & View Mode Controls */}
+          <CategoryFilterChips />
+        </div>
 
         {/* Result Header Count */}
         <div className="flex items-center justify-between pt-1">

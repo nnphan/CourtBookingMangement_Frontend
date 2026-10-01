@@ -24,6 +24,9 @@ const BranchDiscoveryPage = lazy(
 const CustomerCourtStatusPage = lazy(
   () => import('@/features/customer-court-status/pages/CustomerCourtStatusPage'),
 );
+const DiscoverMatchesPage = lazy(
+  () => import('@/features/player-matching/pages/DiscoverMatchesPage'),
+);
 const NotFoundPage = lazy(() => import('@/components/common/NotFoundPage'));
 
 const withSuspense = (node: React.ReactNode) => (
@@ -44,6 +47,16 @@ export const router = createBrowserRouter([
   {
     path: paths.customerBranchCourtStatus(),
     element: withSuspense(<CustomerCourtStatusPage />),
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: paths.playerMatching,
+    element: withSuspense(<DiscoverMatchesPage />),
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: paths.playerMatchingDetail(),
+    element: withSuspense(<DiscoverMatchesPage />),
     errorElement: <RouteErrorBoundary />,
   },
   {
