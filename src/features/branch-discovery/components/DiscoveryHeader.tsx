@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { Search, X, User as UserIcon, LogOut, LayoutDashboard, CalendarCheck } from 'lucide-react';
+import { Search, X, User as UserIcon, LogOut, LayoutDashboard, CalendarCheck, Bell } from 'lucide-react';
 import { paths } from '@/app/router/paths';
 import { useAuthStore } from '@/features/auth/store/auth.store';
 import { useBranchSearchStore } from '../store/branch-search.store';
+import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
+import { getRoleLabel } from '@/shared/constants/roles';
 
 export const DiscoveryHeader = () => {
   const navigate = useNavigate();
@@ -40,6 +42,8 @@ export const DiscoveryHeader = () => {
     setLocalInput('');
     setSearchQuery('');
   };
+
+  console.log(user);
 
   return (
     <header className="sticky top-[env(safe-area-inset-top,0px)] z-30 w-full border-b border-line bg-surface/95 backdrop-blur-md shadow-xs transition-shadow">
@@ -125,8 +129,23 @@ export const DiscoveryHeader = () => {
           </div>
         </form>
 
-        {/* Right: Register | Login or Profile */}
-        <div className="flex items-center gap-3">
+        {/* Right: Language Switcher, Notifications, Register | Login or Profile */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Language Switcher (EN | VI) */}
+          <LanguageSwitcher />
+
+          {/* Notifications Icon */}
+          {isAuthenticated && (
+            <button
+              type="button"
+              aria-label="Thông báo"
+              className="relative grid size-9 place-items-center rounded-full border border-line bg-surface text-content-secondary hover:text-content-primary hover:bg-surface-muted transition-colors focus-visible:outline-2 focus-visible:outline-brand-600 cursor-pointer"
+            >
+              <Bell className="size-4" />
+              <span className="absolute top-2 right-2 size-2 rounded-full bg-brand-600 ring-2 ring-surface" />
+            </button>
+          )}
+
           {isAuthenticated ? (
             <div className="relative" ref={menuRef}>
               <button
@@ -156,7 +175,7 @@ export const DiscoveryHeader = () => {
                       {user?.fullName}
                     </p>
                     <span className="mt-0.5 inline-block rounded bg-brand-50 px-2 py-0.5 text-[10px] font-semibold text-brand-700 uppercase">
-                      {user?.role ?? 'Customer'}
+                      {getRoleLabel(user?.roles)}
                     </span>
                   </div>
 

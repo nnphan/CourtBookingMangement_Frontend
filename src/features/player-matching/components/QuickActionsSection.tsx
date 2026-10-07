@@ -15,9 +15,12 @@ export const QuickActionsSection = () => {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {/* Action 1: Book Court */}
         <QuickActionCard
+          variant="emerald"
           icon={<CalendarDays className="size-6" />}
           title="Book Court"
           description="Khám phá và đặt sân cầu lông nhanh chóng tại các cụm sân chất lượng cao."
+          badge="Đặt sân 24/7"
+          actionText="Đặt sân ngay →"
           route="#branches-section"
         />
 
@@ -28,14 +31,18 @@ export const QuickActionsSection = () => {
           title="Find Match"
           description="Join players looking for teammates. Giao lưu, ghép cặp và cọ xát theo trình độ."
           badge={`${openMatchesCount} Open Matches`}
+          actionText="Tham gia ngay →"
           route={paths.playerMatching ?? '/player-matching'}
         />
 
         {/* Action 3: My Booking */}
         <QuickActionCard
+          variant="blue"
           icon={<ReceiptText className="size-6" />}
           title="My Booking"
           description="Quản lý lịch đặt sân, theo dõi thanh toán và xem thông tin trận đấu của bạn."
+          badge="Lịch & Vé"
+          actionText="Xem lịch đặt →"
           route={paths.bookings ?? '/bookings'}
         />
       </div>

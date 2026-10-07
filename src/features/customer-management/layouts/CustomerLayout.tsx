@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { paths } from '@/app/router/paths';
+import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 
 export const CustomerLayout: React.FC = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -68,6 +69,8 @@ export const CustomerLayout: React.FC = () => {
 
         {/* Right header actions */}
         <div className="flex items-center gap-2 sm:gap-3">
+          <LanguageSwitcher variant="contrast" />
+
           <button
             type="button"
             onClick={() => navigate(paths.courtStatus)}

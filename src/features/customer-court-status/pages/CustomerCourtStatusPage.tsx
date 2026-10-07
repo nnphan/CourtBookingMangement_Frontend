@@ -22,6 +22,7 @@ import { CustomerCourtStatusError } from '../components/CustomerCourtStatusError
 import { BranchSelectDropdown } from '../components/BranchSelectDropdown';
 import { SlotIntervalSelect } from '../components/SlotIntervalSelect';
 import { CustomerDatePickerDialog } from '../components/CustomerDatePickerDialog';
+import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 
 interface NavigationLocationState {
   branchId?: string;
@@ -196,6 +197,8 @@ export const CustomerCourtStatusPage: React.FC = () => {
 
         {/* Right: Date Picker & Modern Notion/Linear Dropdowns */}
         <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Language Switcher */}
+          <LanguageSwitcher variant="contrast" className="hidden sm:inline-flex" />
 
           {/* Slot Interval Select (Desktop/Tablet) */}
           <div className="hidden lg:block">

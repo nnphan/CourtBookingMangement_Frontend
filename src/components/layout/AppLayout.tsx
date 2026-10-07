@@ -3,6 +3,7 @@ import { Outlet } from 'react-router';
 import { Menu, Lightbulb } from 'lucide-react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { BottomNav } from '@/components/layout/BottomNav';
+import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 
 export const AppLayout = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -30,13 +31,16 @@ export const AppLayout = () => {
               <span className="text-sm font-black tracking-tight text-brand-900">ALOBO</span>
             </div>
           </div>
-          <button
-            type="button"
-            className="flex items-center gap-1.5 rounded-full bg-accent-gold px-3 py-1.5 text-sm font-bold text-white shadow-sm hover:bg-accent-gold/90"
-          >
-            <Lightbulb className="size-4" />
-            Hướng dẫn
-          </button>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <LanguageSwitcher variant="contrast" />
+            <button
+              type="button"
+              className="flex items-center gap-1.5 rounded-full bg-accent-gold px-3 py-1.5 text-sm font-bold text-white shadow-sm hover:bg-accent-gold/90"
+            >
+              <Lightbulb className="size-4" />
+              <span className="hidden sm:inline">Hướng dẫn</span>
+            </button>
+          </div>
         </div>
       </header>
       

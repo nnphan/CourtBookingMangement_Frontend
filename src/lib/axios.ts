@@ -22,7 +22,10 @@ http.interceptors.request.use((config) => {
   if (tokens?.accessToken) {
     config.headers.set('Authorization', `Bearer ${tokens.accessToken}`);
   }
-  config.headers.set('Accept-Language', localStorage.getItem('i18nextLng') ?? 'vi');
+  config.headers.set(
+    'Accept-Language',
+    localStorage.getItem('language') ?? localStorage.getItem('i18nextLng') ?? 'vi',
+  );
   return config;
 });
 

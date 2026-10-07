@@ -7,6 +7,8 @@ export interface User {
   email: string | null;
   avatarUrl: string | null;
   role: UserRole;
+  /** All roles assigned to the user (backend enum values, e.g. 'ADMIN', 'BRANCH_OWNER'). */
+  roles?: string[] | null;
 }
 
 export interface AuthTokens {

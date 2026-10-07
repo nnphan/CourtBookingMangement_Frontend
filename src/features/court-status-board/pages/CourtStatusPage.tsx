@@ -17,6 +17,7 @@ import { CourtStatusSkeleton } from '../components/CourtStatusSkeleton';
 import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
 import type { BookingItem } from '../types/booking';
+import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 
 export const CourtStatusPage: React.FC = () => {
   const { t } = useTranslation();
@@ -187,8 +188,9 @@ export const CourtStatusPage: React.FC = () => {
           {t('courtStatus.title', 'Trạng thái sân')}
         </h1>
 
-        {/* Right: Search and Filter Icons */}
-        <div className="flex items-center gap-1">
+        {/* Right: Language Switcher, Search and Filter Icons */}
+        <div className="flex items-center gap-1 sm:gap-2">
+          <LanguageSwitcher variant="contrast" className="mr-1" />
           <button
             type="button"
             aria-label={t('courtStatus.header.search', 'Tìm kiếm')}

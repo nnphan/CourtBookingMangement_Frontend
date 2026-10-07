@@ -6,7 +6,6 @@ import { Card, CardBody } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { GoogleButton } from '@/components/ui/google-button';
 import { OwnerAppBanner } from '@/components/common/OwnerAppBanner';
-import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { LoginPhoneForm } from '@/features/auth/components/LoginPhoneForm';
 import { LoginEmailForm } from '@/features/auth/components/LoginEmailForm';
 import { paths } from '@/app/router/paths';
@@ -17,8 +16,6 @@ export const LoginPage = () => {
 
   return (
     <AuthLayout title={t('auth.login.title')}>
-      <LanguageSwitcher className="mb-4 self-end" />
-
       <Card>
         <Tabs value={tab} onValueChange={(v) => setTab(v as 'phone' | 'email')}>
           <TabsList>
