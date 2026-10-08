@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Building2,
@@ -14,13 +14,10 @@ import {
 import type { Branch, CourtCategory, CourtItem, CourtSurface } from '@/types/branch';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { StatusBadge } from '@/components/management';
+import { useAmenities } from '@/features/amenities/hooks/useAmenities';
+import { getAmenityIcon } from '@/features/amenities/utils/getAmenityIcon';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useLocaleFormatters } from '@/hooks/useLocaleFormatters';
 
 const COURT_SURFACES: CourtSurface[] = ['bwf_mat', 'wood', 'acrylic', 'pvc'];
@@ -49,6 +46,15 @@ export const BranchDetailTabs: React.FC<BranchDetailTabsProps> = ({
   const courts = branch.courts || [];
   const pricing = branch.pricing || [];
   const images = branch.images || [];
+  const { data: amenityCatalog = [] } = useAmenities();
+  const amenities = useMemo(
+    () =>
+      (branch.amenityIds ?? []).flatMap((id) => {
+        const amenity = amenityCatalog.find((item) => item.id === id);
+        return amenity ? [amenity] : [];
+      }),
+    [amenityCatalog, branch.amenityIds],
+  );
 
   const handleCreateCourt = () => {
     if (!newCourtName.trim()) return;
@@ -69,39 +75,39 @@ export const BranchDetailTabs: React.FC<BranchDetailTabsProps> = ({
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         {/* Modern SaaS Folder Tabs Strip */}
-        <div className="bg-white p-1.5 rounded-2xl border border-slate-200/90 shadow-xs mb-6">
-          <TabsList className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 bg-slate-100/80 p-1 rounded-xl">
+        <div className="mb-6 rounded-2xl border border-slate-200/90 bg-white p-1.5 shadow-xs">
+          <TabsList className="grid grid-cols-2 gap-1.5 rounded-xl bg-slate-100/80 p-1 sm:grid-cols-5">
             <TabsTrigger
               value="overview"
-              className="h-10 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs text-slate-600 transition-all"
+              className="flex h-10 items-center justify-center gap-1.5 rounded-lg text-xs font-bold text-slate-600 transition-all data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs"
             >
               <Building2 className="size-3.5" />
               <span>{t('details.tabs.overview')}</span>
             </TabsTrigger>
             <TabsTrigger
               value="courts"
-              className="h-10 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs text-slate-600 transition-all"
+              className="flex h-10 items-center justify-center gap-1.5 rounded-lg text-xs font-bold text-slate-600 transition-all data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs"
             >
               <Grid3X3 className="size-3.5" />
               <span>{t('details.tabs.courts', { count: courts.length })}</span>
             </TabsTrigger>
             <TabsTrigger
               value="hours"
-              className="h-10 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs text-slate-600 transition-all"
+              className="flex h-10 items-center justify-center gap-1.5 rounded-lg text-xs font-bold text-slate-600 transition-all data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs"
             >
               <Clock className="size-3.5" />
               <span>{t('details.tabs.hours')}</span>
             </TabsTrigger>
             <TabsTrigger
               value="pricing"
-              className="h-10 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs text-slate-600 transition-all"
+              className="flex h-10 items-center justify-center gap-1.5 rounded-lg text-xs font-bold text-slate-600 transition-all data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs"
             >
               <DollarSign className="size-3.5" />
               <span>{t('details.tabs.pricing')}</span>
             </TabsTrigger>
             <TabsTrigger
               value="images"
-              className="h-10 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs text-slate-600 transition-all"
+              className="flex h-10 items-center justify-center gap-1.5 rounded-lg text-xs font-bold text-slate-600 transition-all data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs"
             >
               <ImageIcon className="size-3.5" />
               <span>{t('details.tabs.images', { count: images.length })}</span>
@@ -111,68 +117,66 @@ export const BranchDetailTabs: React.FC<BranchDetailTabsProps> = ({
 
         {/* TAB 1: OVERVIEW */}
         <TabsContent value="overview" className="space-y-6 outline-none">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* General Info Card */}
-            <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs space-y-4">
-              <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
+            <div className="space-y-4 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs sm:p-6 lg:col-span-2">
+              <h3 className="flex items-center gap-2 border-b border-slate-100 pb-3 text-base font-bold text-slate-900">
                 <Building2 className="size-4 text-emerald-600" />
                 {t('details.overview.generalInfo')}
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
                 <div>
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                  <span className="block text-xs font-bold tracking-wider text-slate-400 uppercase">
                     {t('details.overview.branchName')}
                   </span>
-                  <span className="font-bold text-slate-900 text-base mt-0.5 block">
+                  <span className="mt-0.5 block text-base font-bold text-slate-900">
                     {branch.branchName}
                   </span>
                 </div>
 
                 <div>
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                  <span className="block text-xs font-bold tracking-wider text-slate-400 uppercase">
                     {t('details.overview.contactPhone')}
                   </span>
-                  <span className="font-mono font-bold text-slate-900 text-base mt-0.5 block flex items-center gap-1.5">
+                  <span className="mt-0.5 block flex items-center gap-1.5 font-mono text-base font-bold text-slate-900">
                     <Phone className="size-4 text-emerald-600" />
                     {branch.phone}
                   </span>
                 </div>
 
                 <div className="sm:col-span-2">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                  <span className="block text-xs font-bold tracking-wider text-slate-400 uppercase">
                     {t('details.overview.fullAddress')}
                   </span>
-                  <span className="text-slate-800 font-medium mt-0.5 block flex items-start gap-1.5">
-                    <MapPin className="size-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span className="mt-0.5 block flex items-start gap-1.5 font-medium text-slate-800">
+                    <MapPin className="mt-0.5 size-4 shrink-0 text-emerald-600" />
                     {branch.address}, {branch.district}, {branch.city}
                   </span>
                 </div>
 
                 <div>
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                  <span className="block text-xs font-bold tracking-wider text-slate-400 uppercase">
                     {t('details.overview.city')}
                   </span>
-                  <span className="font-semibold text-slate-800 mt-0.5 block">
-                    {branch.city}
-                  </span>
+                  <span className="mt-0.5 block font-semibold text-slate-800">{branch.city}</span>
                 </div>
 
                 <div>
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                  <span className="block text-xs font-bold tracking-wider text-slate-400 uppercase">
                     {t('details.overview.district')}
                   </span>
-                  <span className="font-semibold text-slate-800 mt-0.5 block">
+                  <span className="mt-0.5 block font-semibold text-slate-800">
                     {branch.district}
                   </span>
                 </div>
 
                 {branch.latitude && branch.longitude && (
                   <div className="sm:col-span-2">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                    <span className="block text-xs font-bold tracking-wider text-slate-400 uppercase">
                       {t('details.overview.coordinates')}
                     </span>
-                    <span className="font-mono text-xs text-slate-600 mt-0.5 block">
+                    <span className="mt-0.5 block font-mono text-xs text-slate-600">
                       {t('details.overview.coordinatesValue', {
                         latitude: branch.latitude,
                         longitude: branch.longitude,
@@ -181,11 +185,35 @@ export const BranchDetailTabs: React.FC<BranchDetailTabsProps> = ({
                   </div>
                 )}
 
-                <div className="sm:col-span-2 pt-2 border-t border-slate-100">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                <div className="border-t border-slate-100 pt-2 sm:col-span-2">
+                  <span className="mb-2 block text-xs font-bold tracking-wider text-slate-400 uppercase">
+                    {t('details.overview.amenities')}
+                  </span>
+                  {amenities.length === 0 ? (
+                    <p className="text-sm text-slate-500">{t('details.overview.noAmenities')}</p>
+                  ) : (
+                    <ul className="flex flex-wrap gap-2">
+                      {amenities.map((amenity) => {
+                        const Icon = getAmenityIcon(amenity.icon);
+                        return (
+                          <li
+                            key={amenity.id}
+                            className="border-brand-100 bg-brand-50 text-primary inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold"
+                          >
+                            <Icon aria-hidden className="size-3.5" />
+                            {amenity.name}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+
+                <div className="border-t border-slate-100 pt-2 sm:col-span-2">
+                  <span className="mb-1 block text-xs font-bold tracking-wider text-slate-400 uppercase">
                     {t('details.overview.description')}
                   </span>
-                  <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-3.5 rounded-xl border border-slate-200/60">
+                  <p className="rounded-xl border border-slate-200/60 bg-slate-50 p-3.5 text-sm leading-relaxed text-slate-600">
                     {branch.description || t('details.overview.noDescription')}
                   </p>
                 </div>
@@ -194,8 +222,8 @@ export const BranchDetailTabs: React.FC<BranchDetailTabsProps> = ({
 
             {/* Quick Metadata & Status Card */}
             <div className="space-y-4">
-              <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-4">
-                <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2.5">
+              <div className="space-y-4 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs">
+                <h3 className="border-b border-slate-100 pb-2.5 text-sm font-bold text-slate-900">
                   {t('details.overview.recordMetadata')}
                 </h3>
                 <div className="space-y-3 text-xs">
@@ -236,25 +264,25 @@ export const BranchDetailTabs: React.FC<BranchDetailTabsProps> = ({
 
               {/* Cover Image Preview */}
               {branch.coverImage && (
-                <div className="bg-white rounded-2xl border border-slate-200/90 p-3 shadow-xs">
-                  <div className="rounded-xl overflow-hidden aspect-video relative group">
+                <div className="rounded-2xl border border-slate-200/90 bg-white p-3 shadow-xs">
+                  <div className="group relative aspect-video overflow-hidden rounded-xl">
                     <img
                       src={branch.coverImage}
                       alt={branch.branchName}
-                      className="w-full h-full object-cover"
+                      className="h-full w-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition-opacity group-hover:opacity-100">
                       <button
                         type="button"
                         onClick={() => setSelectedZoomImage(branch.coverImage || null)}
-                        className="p-2 rounded-xl bg-white/90 text-slate-900 text-xs font-bold shadow-md flex items-center gap-1.5"
+                        className="flex items-center gap-1.5 rounded-xl bg-white/90 p-2 text-xs font-bold text-slate-900 shadow-md"
                       >
                         <Maximize2 className="size-3.5" />
                         {t('actions.zoom')}
                       </button>
                     </div>
                   </div>
-                  <p className="text-center text-[11px] text-slate-400 mt-2 font-medium">
+                  <p className="mt-2 text-center text-[11px] font-medium text-slate-400">
                     {t('details.overview.coverPhoto')}
                   </p>
                 </div>
@@ -265,8 +293,8 @@ export const BranchDetailTabs: React.FC<BranchDetailTabsProps> = ({
 
         {/* TAB 2: COURTS */}
         <TabsContent value="courts" className="space-y-4 outline-none">
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
-            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
+          <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-xs">
+            <div className="flex items-center justify-between border-b border-slate-100 p-4 sm:p-5">
               <div>
                 <h3 className="text-base font-bold text-slate-900">{t('details.courts.title')}</h3>
                 <p className="text-xs text-slate-500">{t('details.courts.description')}</p>
@@ -278,50 +306,52 @@ export const BranchDetailTabs: React.FC<BranchDetailTabsProps> = ({
                 onClick={() => setIsAddCourtModalOpen(true)}
                 className="rounded-xl text-xs font-bold"
               >
-                <Plus className="size-3.5 mr-1" />
+                <Plus className="mr-1 size-3.5" />
                 {t('actions.addCourt')}
               </Button>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <thead className="border-b border-slate-200 bg-slate-50 text-xs font-bold tracking-wider text-slate-500 uppercase">
                   <tr>
-                    <th className="py-3 px-4">{t('details.courts.name')}</th>
-                    <th className="py-3 px-4">{t('details.courts.surface')}</th>
-                    <th className="py-3 px-4">{t('details.courts.category')}</th>
-                    <th className="py-3 px-4">{t('details.courts.status')}</th>
-                    <th className="py-3 px-4">{t('details.courts.standardRate')}</th>
-                    <th className="py-3 px-4 text-right">{t('details.courts.actions')}</th>
+                    <th className="px-4 py-3">{t('details.courts.name')}</th>
+                    <th className="px-4 py-3">{t('details.courts.surface')}</th>
+                    <th className="px-4 py-3">{t('details.courts.category')}</th>
+                    <th className="px-4 py-3">{t('details.courts.status')}</th>
+                    <th className="px-4 py-3">{t('details.courts.standardRate')}</th>
+                    <th className="px-4 py-3 text-right">{t('details.courts.actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {courts.map((court) => (
-                    <tr key={court.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-3.5 px-4 font-bold text-slate-900">
-                        {court.name}
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-600 text-xs">
+                    <tr key={court.id} className="transition-colors hover:bg-slate-50/70">
+                      <td className="px-4 py-3.5 font-bold text-slate-900">{court.name}</td>
+                      <td className="px-4 py-3.5 text-xs text-slate-600">
                         <span>{t(`court.surface.${court.surface}`)}</span>
                       </td>
-                      <td className="py-3.5 px-4">
-                        <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold uppercase ${
-                          court.category === 'vip'
-                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                            : 'bg-slate-100 text-slate-600'
-                        }`}>
+                      <td className="px-4 py-3.5">
+                        <span
+                          className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${
+                            court.category === 'vip'
+                              ? 'border border-amber-200 bg-amber-50 text-amber-700'
+                              : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
                           {t(`court.category.${court.category}`)}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4">
-                        <StatusBadge status={court.status === 'available' ? 'available' : 'maintenance'}>
+                      <td className="px-4 py-3.5">
+                        <StatusBadge
+                          status={court.status === 'available' ? 'available' : 'maintenance'}
+                        >
                           {t(`court.status.${court.status}`)}
                         </StatusBadge>
                       </td>
-                      <td className="py-3.5 px-4 font-mono text-xs font-bold text-emerald-700">
+                      <td className="px-4 py-3.5 font-mono text-xs font-bold text-emerald-700">
                         {formatNumber(court.pricePerHour || 120000)} {t('court.priceUnit')}
                       </td>
-                      <td className="py-3.5 px-4 text-right">
+                      <td className="px-4 py-3.5 text-right">
                         <Button
                           type="button"
                           variant="ghost"
@@ -342,26 +372,26 @@ export const BranchDetailTabs: React.FC<BranchDetailTabsProps> = ({
 
         {/* TAB 3: OPERATING HOURS */}
         <TabsContent value="hours" className="outline-none">
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="space-y-4 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs sm:p-6">
             <div className="border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-900">{t('details.hours.title')}</h3>
               <p className="text-xs text-slate-500">{t('details.hours.description')}</p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                <span className="block text-xs font-bold tracking-wider text-slate-400 uppercase">
                   {t('details.hours.open')}
                 </span>
-                <span className="font-mono font-bold text-slate-900 text-2xl mt-1 block">
+                <span className="mt-1 block font-mono text-2xl font-bold text-slate-900">
                   {branch.openTime}
                 </span>
               </div>
-              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                <span className="block text-xs font-bold tracking-wider text-slate-400 uppercase">
                   {t('details.hours.close')}
                 </span>
-                <span className="font-mono font-bold text-slate-900 text-2xl mt-1 block">
+                <span className="mt-1 block font-mono text-2xl font-bold text-slate-900">
                   {branch.closeTime}
                 </span>
               </div>
@@ -372,8 +402,8 @@ export const BranchDetailTabs: React.FC<BranchDetailTabsProps> = ({
 
         {/* TAB 4: PRICING */}
         <TabsContent value="pricing" className="outline-none">
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs space-y-4">
-            <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+          <div className="space-y-4 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs sm:p-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <h3 className="text-base font-bold text-slate-900">{t('details.pricing.title')}</h3>
                 <p className="text-xs text-slate-500">{t('details.pricing.description')}</p>
@@ -389,22 +419,22 @@ export const BranchDetailTabs: React.FC<BranchDetailTabsProps> = ({
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               {pricing.map((tier) => (
                 <div
                   key={tier.id}
-                  className="p-5 rounded-2xl border border-slate-200/80 bg-linear-to-b from-slate-50/80 to-white shadow-xs space-y-3"
+                  className="space-y-3 rounded-2xl border border-slate-200/80 bg-linear-to-b from-slate-50/80 to-white p-5 shadow-xs"
                 >
                   <div className="flex items-center justify-between">
-                    <h4 className="font-bold text-slate-900 text-sm">{tier.name}</h4>
+                    <h4 className="text-sm font-bold text-slate-900">{tier.name}</h4>
                     <span className="size-2 rounded-full bg-emerald-500" />
                   </div>
                   <p className="text-xs text-slate-500">{tier.timeRange}</p>
-                  <div className="pt-2 border-t border-slate-100">
-                    <span className="text-2xl font-black text-emerald-700 font-mono">
+                  <div className="border-t border-slate-100 pt-2">
+                    <span className="font-mono text-2xl font-black text-emerald-700">
                       {formatNumber(tier.pricePerHour)}
                     </span>
-                    <span className="text-xs text-slate-500 font-semibold ml-1">
+                    <span className="ml-1 text-xs font-semibold text-slate-500">
                       {t('court.priceUnit')}
                     </span>
                   </div>
@@ -419,8 +449,8 @@ export const BranchDetailTabs: React.FC<BranchDetailTabsProps> = ({
 
         {/* TAB 5: IMAGES */}
         <TabsContent value="images" className="outline-none">
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs space-y-4">
-            <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+          <div className="space-y-4 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs sm:p-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <h3 className="text-base font-bold text-slate-900">{t('details.images.title')}</h3>
                 <p className="text-xs text-slate-500">{t('details.images.description')}</p>
@@ -436,25 +466,25 @@ export const BranchDetailTabs: React.FC<BranchDetailTabsProps> = ({
               </Button>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {images.map((img, idx) => (
                 <div
                   key={idx}
-                  className="group relative rounded-xl overflow-hidden aspect-video border border-slate-200 bg-slate-100 shadow-xs cursor-pointer"
+                  className="group relative aspect-video cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-slate-100 shadow-xs"
                   onClick={() => setSelectedZoomImage(img)}
                 >
                   <img
                     src={img}
                     alt={t('details.images.photoAlt', { index: idx + 1 })}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                   {idx === 0 && (
-                    <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-600 text-white shadow-xs">
+                    <span className="absolute top-2 left-2 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-xs">
                       {t('details.images.cover')}
                     </span>
                   )}
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <span className="text-white text-xs font-bold flex items-center gap-1">
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                    <span className="flex items-center gap-1 text-xs font-bold text-white">
                       <Maximize2 className="size-4" />
                       {t('actions.zoom')}
                     </span>
@@ -469,11 +499,11 @@ export const BranchDetailTabs: React.FC<BranchDetailTabsProps> = ({
       {/* Image Zoom Modal */}
       {selectedZoomImage && (
         <Dialog open={Boolean(selectedZoomImage)} onOpenChange={() => setSelectedZoomImage(null)}>
-          <DialogContent className="max-w-4xl p-2 bg-black/90 border-black text-white">
+          <DialogContent className="max-w-4xl border-black bg-black/90 p-2 text-white">
             <img
               src={selectedZoomImage}
               alt={t('details.images.zoomAlt')}
-              className="w-full max-h-[80vh] object-contain rounded-xl"
+              className="max-h-[80vh] w-full rounded-xl object-contain"
             />
           </DialogContent>
         </Dialog>
@@ -497,7 +527,7 @@ export const BranchDetailTabs: React.FC<BranchDetailTabsProps> = ({
                 value={newCourtName}
                 onChange={(e) => setNewCourtName(e.target.value)}
                 placeholder={t('details.addCourt.namePlaceholder')}
-                className="w-full h-10 px-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-slate-900 mt-1"
+                className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
               />
             </div>
             <div>
@@ -507,7 +537,7 @@ export const BranchDetailTabs: React.FC<BranchDetailTabsProps> = ({
               <select
                 value={newCourtSurface}
                 onChange={(e) => setNewCourtSurface(e.target.value as CourtItem['surface'])}
-                className="w-full h-10 px-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white text-slate-900 mt-1"
+                className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 focus:bg-white"
               >
                 {COURT_SURFACES.map((surface) => (
                   <option key={surface} value={surface}>
@@ -523,7 +553,7 @@ export const BranchDetailTabs: React.FC<BranchDetailTabsProps> = ({
               <select
                 value={newCourtCategory}
                 onChange={(e) => setNewCourtCategory(e.target.value as CourtItem['category'])}
-                className="w-full h-10 px-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white text-slate-900 mt-1"
+                className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 focus:bg-white"
               >
                 {COURT_CATEGORIES.map((category) => (
                   <option key={category} value={category}>
@@ -533,7 +563,7 @@ export const BranchDetailTabs: React.FC<BranchDetailTabsProps> = ({
               </select>
             </div>
           </div>
-          <div className="flex justify-end gap-2 mt-4 pt-2 border-t border-slate-100">
+          <div className="mt-4 flex justify-end gap-2 border-t border-slate-100 pt-2">
             <Button
               type="button"
               variant="outline"

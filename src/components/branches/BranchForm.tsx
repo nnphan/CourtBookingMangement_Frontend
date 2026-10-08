@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
 import {
   Building2,
@@ -11,19 +12,19 @@ import {
   Plus,
   Trash2,
   Pencil,
+  Sparkles,
   UploadCloud,
   AlertCircle,
   Save,
 } from 'lucide-react';
-import type {
-  Branch,
-  CreateBranchInput,
-  PricingTier,
-  CreateCourtInput,
-} from '@/types/branch';
+import type { Branch, CreateBranchInput, PricingTier, CreateCourtInput } from '@/types/branch';
 import { Button } from '@/components/ui/button';
-import { BranchCourtDialog, type BranchCourtDraft } from './BranchCourtDialog';
+import { BranchCourtDialog } from './BranchCourtDialog';
+import { BranchAmenitySelector } from './BranchAmenitySelector';
+import { branchFormSchema } from './branch-form.schema';
+import { NEW_COURT_DEFAULTS, type BranchCourtDraft } from './branch-court';
 import { DEFAULT_CLOSE_TIME, DEFAULT_OPEN_TIME, isCloseAfterOpen } from '@/lib/branch-hours';
+import { useAmenities } from '@/features/amenities/hooks/useAmenities';
 import {
   Select,
   SelectContent,
@@ -52,12 +53,29 @@ const DEFAULT_COURT_PRESETS: Omit<CreateCourtInput, 'name'>[] = [
   { surface: 'wood', category: 'vip', status: 'available', pricePerHour: 150000 },
 ];
 
-
 const PRESET_CITIES = ['Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Bình Dương'];
 
 const CITY_DISTRICT_MAP: Record<string, string[]> = {
-  'Hồ Chí Minh': ['Quận 1', 'Quận 3', 'Quận 7', 'Quận 10', 'Bình Thạnh', 'Tân Bình', 'Thành phố Thủ Đức', 'Phú Nhuận', 'Gò Vấp'],
-  'Hà Nội': ['Cầu Giấy', 'Tây Hồ', 'Đống Đa', 'Thanh Xuân', 'Nam Từ Liêm', 'Ba Đình', 'Hai Bà Trưng'],
+  'Hồ Chí Minh': [
+    'Quận 1',
+    'Quận 3',
+    'Quận 7',
+    'Quận 10',
+    'Bình Thạnh',
+    'Tân Bình',
+    'Thành phố Thủ Đức',
+    'Phú Nhuận',
+    'Gò Vấp',
+  ],
+  'Hà Nội': [
+    'Cầu Giấy',
+    'Tây Hồ',
+    'Đống Đa',
+    'Thanh Xuân',
+    'Nam Từ Liêm',
+    'Ba Đình',
+    'Hai Bà Trưng',
+  ],
   'Đà Nẵng': ['Hải Châu', 'Sơn Trà', 'Thanh Khê', 'Ngũ Hành Sơn'],
   'Bình Dương': ['Dĩ An', 'Thuận An', 'Thủ Dầu Một'],
 };
@@ -70,6 +88,7 @@ export const BranchForm: React.FC<BranchFormProps> = ({
   isEditMode = false,
 }) => {
   const { t } = useTranslation('branch');
+  const amenitiesQuery = useAmenities();
   const [newImageUrl, setNewImageUrl] = useState('');
   const [courtDialog, setCourtDialog] = useState<
     { mode: 'create' } | { mode: 'edit'; index: number } | null
@@ -101,6 +120,7 @@ export const BranchForm: React.FC<BranchFormProps> = ({
     reset,
     formState: { errors, isDirty, isSubmitting },
   } = useForm<CreateBranchInput>({
+    resolver: zodResolver(branchFormSchema),
     defaultValues: {
       branchName: initialData?.branchName ?? '',
       phone: initialData?.phone ?? '',
@@ -112,6 +132,7 @@ export const BranchForm: React.FC<BranchFormProps> = ({
       longitude: initialData?.longitude ?? 106.7072,
       openTime: initialData?.openTime ?? DEFAULT_OPEN_TIME,
       closeTime: initialData?.closeTime ?? DEFAULT_CLOSE_TIME,
+      amenityIds: initialData?.amenityIds ?? [],
       images: initialData?.images?.length
         ? initialData.images
         : [
@@ -138,6 +159,7 @@ export const BranchForm: React.FC<BranchFormProps> = ({
         longitude: initialData.longitude,
         openTime: initialData.openTime || DEFAULT_OPEN_TIME,
         closeTime: initialData.closeTime || DEFAULT_CLOSE_TIME,
+        amenityIds: initialData.amenityIds ?? [],
         images: initialData.images || [],
         pricing: initialData.pricing || defaults.pricing,
         courts: initialData.courts || defaults.courts,
@@ -188,6 +210,7 @@ export const BranchForm: React.FC<BranchFormProps> = ({
   ];
 
   const watchedImages = watch('images');
+  const watchedAmenityIds = watch('amenityIds') ?? [];
   const currentImages = useMemo(() => watchedImages ?? [], [watchedImages]);
 
   const handleAddImage = useCallback(() => {
@@ -237,13 +260,7 @@ export const BranchForm: React.FC<BranchFormProps> = ({
     if (courtDialog?.mode === 'edit') {
       return getValues(`courts.${courtDialog.index}`);
     }
-    return {
-      name: t('form.courts.defaultName', { index: courtFields.length + 1 }),
-      surface: 'bwf_mat',
-      category: 'standard',
-      status: 'available',
-      pricePerHour: 120000,
-    };
+    return { ...NEW_COURT_DEFAULTS, name: '' };
   };
 
   const sections = [
@@ -253,15 +270,16 @@ export const BranchForm: React.FC<BranchFormProps> = ({
     { id: 'images', title: t('form.sections.images'), icon: ImageIcon },
     { id: 'pricing', title: t('form.sections.pricing'), icon: DollarSign },
     { id: 'courts', title: t('form.sections.courts'), icon: Grid3X3 },
+    { id: 'amenities', title: t('form.sections.amenities'), icon: Sparkles },
   ];
 
   return (
     <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
       {/* Dirty state banner */}
       {isDirty && (
-        <div className="sticky top-16 z-20 flex items-center justify-between gap-3 bg-amber-50/95 backdrop-blur-xs border border-amber-200/90 text-amber-900 px-4 py-2.5 rounded-2xl shadow-xs text-xs font-semibold animate-in fade-in slide-in-from-top-2">
+        <div className="animate-in fade-in slide-in-from-top-2 sticky top-16 z-20 flex items-center justify-between gap-3 rounded-2xl border border-amber-200/90 bg-amber-50/95 px-4 py-2.5 text-xs font-semibold text-amber-900 shadow-xs backdrop-blur-xs">
           <div className="flex items-center gap-2">
-            <AlertCircle className="size-4 text-amber-600 shrink-0" />
+            <AlertCircle className="size-4 shrink-0 text-amber-600" />
             <span>{t('form.unsavedChanges')}</span>
           </div>
           <Button
@@ -270,7 +288,7 @@ export const BranchForm: React.FC<BranchFormProps> = ({
             size="sm"
             onClick={handleSubmit((data) => handleFormSubmit(data, false))}
             loading={isSubmitting || isLoading}
-            className="h-7 px-3 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs"
+            className="h-7 rounded-lg bg-amber-600 px-3 text-xs text-white hover:bg-amber-700"
           >
             {t('actions.quickSave')}
           </Button>
@@ -278,7 +296,7 @@ export const BranchForm: React.FC<BranchFormProps> = ({
       )}
 
       {/* Navigation tabs for multi-section jump */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none border-b border-slate-200">
+      <div className="flex scrollbar-none items-center gap-1.5 overflow-x-auto border-b border-slate-200 pb-1">
         {sections.map((sec) => {
           const isActive = activeSection === sec.id;
           return (
@@ -290,7 +308,7 @@ export const BranchForm: React.FC<BranchFormProps> = ({
                 const el = document.getElementById(sec.id);
                 if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+              className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold whitespace-nowrap transition-all ${
                 isActive
                   ? 'bg-emerald-600 text-white shadow-xs'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -306,10 +324,10 @@ export const BranchForm: React.FC<BranchFormProps> = ({
       {/* SECTION 1: General Information */}
       <section
         id="general"
-        className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs space-y-5"
+        className="space-y-5 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs sm:p-6"
       >
-        <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-          <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+        <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+          <div className="rounded-xl bg-emerald-50 p-2 text-emerald-600">
             <Building2 className="size-5" />
           </div>
           <div>
@@ -318,10 +336,10 @@ export const BranchForm: React.FC<BranchFormProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {/* Branch Name */}
           <div className="sm:col-span-2">
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label className="mb-1.5 block text-xs font-bold tracking-wider text-slate-700 uppercase">
               {t('form.fields.branchName')} <span className="text-red-500">*</span>
             </label>
             <input
@@ -331,16 +349,16 @@ export const BranchForm: React.FC<BranchFormProps> = ({
                 validate: (value) => value.trim().length > 0 || 'validation.branchNameRequired',
               })}
               placeholder={t('form.placeholders.branchName')}
-              className="w-full h-11 px-3.5 text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 text-slate-900"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-sm text-slate-900 focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
             />
             {errors.branchName && (
-              <p className="text-xs text-red-500 mt-1">{t(errors.branchName.message ?? '')}</p>
+              <p className="mt-1 text-xs text-red-500">{t(errors.branchName.message ?? '')}</p>
             )}
           </div>
 
           {/* Phone Number */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label className="mb-1.5 block text-xs font-bold tracking-wider text-slate-700 uppercase">
               {t('form.fields.phone')} <span className="text-red-500">*</span>
             </label>
             <input
@@ -350,16 +368,16 @@ export const BranchForm: React.FC<BranchFormProps> = ({
                 validate: (value) => value.trim().length > 0 || 'validation.phoneRequired',
               })}
               placeholder={t('form.placeholders.phone')}
-              className="w-full h-11 px-3.5 text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 text-slate-900 font-mono"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 font-mono text-sm text-slate-900 focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
             />
             {errors.phone && (
-              <p className="text-xs text-red-500 mt-1">{t(errors.phone.message ?? '')}</p>
+              <p className="mt-1 text-xs text-red-500">{t(errors.phone.message ?? '')}</p>
             )}
           </div>
 
           {/* Status */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label className="mb-1.5 block text-xs font-bold tracking-wider text-slate-700 uppercase">
               {t('form.fields.status')}
             </label>
             <Controller
@@ -367,7 +385,7 @@ export const BranchForm: React.FC<BranchFormProps> = ({
               control={control}
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger className="w-full h-11 rounded-xl border-slate-200 bg-slate-50/70 text-sm">
+                  <SelectTrigger className="h-11 w-full rounded-xl border-slate-200 bg-slate-50/70 text-sm">
                     <SelectValue placeholder={t('form.placeholders.status')} />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
@@ -381,14 +399,14 @@ export const BranchForm: React.FC<BranchFormProps> = ({
 
           {/* Description */}
           <div className="sm:col-span-2">
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label className="mb-1.5 block text-xs font-bold tracking-wider text-slate-700 uppercase">
               {t('form.fields.description')}
             </label>
             <textarea
               rows={3}
               {...register('description')}
               placeholder={t('form.placeholders.description')}
-              className="w-full p-3.5 text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 text-slate-900 resize-none"
+              className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 text-sm text-slate-900 focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
             />
           </div>
         </div>
@@ -397,10 +415,10 @@ export const BranchForm: React.FC<BranchFormProps> = ({
       {/* SECTION 2: Location */}
       <section
         id="location"
-        className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs space-y-5"
+        className="space-y-5 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs sm:p-6"
       >
-        <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-          <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+        <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+          <div className="rounded-xl bg-blue-50 p-2 text-blue-600">
             <MapPin className="size-5" />
           </div>
           <div>
@@ -409,10 +427,10 @@ export const BranchForm: React.FC<BranchFormProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {/* City */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label className="mb-1.5 block text-xs font-bold tracking-wider text-slate-700 uppercase">
               {t('form.fields.city')} <span className="text-red-500">*</span>
             </label>
             <Controller
@@ -431,7 +449,7 @@ export const BranchForm: React.FC<BranchFormProps> = ({
                     }
                   }}
                 >
-                  <SelectTrigger className="w-full h-11 rounded-xl border-slate-200 bg-slate-50/70 text-sm">
+                  <SelectTrigger className="h-11 w-full rounded-xl border-slate-200 bg-slate-50/70 text-sm">
                     <SelectValue placeholder={t('form.placeholders.city')} />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
@@ -445,13 +463,13 @@ export const BranchForm: React.FC<BranchFormProps> = ({
               )}
             />
             {errors.city && (
-              <p className="text-xs text-red-500 mt-1">{t(errors.city.message ?? '')}</p>
+              <p className="mt-1 text-xs text-red-500">{t(errors.city.message ?? '')}</p>
             )}
           </div>
 
           {/* District */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label className="mb-1.5 block text-xs font-bold tracking-wider text-slate-700 uppercase">
               {t('form.fields.district')} <span className="text-red-500">*</span>
             </label>
             <Controller
@@ -460,7 +478,7 @@ export const BranchForm: React.FC<BranchFormProps> = ({
               rules={{ required: 'validation.districtRequired' }}
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger className="w-full h-11 rounded-xl border-slate-200 bg-slate-50/70 text-sm">
+                  <SelectTrigger className="h-11 w-full rounded-xl border-slate-200 bg-slate-50/70 text-sm">
                     <SelectValue placeholder={t('form.placeholders.district')} />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
@@ -474,13 +492,13 @@ export const BranchForm: React.FC<BranchFormProps> = ({
               )}
             />
             {errors.district && (
-              <p className="text-xs text-red-500 mt-1">{t(errors.district.message ?? '')}</p>
+              <p className="mt-1 text-xs text-red-500">{t(errors.district.message ?? '')}</p>
             )}
           </div>
 
           {/* Address */}
           <div className="sm:col-span-2">
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label className="mb-1.5 block text-xs font-bold tracking-wider text-slate-700 uppercase">
               {t('form.fields.address')} <span className="text-red-500">*</span>
             </label>
             <input
@@ -490,16 +508,16 @@ export const BranchForm: React.FC<BranchFormProps> = ({
                 validate: (value) => value.trim().length > 0 || 'validation.addressRequired',
               })}
               placeholder={t('form.placeholders.address')}
-              className="w-full h-11 px-3.5 text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 text-slate-900"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-sm text-slate-900 focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
             />
             {errors.address && (
-              <p className="text-xs text-red-500 mt-1">{t(errors.address.message ?? '')}</p>
+              <p className="mt-1 text-xs text-red-500">{t(errors.address.message ?? '')}</p>
             )}
           </div>
 
           {/* Latitude */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label className="mb-1.5 block text-xs font-bold tracking-wider text-slate-700 uppercase">
               {t('form.fields.latitude')}
             </label>
             <input
@@ -507,13 +525,13 @@ export const BranchForm: React.FC<BranchFormProps> = ({
               step="any"
               {...register('latitude', { valueAsNumber: true })}
               placeholder={t('form.placeholders.latitude')}
-              className="w-full h-11 px-3.5 text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 text-slate-900 font-mono"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 font-mono text-sm text-slate-900 focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
             />
           </div>
 
           {/* Longitude */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label className="mb-1.5 block text-xs font-bold tracking-wider text-slate-700 uppercase">
               {t('form.fields.longitude')}
             </label>
             <input
@@ -521,7 +539,7 @@ export const BranchForm: React.FC<BranchFormProps> = ({
               step="any"
               {...register('longitude', { valueAsNumber: true })}
               placeholder={t('form.placeholders.longitude')}
-              className="w-full h-11 px-3.5 text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 text-slate-900 font-mono"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 font-mono text-sm text-slate-900 focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
             />
           </div>
         </div>
@@ -530,10 +548,10 @@ export const BranchForm: React.FC<BranchFormProps> = ({
       {/* SECTION 3: Operating Hours */}
       <section
         id="operating-hours"
-        className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs space-y-5"
+        className="space-y-5 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs sm:p-6"
       >
-        <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-          <div className="p-2 rounded-xl bg-amber-50 text-amber-600">
+        <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+          <div className="rounded-xl bg-amber-50 p-2 text-amber-600">
             <Clock className="size-5" />
           </div>
           <div>
@@ -542,12 +560,12 @@ export const BranchForm: React.FC<BranchFormProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {/* Opening time */}
           <div>
             <label
               htmlFor="branch-open-time"
-              className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5"
+              className="mb-1.5 block text-xs font-bold tracking-wider text-slate-700 uppercase"
             >
               {t('form.hours.open')} <span className="text-red-500">*</span>
             </label>
@@ -560,10 +578,10 @@ export const BranchForm: React.FC<BranchFormProps> = ({
                 deps: ['closeTime'],
               })}
               aria-invalid={Boolean(errors.openTime)}
-              className="w-full h-11 px-3.5 text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 text-slate-900 font-mono"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 font-mono text-sm text-slate-900 focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
             />
             {errors.openTime && (
-              <p className="text-xs text-red-500 mt-1">{t(errors.openTime.message ?? '')}</p>
+              <p className="mt-1 text-xs text-red-500">{t(errors.openTime.message ?? '')}</p>
             )}
           </div>
 
@@ -571,7 +589,7 @@ export const BranchForm: React.FC<BranchFormProps> = ({
           <div>
             <label
               htmlFor="branch-close-time"
-              className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5"
+              className="mb-1.5 block text-xs font-bold tracking-wider text-slate-700 uppercase"
             >
               {t('form.hours.close')} <span className="text-red-500">*</span>
             </label>
@@ -585,10 +603,10 @@ export const BranchForm: React.FC<BranchFormProps> = ({
                   isCloseAfterOpen(values.openTime, value) || 'validation.closeAfterOpen',
               })}
               aria-invalid={Boolean(errors.closeTime)}
-              className="w-full h-11 px-3.5 text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 text-slate-900 font-mono"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 font-mono text-sm text-slate-900 focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
             />
             {errors.closeTime && (
-              <p className="text-xs text-red-500 mt-1">{t(errors.closeTime.message ?? '')}</p>
+              <p className="mt-1 text-xs text-red-500">{t(errors.closeTime.message ?? '')}</p>
             )}
           </div>
         </div>
@@ -597,10 +615,10 @@ export const BranchForm: React.FC<BranchFormProps> = ({
       {/* SECTION 4: Images */}
       <section
         id="images"
-        className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs space-y-5"
+        className="space-y-5 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs sm:p-6"
       >
-        <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-          <div className="p-2 rounded-xl bg-purple-50 text-purple-600">
+        <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+          <div className="rounded-xl bg-purple-50 p-2 text-purple-600">
             <ImageIcon className="size-5" />
           </div>
           <div>
@@ -610,22 +628,22 @@ export const BranchForm: React.FC<BranchFormProps> = ({
         </div>
 
         {/* URL Add Box */}
-        <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <input
             type="url"
             value={newImageUrl}
             onChange={(e) => setNewImageUrl(e.target.value)}
             placeholder={t('form.images.urlPlaceholder')}
-            className="flex-1 h-10 px-3.5 text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-slate-900"
+            className="h-10 flex-1 rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
           />
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={handleAddImage}
-            className="rounded-xl border-slate-200 h-10 px-4 font-semibold text-xs text-slate-700"
+            className="h-10 rounded-xl border-slate-200 px-4 text-xs font-semibold text-slate-700"
           >
-            <Plus className="size-4 mr-1.5" />
+            <Plus className="mr-1.5 size-4" />
             {t('actions.addImageUrl')}
           </Button>
         </div>
@@ -636,43 +654,47 @@ export const BranchForm: React.FC<BranchFormProps> = ({
           onDrop={(e) => {
             e.preventDefault();
             // Demo fallback sample image on drop
-            setValue('images', [
-              ...currentImages,
-              'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=80',
-            ], { shouldDirty: true });
+            setValue(
+              'images',
+              [
+                ...currentImages,
+                'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=80',
+              ],
+              { shouldDirty: true },
+            );
           }}
-          className="border-2 border-dashed border-slate-200 hover:border-emerald-500/60 transition-colors p-6 rounded-2xl text-center bg-slate-50/50 cursor-pointer"
+          className="cursor-pointer rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-6 text-center transition-colors hover:border-emerald-500/60"
         >
-          <UploadCloud className="size-8 mx-auto text-slate-400 mb-2" />
+          <UploadCloud className="mx-auto mb-2 size-8 text-slate-400" />
           <p className="text-xs font-bold text-slate-700">{t('form.images.dropzoneTitle')}</p>
-          <p className="text-[11px] text-slate-400 mt-0.5">{t('form.images.dropzoneHint')}</p>
+          <p className="mt-0.5 text-[11px] text-slate-400">{t('form.images.dropzoneHint')}</p>
         </div>
 
         {/* Images Grid */}
         {currentImages.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+          <div className="grid grid-cols-2 gap-3 pt-2 sm:grid-cols-4">
             {currentImages.map((img, idx) => (
               <div
                 key={idx}
-                className="group relative rounded-xl overflow-hidden border border-slate-200 bg-slate-100 aspect-video shadow-xs"
+                className="group relative aspect-video overflow-hidden rounded-xl border border-slate-200 bg-slate-100 shadow-xs"
               >
                 <img
                   src={img}
                   alt={t('form.images.previewAlt', { index: idx + 1 })}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
                 {idx === 0 && (
-                  <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-600 text-white shadow-xs">
+                  <span className="absolute top-2 left-2 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-xs">
                     {t('form.images.cover')}
                   </span>
                 )}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-2">
+                <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/40 p-2 opacity-0 transition-opacity group-hover:opacity-100">
                   {idx !== 0 && (
                     <button
                       type="button"
                       onClick={() => handleSetCover(idx)}
                       title={t('actions.setCoverHint')}
-                      className="p-1.5 rounded-lg bg-white/90 text-slate-800 hover:bg-white text-xs font-bold shadow-xs transition-colors"
+                      className="rounded-lg bg-white/90 p-1.5 text-xs font-bold text-slate-800 shadow-xs transition-colors hover:bg-white"
                     >
                       {t('actions.makeCover')}
                     </button>
@@ -682,7 +704,7 @@ export const BranchForm: React.FC<BranchFormProps> = ({
                     onClick={() => handleRemoveImage(idx)}
                     title={t('actions.removeImage')}
                     aria-label={t('actions.removeImage')}
-                    className="p-1.5 rounded-lg bg-red-600/90 text-white hover:bg-red-700 shadow-xs transition-colors"
+                    className="rounded-lg bg-red-600/90 p-1.5 text-white shadow-xs transition-colors hover:bg-red-700"
                   >
                     <Trash2 className="size-3.5" />
                   </button>
@@ -696,11 +718,11 @@ export const BranchForm: React.FC<BranchFormProps> = ({
       {/* SECTION 5: Pricing */}
       <section
         id="pricing"
-        className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs space-y-5"
+        className="space-y-5 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs sm:p-6"
       >
-        <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100">
+        <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+            <div className="rounded-xl bg-emerald-50 p-2 text-emerald-600">
               <DollarSign className="size-5" />
             </div>
             <div>
@@ -723,21 +745,21 @@ export const BranchForm: React.FC<BranchFormProps> = ({
             }
             className="rounded-xl border-slate-200 text-xs font-semibold"
           >
-            <Plus className="size-3.5 mr-1" />
+            <Plus className="mr-1 size-3.5" />
             {t('actions.addPricingTier')}
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {pricingFields.map((field, idx) => (
             <div
               key={field.id}
-              className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3 relative group"
+              className="group relative space-y-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4"
             >
               <button
                 type="button"
                 onClick={() => removePricing(idx)}
-                className="absolute top-3 right-3 text-slate-400 hover:text-red-600 transition-colors p-1"
+                className="absolute top-3 right-3 p-1 text-slate-400 transition-colors hover:text-red-600"
                 title={t('actions.deleteTier')}
                 aria-label={t('actions.deleteTier')}
               >
@@ -745,20 +767,24 @@ export const BranchForm: React.FC<BranchFormProps> = ({
               </button>
 
               <div>
-                <label className="text-[11px] font-bold text-slate-500 uppercase">{t('form.pricing.tierName')}</label>
+                <label className="text-[11px] font-bold text-slate-500 uppercase">
+                  {t('form.pricing.tierName')}
+                </label>
                 <input
                   type="text"
                   {...register(`pricing.${idx}.name` as const, { required: true })}
-                  className="w-full h-9 px-2.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 font-bold mt-1"
+                  className="mt-1 h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-900"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-slate-500 uppercase">{t('form.pricing.timeRange')}</label>
+                <label className="text-[11px] font-bold text-slate-500 uppercase">
+                  {t('form.pricing.timeRange')}
+                </label>
                 <input
                   type="text"
                   {...register(`pricing.${idx}.timeRange` as const)}
-                  className="w-full h-9 px-2.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 mt-1"
+                  className="mt-1 h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-900"
                 />
               </div>
 
@@ -770,7 +796,7 @@ export const BranchForm: React.FC<BranchFormProps> = ({
                   type="number"
                   step="5000"
                   {...register(`pricing.${idx}.pricePerHour` as const, { valueAsNumber: true })}
-                  className="w-full h-9 px-2.5 text-xs bg-white border border-slate-200 rounded-lg text-emerald-700 font-black mt-1 font-mono"
+                  className="mt-1 h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 font-mono text-xs font-black text-emerald-700"
                 />
               </div>
             </div>
@@ -781,11 +807,11 @@ export const BranchForm: React.FC<BranchFormProps> = ({
       {/* SECTION 6: Courts Section */}
       <section
         id="courts"
-        className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs space-y-5"
+        className="space-y-5 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs sm:p-6"
       >
-        <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100">
+        <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-teal-50 text-teal-600">
+            <div className="rounded-xl bg-teal-50 p-2 text-teal-600">
               <Grid3X3 className="size-5" />
             </div>
             <div>
@@ -800,15 +826,15 @@ export const BranchForm: React.FC<BranchFormProps> = ({
             onClick={() => setCourtDialog({ mode: 'create' })}
             className="rounded-xl border-slate-200 text-xs font-semibold"
           >
-            <Plus className="size-3.5 mr-1" />
+            <Plus className="mr-1 size-3.5" />
             {t('actions.addCourt')}
           </Button>
         </div>
 
         {courtFields.length === 0 ? (
-          <p className="text-sm text-slate-500 text-center py-6">{t('form.courts.empty')}</p>
+          <p className="py-6 text-center text-sm text-slate-500">{t('form.courts.empty')}</p>
         ) : (
-          <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {courtFields.map((field, idx) => {
               const court = watch(`courts.${idx}`);
               const isActive = court?.status === 'available';
@@ -850,7 +876,7 @@ export const BranchForm: React.FC<BranchFormProps> = ({
                       onClick={() => setCourtDialog({ mode: 'edit', index: idx })}
                       title={t('actions.editCourt')}
                       aria-label={t('actions.editCourt')}
-                      className="p-2 text-slate-400 hover:text-slate-800 transition-colors"
+                      className="p-2 text-slate-400 transition-colors hover:text-slate-800"
                     >
                       <Pencil className="size-4" />
                     </button>
@@ -859,7 +885,7 @@ export const BranchForm: React.FC<BranchFormProps> = ({
                       onClick={() => removeCourt(idx)}
                       title={t('actions.removeCourt')}
                       aria-label={t('actions.removeCourt')}
-                      className="p-2 text-slate-400 hover:text-red-600 transition-colors"
+                      className="p-2 text-slate-400 transition-colors hover:text-red-600"
                     >
                       <Trash2 className="size-4" />
                     </button>
@@ -869,6 +895,42 @@ export const BranchForm: React.FC<BranchFormProps> = ({
             })}
           </ul>
         )}
+      </section>
+
+      {/* SECTION 7: Amenities */}
+      <section
+        id="amenities"
+        className="space-y-5 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs sm:p-6"
+      >
+        <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="rounded-xl bg-rose-50 p-2 text-rose-600">
+              <Sparkles className="size-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-900">{t('form.amenities.title')}</h2>
+              <p className="text-xs text-slate-500">{t('form.amenities.description')}</p>
+            </div>
+          </div>
+          <span className="shrink-0 text-xs font-semibold text-slate-500">
+            {t('form.amenities.selectedCount', { count: watchedAmenityIds.length })}
+          </span>
+        </div>
+
+        <Controller
+          name="amenityIds"
+          control={control}
+          render={({ field }) => (
+            <BranchAmenitySelector
+              amenities={amenitiesQuery.data ?? []}
+              value={field.value ?? []}
+              onChange={field.onChange}
+              isLoading={amenitiesQuery.isLoading}
+              isError={amenitiesQuery.isError}
+              onRetry={() => void amenitiesQuery.refetch()}
+            />
+          )}
+        />
       </section>
 
       {courtDialog && (
@@ -881,19 +943,19 @@ export const BranchForm: React.FC<BranchFormProps> = ({
       )}
 
       {/* FOOTER SAVE ACTIONS */}
-      <div className="sticky bottom-0 z-10 bg-white/95 backdrop-blur-xs border-t border-slate-200/90 py-4 px-6 rounded-2xl shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="sticky bottom-0 z-10 flex flex-col items-center justify-between gap-3 rounded-2xl border-t border-slate-200/90 bg-white/95 px-6 py-4 shadow-lg backdrop-blur-xs sm:flex-row">
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={onCancel}
           disabled={isLoading || isSubmitting}
-          className="w-full sm:w-auto rounded-xl border-slate-200 text-xs font-semibold"
+          className="w-full rounded-xl border-slate-200 text-xs font-semibold sm:w-auto"
         >
           {t('actions.cancel')}
         </Button>
 
-        <div className="flex items-center gap-2.5 w-full sm:w-auto">
+        <div className="flex w-full items-center gap-2.5 sm:w-auto">
           {!isEditMode && (
             <Button
               type="button"
@@ -901,7 +963,7 @@ export const BranchForm: React.FC<BranchFormProps> = ({
               size="sm"
               onClick={handleSubmit((data) => handleFormSubmit(data, true))}
               loading={isLoading || isSubmitting}
-              className="flex-1 sm:flex-none rounded-xl border-slate-200 text-xs font-bold"
+              className="flex-1 rounded-xl border-slate-200 text-xs font-bold sm:flex-none"
             >
               {t('actions.saveAndContinue')}
             </Button>
@@ -913,9 +975,9 @@ export const BranchForm: React.FC<BranchFormProps> = ({
             size="sm"
             onClick={handleSubmit((data) => handleFormSubmit(data, false))}
             loading={isLoading || isSubmitting}
-            className="flex-1 sm:flex-none rounded-xl text-xs font-bold shadow-xs px-6"
+            className="flex-1 rounded-xl px-6 text-xs font-bold shadow-xs sm:flex-none"
           >
-            <Save className="size-4 mr-1.5" />
+            <Save className="mr-1.5 size-4" />
             {isEditMode ? t('actions.updateBranch') : t('actions.saveBranch')}
           </Button>
         </div>

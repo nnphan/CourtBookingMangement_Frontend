@@ -152,7 +152,9 @@
       "totalCourts": "Tổng số sân",
       "createdAt": "Ngày tạo",
       "updatedAt": "Ngày cập nhật",
-      "coverPhoto": "Ảnh bìa"
+      "coverPhoto": "Ảnh bìa",
+      "amenities": "Tiện ích",
+      "noAmenities": "Chưa chọn tiện ích nào cho chi nhánh này."
     },
     "courts": {
       "title": "Danh sách sân",
@@ -198,7 +200,8 @@
       "operatingHours": "Giờ hoạt động",
       "images": "Hình ảnh",
       "pricing": "Bảng giá",
-      "courts": "Sân"
+      "courts": "Sân",
+      "amenities": "Tiện ích"
     },
     "general": {
       "title": "Thông tin chung",
@@ -240,9 +243,8 @@
       "defaultName": "Sân {{index}}",
       "active": "Hoạt động",
       "inactive": "Ngưng hoạt động",
-      "pricePerHour": "Giá / Giờ (VND)",
       "empty": "Chưa có sân nào. Hãy thêm sân đầu tiên cho chi nhánh này.",
-      "dialogDescription": "Thiết lập tên sân, loại sân và trạng thái hoạt động."
+      "dialogDescription": "Nhập tên sân và trạng thái hoạt động."
     },
     "fields": {
       "branchName": "Tên chi nhánh",
@@ -265,9 +267,8 @@
       "address": "VD: 123 Nguyễn Văn Linh, Phường Tân Phong",
       "latitude": "VD: 10.7303",
       "longitude": "VD: 106.7072",
-      "surface": "Mặt sân",
-      "category": "Loại sân",
-      "courtStatus": "Trạng thái"
+      "courtStatus": "Trạng thái",
+      "courtName": "Nhập tên sân"
     },
     "defaults": {
       "weekday": {
@@ -290,6 +291,12 @@
         "timeRange": "08:00 - 16:00",
         "description": "Khung giờ ưu đãi"
       }
+    },
+    "amenities": {
+      "title": "Quản lý tiện ích",
+      "description": "Chọn các tiện ích có sẵn tại chi nhánh.",
+      "selectedCount_one": "Đã chọn {{count}}",
+      "selectedCount_other": "Đã chọn {{count}}"
     }
   },
   "validation": {
@@ -301,7 +308,7 @@
     "openTimeRequired": "Giờ mở cửa là bắt buộc",
     "closeTimeRequired": "Giờ đóng cửa là bắt buộc",
     "closeAfterOpen": "Giờ đóng cửa phải lớn hơn giờ mở cửa.",
-    "courtNameRequired": "Tên sân là bắt buộc"
+    "courtNameRequired": "Tên sân là bắt buộc."
   },
   "messages": {
     "createSuccess": "Tạo chi nhánh thành công",
@@ -320,5 +327,18 @@
     "title": "Xóa chi nhánh",
     "description": "Bạn có chắc chắn muốn xóa <bold>\"{{name}}\"</bold>? Hành động này không thể hoàn tác. Toàn bộ cấu hình sân, giờ hoạt động và dữ liệu liên quan của chi nhánh sẽ bị xóa vĩnh viễn.",
     "descriptionGeneric": "Bạn có chắc chắn muốn xóa chi nhánh này? Hành động này không thể hoàn tác. Toàn bộ cấu hình sân, giờ hoạt động và dữ liệu liên quan của chi nhánh sẽ bị xóa vĩnh viễn."
+  },
+  "amenities": {
+    "wifi": "Wifi miễn phí",
+    "parking": "Bãi giữ xe",
+    "locker": "Tủ khóa",
+    "rest-area": "Khu nghỉ ngơi",
+    "shower": "Phòng tắm",
+    "air-conditioner": "Điều hòa",
+    "restroom": "Nhà vệ sinh",
+    "changing-room": "Phòng thay đồ",
+    "vending-machine": "Máy bán nước",
+    "racket-rental": "Cho thuê vợt",
+    "shuttlecock-rental": "Cho thuê cầu"
   }
 }

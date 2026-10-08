@@ -36,6 +36,8 @@ export interface Branch {
   openTime: string;
   /** Daily closing time, 24h "HH:mm". Must be later than openTime. */
   closeTime: string;
+  /** IDs from the amenities master data. */
+  amenityIds: string[];
   images: string[];
   coverImage?: string;
   pricing: PricingTier[];
@@ -83,6 +85,7 @@ export interface CreateBranchInput {
   longitude?: number;
   openTime: string;
   closeTime: string;
+  amenityIds: string[];
   images: string[];
   pricing: PricingTier[];
   courts: (CreateCourtInput & { id?: string })[];

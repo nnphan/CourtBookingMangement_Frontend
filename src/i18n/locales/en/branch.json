@@ -154,7 +154,9 @@
       "totalCourts": "Total Courts",
       "createdAt": "Created At",
       "updatedAt": "Updated At",
-      "coverPhoto": "Cover Photo"
+      "coverPhoto": "Cover Photo",
+      "amenities": "Amenities",
+      "noAmenities": "No amenities selected for this branch."
     },
     "courts": {
       "title": "Court List",
@@ -200,7 +202,8 @@
       "operatingHours": "Operating Hours",
       "images": "Images",
       "pricing": "Pricing",
-      "courts": "Courts"
+      "courts": "Courts",
+      "amenities": "Amenities"
     },
     "general": {
       "title": "General Information",
@@ -242,9 +245,8 @@
       "defaultName": "Court {{index}}",
       "active": "Active",
       "inactive": "Inactive",
-      "pricePerHour": "Price / Hour (VND)",
       "empty": "No courts yet. Add the first court for this branch.",
-      "dialogDescription": "Set the court name, type and availability."
+      "dialogDescription": "Enter the court name and status."
     },
     "fields": {
       "branchName": "Branch Name",
@@ -267,9 +269,8 @@
       "address": "e.g. 123 Nguyen Van Linh, Tan Phong Ward",
       "latitude": "e.g. 10.7303",
       "longitude": "e.g. 106.7072",
-      "surface": "Surface",
-      "category": "Category",
-      "courtStatus": "Status"
+      "courtStatus": "Status",
+      "courtName": "Enter court name"
     },
     "defaults": {
       "weekday": {
@@ -292,6 +293,12 @@
         "timeRange": "08:00 - 16:00",
         "description": "Promotional time slot"
       }
+    },
+    "amenities": {
+      "title": "Amenity Management",
+      "description": "Select the amenities available at this branch.",
+      "selectedCount_one": "{{count}} selected",
+      "selectedCount_other": "{{count}} selected"
     }
   },
   "validation": {
@@ -303,7 +310,7 @@
     "openTimeRequired": "Opening time is required",
     "closeTimeRequired": "Closing time is required",
     "closeAfterOpen": "Closing time must be later than opening time.",
-    "courtNameRequired": "Court name is required"
+    "courtNameRequired": "Court name is required."
   },
   "messages": {
     "createSuccess": "Branch created successfully",
@@ -322,5 +329,18 @@
     "title": "Delete Branch",
     "description": "Are you sure you want to delete <bold>\"{{name}}\"</bold>? This action cannot be undone. All associated court configurations, operating hours, and branch records will be permanently removed.",
     "descriptionGeneric": "Are you sure you want to delete this branch? This action cannot be undone. All associated court configurations, operating hours, and branch records will be permanently removed."
+  },
+  "amenities": {
+    "wifi": "Free Wifi",
+    "parking": "Parking",
+    "locker": "Lockers",
+    "rest-area": "Rest Area",
+    "shower": "Shower",
+    "air-conditioner": "Air Conditioning",
+    "restroom": "Restroom",
+    "changing-room": "Changing Room",
+    "vending-machine": "Vending Machine",
+    "racket-rental": "Racket Rental",
+    "shuttlecock-rental": "Shuttlecock Rental"
   }
 }

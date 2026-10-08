@@ -13,6 +13,8 @@ import { createErrorResponse } from '@/mocks/shared/mock-error';
 import { mockDelay } from '@/mocks/shared/mock-delay';
 import { DEFAULT_CLOSE_TIME, DEFAULT_OPEN_TIME } from '@/lib/branch-hours';
 
+const DEFAULT_AMENITY_IDS: string[] = [];
+
 const DEFAULT_PRICING: PricingTier[] = [
   {
     id: 'prc-weekday',
@@ -62,7 +64,8 @@ const INITIAL_BRANCHES: Branch[] = [
     branchName: 'ALOBO Arena District 7',
     slug: 'alobo-arena-district-7',
     phone: '0901234567',
-    description: 'Sân cầu lông tiêu chuẩn thi đấu quốc tế BWF với hệ thống thảm chuyên dụng 5 lớp và điều hòa trung tâm.',
+    description:
+      'Sân cầu lông tiêu chuẩn thi đấu quốc tế BWF với hệ thống thảm chuyên dụng 5 lớp và điều hòa trung tâm.',
     city: 'Hồ Chí Minh',
     district: 'Quận 7',
     address: '123 Nguyễn Văn Linh, Phường Tân Phong',
@@ -70,6 +73,7 @@ const INITIAL_BRANCHES: Branch[] = [
     longitude: 106.7072,
     openTime: DEFAULT_OPEN_TIME,
     closeTime: DEFAULT_CLOSE_TIME,
+    amenityIds: DEFAULT_AMENITY_IDS,
     images: SAMPLE_IMAGES,
     coverImage: SAMPLE_IMAGES[0],
     pricing: DEFAULT_PRICING,
@@ -84,7 +88,8 @@ const INITIAL_BRANCHES: Branch[] = [
     branchName: 'ALOBO Prime Thảo Điền',
     slug: 'alobo-prime-thao-dien',
     phone: '0908765432',
-    description: 'Cơ sở cao cấp khu vực Thảo Điền, phục vụ cộng đồng expat và các giải đấu phong trào.',
+    description:
+      'Cơ sở cao cấp khu vực Thảo Điền, phục vụ cộng đồng expat và các giải đấu phong trào.',
     city: 'Hồ Chí Minh',
     district: 'Thành phố Thủ Đức',
     address: '45 Xuân Thủy, Phường Thảo Điền',
@@ -92,6 +97,7 @@ const INITIAL_BRANCHES: Branch[] = [
     longitude: 106.7328,
     openTime: DEFAULT_OPEN_TIME,
     closeTime: DEFAULT_CLOSE_TIME,
+    amenityIds: DEFAULT_AMENITY_IDS,
     images: SAMPLE_IMAGES,
     coverImage: SAMPLE_IMAGES[1],
     pricing: DEFAULT_PRICING,
@@ -106,7 +112,8 @@ const INITIAL_BRANCHES: Branch[] = [
     branchName: 'ALOBO Central Sport Quận 1',
     slug: 'alobo-central-sport-quan-1',
     phone: '0912334455',
-    description: 'Tổ hợp thể thao trung tâm thành phố, thuận tiện đi lại cho dân văn phòng sau giờ làm.',
+    description:
+      'Tổ hợp thể thao trung tâm thành phố, thuận tiện đi lại cho dân văn phòng sau giờ làm.',
     city: 'Hồ Chí Minh',
     district: 'Quận 1',
     address: '88 Lê Thị Riêng, Phường Bến Thành',
@@ -114,6 +121,7 @@ const INITIAL_BRANCHES: Branch[] = [
     longitude: 106.6914,
     openTime: DEFAULT_OPEN_TIME,
     closeTime: DEFAULT_CLOSE_TIME,
+    amenityIds: DEFAULT_AMENITY_IDS,
     images: SAMPLE_IMAGES,
     coverImage: SAMPLE_IMAGES[2],
     pricing: DEFAULT_PRICING,
@@ -128,7 +136,8 @@ const INITIAL_BRANCHES: Branch[] = [
     branchName: 'ALOBO Park Bình Thạnh',
     slug: 'alobo-park-binh-thanh',
     phone: '0933445566',
-    description: 'Không gian thoáng đãng cạnh sông Sài Gòn, bãi đỗ xe ô tô rộng rãi, pro-shop đầy đủ phụ kiện.',
+    description:
+      'Không gian thoáng đãng cạnh sông Sài Gòn, bãi đỗ xe ô tô rộng rãi, pro-shop đầy đủ phụ kiện.',
     city: 'Hồ Chí Minh',
     district: 'Bình Thạnh',
     address: '210 Ung Văn Khiêm, Phường 25',
@@ -136,6 +145,7 @@ const INITIAL_BRANCHES: Branch[] = [
     longitude: 106.7175,
     openTime: DEFAULT_OPEN_TIME,
     closeTime: DEFAULT_CLOSE_TIME,
+    amenityIds: DEFAULT_AMENITY_IDS,
     images: SAMPLE_IMAGES,
     coverImage: SAMPLE_IMAGES[3],
     pricing: DEFAULT_PRICING,
@@ -158,6 +168,7 @@ const INITIAL_BRANCHES: Branch[] = [
     longitude: 106.6492,
     openTime: DEFAULT_OPEN_TIME,
     closeTime: DEFAULT_CLOSE_TIME,
+    amenityIds: DEFAULT_AMENITY_IDS,
     images: SAMPLE_IMAGES,
     coverImage: SAMPLE_IMAGES[0],
     pricing: DEFAULT_PRICING,
@@ -172,7 +183,8 @@ const INITIAL_BRANCHES: Branch[] = [
     branchName: 'ALOBO Elite Cầu Giấy',
     slug: 'alobo-elite-cau-giay',
     phone: '0988112233',
-    description: 'Cơ sở flagship tại Thủ đô Hà Nội với hệ thống camera live streaming và phân tích cú đánh AI.',
+    description:
+      'Cơ sở flagship tại Thủ đô Hà Nội với hệ thống camera live streaming và phân tích cú đánh AI.',
     city: 'Hà Nội',
     district: 'Cầu Giấy',
     address: '68 Duy Tân, Phường Dịch Vọng Hậu',
@@ -180,6 +192,7 @@ const INITIAL_BRANCHES: Branch[] = [
     longitude: 105.7831,
     openTime: DEFAULT_OPEN_TIME,
     closeTime: DEFAULT_CLOSE_TIME,
+    amenityIds: DEFAULT_AMENITY_IDS,
     images: SAMPLE_IMAGES,
     coverImage: SAMPLE_IMAGES[1],
     pricing: DEFAULT_PRICING,
@@ -202,6 +215,7 @@ const INITIAL_BRANCHES: Branch[] = [
     longitude: 105.8112,
     openTime: DEFAULT_OPEN_TIME,
     closeTime: DEFAULT_CLOSE_TIME,
+    amenityIds: DEFAULT_AMENITY_IDS,
     images: SAMPLE_IMAGES,
     coverImage: SAMPLE_IMAGES[2],
     pricing: DEFAULT_PRICING,
@@ -216,7 +230,8 @@ const INITIAL_BRANCHES: Branch[] = [
     branchName: 'ALOBO Grand Hải Châu',
     slug: 'alobo-grand-hai-chau',
     phone: '0922334455',
-    description: 'Tọa lạc tại trung tâm Đà Nẵng, điểm đến quen thuộc của các vận động viên miền Trung.',
+    description:
+      'Tọa lạc tại trung tâm Đà Nẵng, điểm đến quen thuộc của các vận động viên miền Trung.',
     city: 'Đà Nẵng',
     district: 'Hải Châu',
     address: '102 Bạch Đằng, Phường Thạch Thang',
@@ -224,6 +239,7 @@ const INITIAL_BRANCHES: Branch[] = [
     longitude: 108.2235,
     openTime: DEFAULT_OPEN_TIME,
     closeTime: DEFAULT_CLOSE_TIME,
+    amenityIds: DEFAULT_AMENITY_IDS,
     images: SAMPLE_IMAGES,
     coverImage: SAMPLE_IMAGES[3],
     pricing: DEFAULT_PRICING,
@@ -238,7 +254,8 @@ const INITIAL_BRANCHES: Branch[] = [
     branchName: 'ALOBO Sunrise Sơn Trà',
     slug: 'alobo-sunrise-son-tra',
     phone: '0911223388',
-    description: 'Sân cầu lông gần bãi biển Mỹ Khê, dịch vụ nước giải khát dinh dưỡng và thuê vợt cao cấp.',
+    description:
+      'Sân cầu lông gần bãi biển Mỹ Khê, dịch vụ nước giải khát dinh dưỡng và thuê vợt cao cấp.',
     city: 'Đà Nẵng',
     district: 'Sơn Trà',
     address: '42 Võ Nguyên Giáp, Phường Phước Mỹ',
@@ -246,6 +263,7 @@ const INITIAL_BRANCHES: Branch[] = [
     longitude: 108.2435,
     openTime: DEFAULT_OPEN_TIME,
     closeTime: DEFAULT_CLOSE_TIME,
+    amenityIds: DEFAULT_AMENITY_IDS,
     images: SAMPLE_IMAGES,
     coverImage: SAMPLE_IMAGES[0],
     pricing: DEFAULT_PRICING,
@@ -260,7 +278,8 @@ const INITIAL_BRANCHES: Branch[] = [
     branchName: 'ALOBO Complex Dĩ An',
     slug: 'alobo-complex-di-an',
     phone: '0966778899',
-    description: 'Trung tâm thể thao Dĩ An giáp ranh TP.HCM, quy mô 18 sân tổ chức sự kiện và giao lưu doanh nghiệp.',
+    description:
+      'Trung tâm thể thao Dĩ An giáp ranh TP.HCM, quy mô 18 sân tổ chức sự kiện và giao lưu doanh nghiệp.',
     city: 'Bình Dương',
     district: 'Dĩ An',
     address: '89 Quốc Lộ 1K, Phường Đông Hòa',
@@ -268,6 +287,7 @@ const INITIAL_BRANCHES: Branch[] = [
     longitude: 106.7812,
     openTime: DEFAULT_OPEN_TIME,
     closeTime: DEFAULT_CLOSE_TIME,
+    amenityIds: DEFAULT_AMENITY_IDS,
     images: SAMPLE_IMAGES,
     coverImage: SAMPLE_IMAGES[1],
     pricing: DEFAULT_PRICING,
@@ -281,8 +301,32 @@ const INITIAL_BRANCHES: Branch[] = [
 
 // Generate additional branches to reach total of 53
 const CITIES_DISTRICTS: { city: string; districts: string[] }[] = [
-  { city: 'Hồ Chí Minh', districts: ['Quận 7', 'Quận 1', 'Quận 3', 'Quận 10', 'Bình Thạnh', 'Tân Bình', 'Thành phố Thủ Đức', 'Phú Nhuận', 'Gò Vấp'] },
-  { city: 'Hà Nội', districts: ['Cầu Giấy', 'Tây Hồ', 'Đống Đa', 'Thanh Xuân', 'Nam Từ Liêm', 'Ba Đình', 'Hai Bà Trưng'] },
+  {
+    city: 'Hồ Chí Minh',
+    districts: [
+      'Quận 7',
+      'Quận 1',
+      'Quận 3',
+      'Quận 10',
+      'Bình Thạnh',
+      'Tân Bình',
+      'Thành phố Thủ Đức',
+      'Phú Nhuận',
+      'Gò Vấp',
+    ],
+  },
+  {
+    city: 'Hà Nội',
+    districts: [
+      'Cầu Giấy',
+      'Tây Hồ',
+      'Đống Đa',
+      'Thanh Xuân',
+      'Nam Từ Liêm',
+      'Ba Đình',
+      'Hai Bà Trưng',
+    ],
+  },
   { city: 'Đà Nẵng', districts: ['Hải Châu', 'Sơn Trà', 'Thanh Khê', 'Ngũ Hành Sơn'] },
   { city: 'Bình Dương', districts: ['Dĩ An', 'Thuận An', 'Thủ Dầu Một'] },
 ];
@@ -301,11 +345,12 @@ for (let i = 11; i <= 53; i++) {
     description: `Cụm sân cầu lông tiêu chuẩn cao tại ${district}, ${cd.city}. Trang bị hệ thống chiếu sáng chống chói mắt tiêu chuẩn BWF.`,
     city: cd.city,
     district,
-    address: `${20 + i * 3} Đường số ${((i % 15) + 1)}, ${district}`,
+    address: `${20 + i * 3} Đường số ${(i % 15) + 1}, ${district}`,
     latitude: 10.7 + (i % 10) * 0.02,
     longitude: 106.6 + (i % 10) * 0.02,
     openTime: DEFAULT_OPEN_TIME,
     closeTime: DEFAULT_CLOSE_TIME,
+    amenityIds: DEFAULT_AMENITY_IDS,
     images: SAMPLE_IMAGES,
     coverImage: SAMPLE_IMAGES[i % SAMPLE_IMAGES.length],
     pricing: DEFAULT_PRICING,
@@ -432,7 +477,10 @@ export const branchService = {
       const totalBranches = inMemoryBranches.length;
       const activeBranches = inMemoryBranches.filter((b) => b.status === 'active').length;
       const inactiveBranches = inMemoryBranches.filter((b) => b.status === 'inactive').length;
-      const totalCourts = inMemoryBranches.reduce((acc, curr) => acc + (curr.totalCourts || curr.courts.length || 0), 0);
+      const totalCourts = inMemoryBranches.reduce(
+        (acc, curr) => acc + (curr.totalCourts || curr.courts.length || 0),
+        0,
+      );
 
       return createSuccessResponse({
         totalBranches,
@@ -490,6 +538,7 @@ export const branchService = {
         longitude: input.longitude,
         openTime: input.openTime || DEFAULT_OPEN_TIME,
         closeTime: input.closeTime || DEFAULT_CLOSE_TIME,
+        amenityIds: input.amenityIds ?? [],
         images: input.images?.length ? input.images : SAMPLE_IMAGES.slice(0, 2),
         coverImage: input.images?.[0] || SAMPLE_IMAGES[0],
         pricing: input.pricing?.length ? input.pricing : DEFAULT_PRICING,
@@ -508,7 +557,10 @@ export const branchService = {
   /**
    * Update an existing branch
    */
-  updateBranch: async (id: string, input: Partial<CreateBranchInput>): Promise<ApiResponse<Branch>> => {
+  updateBranch: async (
+    id: string,
+    input: Partial<CreateBranchInput>,
+  ): Promise<ApiResponse<Branch>> => {
     try {
       const res = await http.put<ApiResponse<Branch>>(`/branches/${id}`, input);
       return res.data;
@@ -538,12 +590,14 @@ export const branchService = {
         ...input,
         branchName: input.branchName?.trim() ?? existing.branchName,
         phone: input.phone?.trim() ?? existing.phone,
-        description: input.description !== undefined ? input.description.trim() : existing.description,
+        description:
+          input.description !== undefined ? input.description.trim() : existing.description,
         city: input.city?.trim() ?? existing.city,
         district: input.district?.trim() ?? existing.district,
         address: input.address?.trim() ?? existing.address,
         openTime: input.openTime ?? existing.openTime,
         closeTime: input.closeTime ?? existing.closeTime,
+        amenityIds: input.amenityIds ?? existing.amenityIds,
         images: input.images ?? existing.images,
         coverImage: input.images?.[0] ?? existing.coverImage,
         pricing: input.pricing ?? existing.pricing,

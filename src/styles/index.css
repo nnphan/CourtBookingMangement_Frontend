@@ -35,6 +35,9 @@
 
   /* Semantic aliases used by shared management components */
   --color-primary: var(--color-brand-600);
+  --color-primary-foreground: var(--color-content-onbrand);
+  --color-background: var(--color-surface);
+  --color-border: var(--color-line);
   --color-muted-foreground: var(--color-content-secondary);
 
   /* Lines / states ------------------------------------------------------- */
