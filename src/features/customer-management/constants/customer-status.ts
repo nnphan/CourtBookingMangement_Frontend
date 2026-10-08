@@ -1,3 +1,4 @@
+import type { StatusBadgeVariant } from '@/components/management';
 import type { CustomerStatus, MemberType } from '../types/customer';
 
 export const CUSTOMER_STATUS_CONFIG: Record<
@@ -5,6 +6,7 @@ export const CUSTOMER_STATUS_CONFIG: Record<
   {
     labelVi: string;
     labelEn: string;
+    badgeVariant: StatusBadgeVariant;
     badgeClass: string;
     dotClass: string;
   }
@@ -12,20 +14,23 @@ export const CUSTOMER_STATUS_CONFIG: Record<
   active: {
     labelVi: 'Hoạt động',
     labelEn: 'Active',
+    badgeVariant: 'active',
     badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200 ring-emerald-500/20',
     dotClass: 'bg-emerald-500',
   },
   inactive: {
     labelVi: 'Ngừng hoạt động',
     labelEn: 'Inactive',
-    badgeClass: 'bg-amber-50 text-amber-700 border-amber-200 ring-amber-500/20',
-    dotClass: 'bg-amber-500',
+    badgeVariant: 'inactive',
+    badgeClass: 'bg-slate-100 text-slate-600 border-slate-200 ring-slate-500/20',
+    dotClass: 'bg-slate-400',
   },
   blocked: {
     labelVi: 'Bị khóa',
     labelEn: 'Blocked',
-    badgeClass: 'bg-rose-50 text-rose-700 border-rose-200 ring-rose-500/20',
-    dotClass: 'bg-rose-500',
+    badgeVariant: 'blocked',
+    badgeClass: 'bg-red-50 text-red-700 border-red-200 ring-red-500/20',
+    dotClass: 'bg-red-500',
   },
 };
 

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { useLocaleFormatters } from '@/hooks/useLocaleFormatters';
 import {
   Users,
   UserPlus,
@@ -18,17 +19,23 @@ import { customerApi } from '../api/customer.api';
 import { CustomerTable } from '../components/CustomerTable';
 import { CustomerSearch } from '../components/CustomerSearch';
 import { CustomerFilters } from '../components/CustomerFilters';
-import { CustomerTableSkeleton } from '../components/CustomerSkeleton';
 import { CustomerEmptyState } from '../components/CustomerEmptyState';
 import { CustomerErrorState } from '../components/ErrorState';
 import { CustomerAnalytics } from '../components/CustomerAnalytics';
 import { Button } from '@/components/ui/button';
+import {
+  FilterPanel,
+  PageHeader,
+  StatCard,
+  StatCardGrid,
+  TableSkeleton,
+} from '@/components/management';
 import { toast } from '@/lib/toast';
 import type { Customer } from '../types/customer';
-import { paths } from '@/app/router/paths';
 
 export const CustomerListPage: React.FC = () => {
   const { t } = useTranslation();
+  const { formatNumber } = useLocaleFormatters();
   const navigate = useNavigate();
 
   const {
@@ -116,126 +123,76 @@ export const CustomerListPage: React.FC = () => {
   );
 
   return (
-    <div className="w-full space-y-5">
-      {/* 1. Header Bar: Title, Count Badge, Analytics Toggle, Add Customer Button */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-xs">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-emerald-600 text-white shadow-xs">
-              <Users className="size-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                  {t('customer.title', 'Quản lý Khách hàng')}
-                </h1>
-                {metadata && (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    {metadata.totalCount} {t('customer.pagination.records', 'khách hàng')}
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {t(
-                  'customer.subtitle',
-                  'Danh sách hồ sơ khách hàng, phân hạng hội viên và lịch sử đặt sân',
-                )}
-              </p>
-            </div>
-          </div>
-        </div>
+    <div className="w-full space-y-6">
+      {/* 1. Page Header */}
+      <PageHeader
+        icon={Users}
+        title={t('customer.title', 'Quản lý Khách hàng')}
+        badge={
+          metadata
+            ? `${formatNumber(metadata.totalCount)} ${t('customer.pagination.records', 'khách hàng')}`
+            : undefined
+        }
+        description={t(
+          'customer.subtitle',
+          'Danh sách hồ sơ khách hàng, phân hạng hội viên và lịch sử đặt sân',
+        )}
+        actions={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAnalytics((prev) => !prev)}
+              className="flex-1 sm:flex-none"
+            >
+              <BarChart3 className="size-4 text-primary" />
+              {showAnalytics ? 'Ẩn báo cáo' : 'Báo cáo thống kê'}
+              {showAnalytics ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+            </Button>
 
-        <div className="flex items-center gap-2.5 w-full sm:w-auto">
-          {/* Toggle Analytics Button */}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setShowAnalytics((prev) => !prev)}
-            className="flex-1 sm:flex-none text-xs font-semibold rounded-xl border-slate-200 bg-white hover:bg-slate-50"
-          >
-            <BarChart3 className="size-3.5 mr-1.5 text-emerald-600" />
-            {showAnalytics ? 'Ẩn báo cáo' : 'Báo cáo thống kê'}
-            {showAnalytics ? (
-              <ChevronUp className="size-3.5 ml-1" />
-            ) : (
-              <ChevronDown className="size-3.5 ml-1" />
-            )}
-          </Button>
-
-          {/* Add Customer Button */}
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            onClick={() => navigate('/customers/new')}
-            className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs"
-          >
-            <UserPlus className="size-3.5 mr-1.5" />
-            {t('customer.addCustomer', 'Thêm khách hàng')}
-          </Button>
-        </div>
-      </div>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={() => navigate('/customers/new')}
+              className="flex-1 sm:flex-none"
+            >
+              <UserPlus className="size-4" />
+              {t('customer.addCustomer', 'Thêm khách hàng')}
+            </Button>
+          </>
+        }
+      />
 
       {/* 2. Customer Summary Metric Cards */}
       {statsData && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                {t('customer.stats.total', 'Tổng khách hàng')}
-              </p>
-              <p className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">
-                {statsData.totalCustomers}
-              </p>
-            </div>
-            <div className="p-2.5 rounded-xl bg-slate-100 text-slate-600">
-              <Users className="size-5" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                {t('customer.stats.active', 'Đang hoạt động')}
-              </p>
-              <p className="text-xl sm:text-2xl font-black text-emerald-600 mt-0.5">
-                {statsData.activeCustomers}
-              </p>
-            </div>
-            <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600">
-              <UserCheck className="size-5" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                {t('customer.stats.vip', 'Hội viên VIP')}
-              </p>
-              <p className="text-xl sm:text-2xl font-black text-amber-500 mt-0.5">
-                {statsData.vipCustomers}
-              </p>
-            </div>
-            <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600">
-              <Crown className="size-5" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                {t('customer.stats.newThisMonth', 'Khách mới tháng này')}
-              </p>
-              <p className="text-xl sm:text-2xl font-black text-blue-600 mt-0.5">
-                +{statsData.newCustomersThisMonth}
-              </p>
-            </div>
-            <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600">
-              <Sparkles className="size-5" />
-            </div>
-          </div>
-        </div>
+        <StatCardGrid>
+          <StatCard
+            label={t('customer.stats.total', 'Tổng khách hàng')}
+            value={formatNumber(statsData.totalCustomers)}
+            icon={Users}
+            tone="neutral"
+          />
+          <StatCard
+            label={t('customer.stats.active', 'Đang hoạt động')}
+            value={formatNumber(statsData.activeCustomers)}
+            icon={UserCheck}
+            tone="success"
+          />
+          <StatCard
+            label={t('customer.stats.vip', 'Hội viên VIP')}
+            value={formatNumber(statsData.vipCustomers)}
+            icon={Crown}
+            tone="warning"
+          />
+          <StatCard
+            label={t('customer.stats.newThisMonth', 'Khách mới tháng này')}
+            value={`+${formatNumber(statsData.newCustomersThisMonth)}`}
+            icon={Sparkles}
+            tone="primary"
+          />
+        </StatCardGrid>
       )}
 
       {/* 3. Analytics Dashboard Section (Collapsible) */}
@@ -245,27 +202,29 @@ export const CustomerListPage: React.FC = () => {
         </section>
       )}
 
-      {/* 4. Search and Filter Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
-        <div className="w-full md:max-w-md">
-          <CustomerSearch
-            value={searchKeyword}
-            onChange={setSearchKeyword}
-            showDropdown={false}
-          />
-        </div>
+      {/* 4. Search and Filter Section */}
+      <FilterPanel
+        title={t('customer.filterPanelTitle', 'Bộ lọc & Tìm kiếm')}
+        resetLabel={t('customer.resetFilters', 'Đặt lại bộ lọc')}
+        onReset={hasActiveFilters ? resetFilters : undefined}
+      >
+        <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+          <div className="w-full lg:max-w-sm">
+            <CustomerSearch
+              value={searchKeyword}
+              onChange={setSearchKeyword}
+              showDropdown={false}
+            />
+          </div>
 
-        <CustomerFilters
-          filters={filters}
-          onChangeFilters={setFilters}
-          onResetFilters={resetFilters}
-        />
-      </div>
+          <CustomerFilters filters={filters} onChangeFilters={setFilters} />
+        </div>
+      </FilterPanel>
 
       {/* 5. Customer Table & States */}
       <div>
         {isLoading ? (
-          <CustomerTableSkeleton />
+          <TableSkeleton />
         ) : isError ? (
           <CustomerErrorState
             message={error?.message}

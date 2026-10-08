@@ -171,7 +171,7 @@ export const CustomerSearch: React.FC<CustomerSearchProps> = memo(
                 'Tìm theo tên, SĐT (ví dụ: 0909...), mã KH, email...',
               )
             }
-            className="w-full h-9 sm:h-10 pl-9 pr-9 text-xs sm:text-sm bg-white rounded-xl border border-slate-200 shadow-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-all disabled:opacity-50 disabled:bg-slate-50"
+            className="w-full h-10 pl-9 pr-9 text-sm bg-white rounded-xl border border-slate-200 shadow-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all disabled:opacity-50 disabled:bg-slate-50"
           />
 
           {/* Right Action Icons (Clear / Loader) */}

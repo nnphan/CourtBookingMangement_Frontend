@@ -27,6 +27,11 @@ const CustomerCourtStatusPage = lazy(
 const DiscoverMatchesPage = lazy(
   () => import('@/features/player-matching/pages/DiscoverMatchesPage'),
 );
+const AdminBranchLayout = lazy(() => import('@/pages/admin/branches/AdminBranchLayout'));
+const BranchListPage = lazy(() => import('@/pages/admin/branches/BranchListPage'));
+const BranchCreatePage = lazy(() => import('@/pages/admin/branches/BranchCreatePage'));
+const BranchDetailPage = lazy(() => import('@/pages/admin/branches/BranchDetailPage'));
+const BranchEditPage = lazy(() => import('@/pages/admin/branches/BranchEditPage'));
 const NotFoundPage = lazy(() => import('@/components/common/NotFoundPage'));
 
 const withSuspense = (node: React.ReactNode) => (
@@ -86,6 +91,16 @@ export const router = createBrowserRouter([
           { path: paths.customerCreate, element: withSuspense(<CustomerCreatePage />) },
           { path: '/customers/:id', element: withSuspense(<CustomerDetailPage />) },
           { path: '/customers/:id/edit', element: withSuspense(<CustomerEditPage />) },
+        ],
+      },
+      {
+        path: paths.adminBranches,
+        element: withSuspense(<AdminBranchLayout />),
+        children: [
+          { index: true, element: withSuspense(<BranchListPage />) },
+          { path: 'create', element: withSuspense(<BranchCreatePage />) },
+          { path: ':id', element: withSuspense(<BranchDetailPage />) },
+          { path: ':id/edit', element: withSuspense(<BranchEditPage />) },
         ],
       },
     ],

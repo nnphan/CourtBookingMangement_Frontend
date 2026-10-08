@@ -17,6 +17,7 @@ import {
   RefreshCw,
   LogOut,
   ChevronRight,
+  Building2,
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/store/auth.store';
 import { cn } from '@/lib/utils';
@@ -30,6 +31,7 @@ interface SidebarProps {
 }
 
 const menuItems = [
+  { icon: Building2, label: 'Quản lý chi nhánh (Branches)', path: paths.adminBranches },
   { icon: Users, label: 'Quản lý khách hàng', path: paths.customers },
   { icon: Globe, label: 'Chuyển đổi ngôn ngữ' },
   { icon: Home, label: 'Đổi trang chủ: Trang chủ cũ', path: paths.dashboard },

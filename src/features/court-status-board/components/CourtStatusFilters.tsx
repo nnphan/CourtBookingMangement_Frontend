@@ -63,7 +63,7 @@ export const CourtStatusFilters: React.FC<CourtStatusFiltersProps> = memo(
             <SelectTrigger
               aria-label={t('courtStatus.filters.groupLabel', 'Nhóm sân')}
               rightIcon={<Clock className="size-3.5 text-white/80" />}
-              className="h-9 border-white/25 bg-white/20 px-3 text-xs font-semibold text-white shadow-none backdrop-blur-xs transition-colors hover:bg-white/25 focus:ring-white/40"
+              className="h-10 border-white/25 bg-white/20 px-3 text-xs font-semibold text-white shadow-none backdrop-blur-xs transition-colors hover:bg-white/25 focus:ring-white/40"
             >
               <SelectValue placeholder={t('courtStatus.filters.allCourts', 'Tất cả')} />
             </SelectTrigger>
@@ -88,7 +88,7 @@ export const CourtStatusFilters: React.FC<CourtStatusFiltersProps> = memo(
             <SelectTrigger
               aria-label={t('courtStatus.filters.branchLabel', 'Chi nhánh')}
               rightIcon={<GitBranch className="size-3.5 text-white/80" />}
-              className="h-9 border-white/25 bg-white/20 px-3 text-xs font-semibold text-white shadow-none backdrop-blur-xs transition-colors hover:bg-white/25 focus:ring-white/40"
+              className="h-10 border-white/25 bg-white/20 px-3 text-xs font-semibold text-white shadow-none backdrop-blur-xs transition-colors hover:bg-white/25 focus:ring-white/40"
             >
               <SelectValue placeholder="Chọn chi nhánh" />
             </SelectTrigger>
@@ -111,7 +111,7 @@ export const CourtStatusFilters: React.FC<CourtStatusFiltersProps> = memo(
             <SelectTrigger
               aria-label={t('courtStatus.filters.intervalLabel', 'Khoảng thời gian (phút)')}
               rightIcon={<SlidersHorizontal className="size-3.5 text-white/80" />}
-              className="h-9 border-white/25 bg-white/20 px-3 text-xs font-semibold text-white shadow-none backdrop-blur-xs transition-colors hover:bg-white/25 focus:ring-white/40"
+              className="h-10 border-white/25 bg-white/20 px-3 text-xs font-semibold text-white shadow-none backdrop-blur-xs transition-colors hover:bg-white/25 focus:ring-white/40"
             >
               <SelectValue />
             </SelectTrigger>
@@ -131,7 +131,7 @@ export const CourtStatusFilters: React.FC<CourtStatusFiltersProps> = memo(
             type="button"
             onClick={() => setIsDatePickerOpen(true)}
             aria-label={t('courtStatus.filters.dateLabel', 'Chọn ngày')}
-            className="flex h-9 w-full items-center justify-between gap-2 rounded-lg bg-white/20 px-3 text-xs font-semibold text-white backdrop-blur-xs transition-colors hover:bg-white/25 border border-white/25 cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-white/50"
+            className="flex h-10 w-full items-center justify-between gap-2 rounded-xl bg-white/20 px-3 text-xs font-semibold text-white backdrop-blur-xs transition-colors hover:bg-white/25 border border-white/25 cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-white/50"
           >
             <span>{formattedDateForDisplay}</span>
             <Calendar className="size-3.5 shrink-0 opacity-80" />
@@ -152,7 +152,7 @@ export const CourtStatusFilters: React.FC<CourtStatusFiltersProps> = memo(
           disabled={isLoading}
           title={t('courtStatus.filters.refresh', 'Làm mới dữ liệu')}
           aria-label={t('courtStatus.filters.refresh', 'Làm mới dữ liệu')}
-          className="grid size-9 place-items-center rounded-lg bg-white/20 text-white backdrop-blur-xs transition-all hover:bg-white/30 active:scale-95 disabled:opacity-50 border border-white/25 cursor-pointer"
+          className="grid size-10 place-items-center rounded-lg bg-white/20 text-white backdrop-blur-xs transition-all hover:bg-white/30 active:scale-95 disabled:opacity-50 border border-white/25 cursor-pointer"
         >
           <RotateCw className={`size-4 ${isLoading ? 'animate-spin' : ''}`} />
         </button>

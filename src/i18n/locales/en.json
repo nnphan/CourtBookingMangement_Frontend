@@ -5,7 +5,30 @@
     "showPassword": "Show password",
     "hidePassword": "Hide password",
     "clear": "Clear field",
-    "required": "(*)"
+    "required": "(*)",
+    "language": "Language"
+  },
+  "management": {
+    "pagination": {
+      "showing": "Showing <bold>{{from}}-{{to}}</bold> of <bold>{{total}}</bold> {{items}}",
+      "rowsPerPage": "Rows per page:",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "filters": {
+      "title": "Filters & Search",
+      "reset": "Reset Filters"
+    },
+    "empty": {
+      "title": "No data found",
+      "description": "Try adjusting your filters"
+    }
+  },
+  "navigation": {
+    "branches": "Branch Management",
+    "customers": "Customer Management",
+    "courtStatus": "Court Status",
+    "label": "Management navigation"
   },
   "auth": {
     "login": {
@@ -55,6 +78,7 @@
   },
   "nav": { "dashboard": "Overview", "courts": "Courts", "bookings": "Bookings", "logout": "Sign out" },
   "courtStatus": {
+    "description": "Track bookings and court availability in real time",
     "title": "Court Status Board",
     "header": {
       "search": "Search",

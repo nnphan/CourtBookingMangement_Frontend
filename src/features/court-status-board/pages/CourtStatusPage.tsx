@@ -18,6 +18,7 @@ import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
 import type { BookingItem } from '../types/booking';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
+import { ManagementNavigation } from '@/components/navigation';
 
 export const CourtStatusPage: React.FC = () => {
   const { t } = useTranslation();
@@ -184,9 +185,16 @@ export const CourtStatusPage: React.FC = () => {
         </button>
 
         {/* Center: Title */}
-        <h1 className="text-base sm:text-lg font-bold tracking-tight text-white drop-shadow-xs">
-          {t('courtStatus.title', 'Trạng thái sân')}
-        </h1>
+        <div className="min-w-0 text-center">
+          <h1 className="text-base sm:text-lg font-bold tracking-tight text-white drop-shadow-xs">
+            {t('courtStatus.title', 'Trạng thái sân')}
+          </h1>
+          <p className="hidden xl:block text-xs text-white/70 truncate">
+            {t('courtStatus.description', 'Theo dõi lịch đặt và tình trạng các sân theo thời gian thực')}
+          </p>
+        </div>
+
+        <ManagementNavigation />
 
         {/* Right: Language Switcher, Search and Filter Icons */}
         <div className="flex items-center gap-1 sm:gap-2">

@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Edit2, Power, History } from 'lucide-react';
+import { ArrowLeft, Edit2, Power } from 'lucide-react';
 import { useCustomer } from '../hooks/useCustomer';
 import { useCustomerBookings } from '../hooks/useCustomerBookings';
 import { customerApi } from '../api/customer.api';
@@ -12,6 +12,7 @@ import { BookingHistoryTable } from '../components/BookingHistoryTable';
 import { CustomerDetailSkeleton } from '../components/CustomerSkeleton';
 import { CustomerErrorState } from '../components/ErrorState';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/management';
 import { toast } from '@/lib/toast';
 
 export const CustomerDetailPage: React.FC = () => {
@@ -82,59 +83,53 @@ export const CustomerDetailPage: React.FC = () => {
   return (
     <div className="w-full space-y-6 pb-10">
       {/* Top Navigation & Action Buttons */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-xs">
-        <div className="flex items-center gap-3">
+      <PageHeader
+        leading={
           <Button
             type="button"
-            variant="ghost"
-            size="sm"
+            variant="outline"
+            size="icon"
             onClick={() => navigate('/customers')}
             aria-label="Quay lại danh sách"
-            className="size-9 p-0 rounded-full hover:bg-slate-100"
+            className="shrink-0 rounded-xl"
           >
-            <ArrowLeft className="size-5 text-slate-700" />
+            <ArrowLeft className="size-5 text-slate-600" />
           </Button>
+        }
+        title={customer.fullName}
+        description={`Mã hồ sơ: ${customer.customerCode}`}
+        actions={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(`/customers/${customer.id}/edit`)}
+              className="flex-1 sm:flex-none"
+            >
+              <Edit2 className="size-4 text-primary" />
+              {t('common.edit', 'Chỉnh sửa')}
+            </Button>
 
-          <div>
-            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-              {customer.fullName}
-            </h1>
-            <p className="text-xs text-slate-500 font-mono">Mã hồ sơ: {customer.customerCode}</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          {/* Edit Button */}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => navigate(`/customers/${customer.id}/edit`)}
-            className="flex-1 sm:flex-none text-xs font-semibold rounded-xl border-slate-300 hover:bg-slate-50 shadow-xs"
-          >
-            <Edit2 className="size-3.5 mr-1.5 text-blue-600" />
-            {t('common.edit', 'Chỉnh sửa')}
-          </Button>
-
-          {/* Toggle Deactivate Button */}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleToggleDeactivate}
-            className={`flex-1 sm:flex-none text-xs font-semibold rounded-xl shadow-xs ${
-              customer.status === 'active'
-                ? 'text-rose-700 border-rose-200 hover:bg-rose-50'
-                : 'text-emerald-700 border-emerald-200 hover:bg-emerald-50'
-            }`}
-          >
-            <Power className="size-3.5 mr-1.5" />
-            {customer.status === 'active'
-              ? t('customer.deactivate', 'Ngừng hoạt động')
-              : t('customer.activate', 'Kích hoạt lại')}
-          </Button>
-        </div>
-      </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleToggleDeactivate}
+              className={`flex-1 sm:flex-none ${
+                customer.status === 'active'
+                  ? 'text-red-700 border-red-200 hover:bg-red-50'
+                  : 'text-emerald-700 border-emerald-200 hover:bg-emerald-50'
+              }`}
+            >
+              <Power className="size-4" />
+              {customer.status === 'active'
+                ? t('customer.deactivate', 'Ngừng hoạt động')
+                : t('customer.activate', 'Kích hoạt lại')}
+            </Button>
+          </>
+        }
+      />
 
       {/* Grid: Customer Profile Card (2 cols) & Membership Card (1 col) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">

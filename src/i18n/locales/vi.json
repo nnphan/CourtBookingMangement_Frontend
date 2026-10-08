@@ -5,7 +5,30 @@
     "showPassword": "Hiện mật khẩu",
     "hidePassword": "Ẩn mật khẩu",
     "clear": "Xoá nội dung",
-    "required": "(*)"
+    "required": "(*)",
+    "language": "Ngôn ngữ"
+  },
+  "management": {
+    "pagination": {
+      "showing": "Hiển thị <bold>{{from}}-{{to}}</bold> trên <bold>{{total}}</bold> {{items}}",
+      "rowsPerPage": "Số dòng mỗi trang:",
+      "previous": "Trước",
+      "next": "Sau"
+    },
+    "filters": {
+      "title": "Bộ lọc & Tìm kiếm",
+      "reset": "Đặt lại bộ lọc"
+    },
+    "empty": {
+      "title": "Không có dữ liệu",
+      "description": "Vui lòng thử thay đổi bộ lọc"
+    }
+  },
+  "navigation": {
+    "branches": "Quản lý chi nhánh",
+    "customers": "Quản lý khách hàng",
+    "courtStatus": "Trạng thái sân",
+    "label": "Điều hướng quản lý"
   },
   "auth": {
     "login": {
@@ -55,6 +78,7 @@
   },
   "nav": { "dashboard": "Tổng quan", "courts": "Sân", "bookings": "Lịch đặt", "logout": "Đăng xuất" },
   "courtStatus": {
+    "description": "Theo dõi lịch đặt và tình trạng các sân theo thời gian thực",
     "title": "Trạng thái sân",
     "header": {
       "search": "Tìm kiếm",

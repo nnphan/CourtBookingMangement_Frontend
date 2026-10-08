@@ -321,7 +321,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = memo(
             type="submit"
             variant="primary"
             loading={isLoading}
-            className="rounded-xl px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm shadow-sm"
+            className="rounded-xl px-6 font-semibold text-xs sm:text-sm shadow-sm"
           >
             {isEditing
               ? t('customer.saveChanges', 'Lưu thay đổi')

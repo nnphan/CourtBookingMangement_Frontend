@@ -3,15 +3,18 @@ import { useTranslation } from 'react-i18next';
 import { Globe } from 'lucide-react';
 import { useLanguageStore, type Language } from '@/shared/store/language.store';
 import { cn } from '@/lib/utils';
+import { LanguageDropdown } from './LanguageDropdown';
 
 export interface LanguageSwitcherProps {
   className?: string;
   variant?: 'default' | 'contrast' | 'compact';
   showIcon?: boolean;
+  /** `toggle` renders inline VI | EN buttons; `dropdown` renders a 🌐 menu with flags. */
+  mode?: 'toggle' | 'dropdown';
 }
 
 export const LanguageSwitcher = memo(
-  ({ className, variant = 'default', showIcon = true }: LanguageSwitcherProps) => {
+  ({ className, variant = 'default', showIcon = true, mode = 'toggle' }: LanguageSwitcherProps) => {
     const { i18n } = useTranslation();
     const { language, setLanguage } = useLanguageStore();
 
@@ -26,6 +29,12 @@ export const LanguageSwitcher = memo(
     };
 
     const isContrast = variant === 'contrast';
+
+    if (mode === 'dropdown') {
+      return (
+        <LanguageDropdown className={className} variant={isContrast ? 'contrast' : 'default'} />
+      );
+    }
 
     return (
       <div

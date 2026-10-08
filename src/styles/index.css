@@ -33,6 +33,10 @@
   --color-content-onbrand: #ffffff;
   --color-content-link: #0e6534;
 
+  /* Semantic aliases used by shared management components */
+  --color-primary: var(--color-brand-600);
+  --color-muted-foreground: var(--color-content-secondary);
+
   /* Lines / states ------------------------------------------------------- */
   --color-line: #dfe3e8;
   --color-line-strong: #c4cad1;

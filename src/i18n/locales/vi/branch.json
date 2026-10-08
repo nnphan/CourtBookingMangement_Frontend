@@ -1,0 +1,324 @@
+{
+  "layout": {
+    "adminPortal": "Cổng quản trị",
+    "breadcrumb": "Chi nhánh",
+    "toggleNavigation": "Mở/đóng menu điều hướng",
+    "nav": {
+      "branches": "Chi nhánh",
+      "customers": "Khách hàng",
+      "statusBoard": "Bảng trạng thái",
+      "discovery": "Khám phá",
+      "dashboard": "Tổng quan"
+    },
+    "role": {
+      "admin": "Vai trò: ADMIN",
+      "branchManager": "Vai trò: QL CHI NHÁNH",
+      "toggleHint": "Nhấn để chuyển vai trò giữa ADMIN và BRANCH_MANAGER nhằm kiểm thử phân quyền"
+    }
+  },
+  "page": {
+    "title": "Quản lý chi nhánh",
+    "description": "Quản lý các chi nhánh và cơ sở cầu lông",
+    "totalBadge_other": "{{formatted}} chi nhánh",
+    "createTitle": "Tạo chi nhánh mới",
+    "createDescription": "Thiết lập cơ sở cầu lông mới với vị trí, lịch hoạt động, bảng giá và danh sách sân.",
+    "editTitle": "Chỉnh sửa {{name}}",
+    "editDescription": "Cập nhật thông tin cơ sở, lịch hoạt động, cấu hình sân và bảng giá."
+  },
+  "stats": {
+    "totalBranches": "Tổng chi nhánh",
+    "activeBranches": "Chi nhánh hoạt động",
+    "inactiveBranches": "Chi nhánh ngừng hoạt động",
+    "totalCourts": "Tổng sân"
+  },
+  "filters": {
+    "title": "Bộ lọc & Tìm kiếm",
+    "search": "Tìm kiếm chi nhánh...",
+    "city": "Thành phố",
+    "district": "Quận/Huyện",
+    "status": "Trạng thái",
+    "allCities": "Tất cả thành phố",
+    "allDistricts": "Tất cả quận/huyện",
+    "allStatuses": "Tất cả trạng thái",
+    "reset": "Đặt lại bộ lọc"
+  },
+  "table": {
+    "branch": "Chi nhánh",
+    "city": "Thành phố",
+    "district": "Quận/Huyện",
+    "phone": "Số điện thoại",
+    "courts": "Sân",
+    "status": "Trạng thái",
+    "createdDate": "Ngày tạo",
+    "actions": "Thao tác",
+    "courtsCount_other": "{{formatted}} sân",
+    "rowActions": "Thao tác cho {{name}}"
+  },
+  "pagination": {
+    "items": "chi nhánh"
+  },
+  "empty": {
+    "title": "Không tìm thấy chi nhánh",
+    "description": "Vui lòng thử thay đổi bộ lọc"
+  },
+  "errors": {
+    "loadListTitle": "Không thể tải danh sách chi nhánh",
+    "loadListDescription": "Tải danh sách chi nhánh thất bại. Vui lòng thử lại.",
+    "notFoundTitle": "Không tìm thấy chi nhánh",
+    "notFoundDescription": "Không thể tải chi tiết chi nhánh. Chi nhánh có thể đã bị xóa hoặc không tồn tại.",
+    "editLoadDescription": "Không thể tải thông tin chi nhánh để chỉnh sửa."
+  },
+  "access": {
+    "restrictedTitle": "Truy cập bị hạn chế",
+    "createDenied": "Chỉ quản trị viên mới có quyền tạo chi nhánh mới. Quản lý chi nhánh chỉ có thể xem và chỉnh sửa chi nhánh được phân công.",
+    "editDenied": "Bạn không có quyền chỉnh sửa chi nhánh này."
+  },
+  "actions": {
+    "create": "Tạo chi nhánh",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "edit": "Chỉnh sửa",
+    "delete": "Xóa",
+    "view": "Xem chi tiết",
+    "viewShort": "Xem",
+    "refresh": "Làm mới",
+    "retry": "Thử lại",
+    "backToList": "Quay lại danh sách",
+    "backToListAria": "Quay lại danh sách chi nhánh",
+    "backToDetailAria": "Quay lại chi tiết chi nhánh",
+    "editInfo": "Chỉnh sửa thông tin",
+    "addCourt": "Thêm sân",
+    "configure": "Cấu hình",
+    "modifyPricing": "Điều chỉnh giá",
+    "managePhotos": "Quản lý hình ảnh",
+    "zoom": "Phóng to",
+    "quickSave": "Lưu nhanh",
+    "saveAndContinue": "Lưu & Tiếp tục",
+    "saveBranch": "Lưu chi nhánh",
+    "updateBranch": "Cập nhật chi nhánh",
+    "addImageUrl": "Thêm URL hình ảnh",
+    "makeCover": "Đặt làm ảnh bìa",
+    "setCoverHint": "Đặt làm ảnh bìa",
+    "removeImage": "Xóa hình ảnh",
+    "addPricingTier": "Thêm khung giá",
+    "deleteTier": "Xóa khung giá",
+    "removeCourt": "Xóa sân",
+    "editCourt": "Chỉnh sửa sân"
+  },
+  "status": {
+    "active": "Đang hoạt động",
+    "inactive": "Ngừng hoạt động"
+  },
+  "court": {
+    "surface": {
+      "bwf_mat": "Thảm BWF",
+      "wood": "Sàn gỗ",
+      "acrylic": "Acrylic",
+      "pvc": "PVC"
+    },
+    "category": {
+      "standard": "Tiêu chuẩn",
+      "vip": "VIP",
+      "training": "Tập luyện"
+    },
+    "status": {
+      "available": "Sẵn sàng",
+      "maintenance": "Bảo trì",
+      "occupied": "Đang sử dụng"
+    },
+    "priceUnit": "đ/giờ"
+  },
+  "details": {
+    "tabs": {
+      "overview": "Tổng quan",
+      "courts": "Sân ({{count}})",
+      "hours": "Giờ hoạt động",
+      "pricing": "Bảng giá",
+      "images": "Hình ảnh ({{count}})"
+    },
+    "overview": {
+      "generalInfo": "Thông tin chung",
+      "branchName": "Tên chi nhánh",
+      "contactPhone": "Số điện thoại liên hệ",
+      "fullAddress": "Địa chỉ đầy đủ",
+      "city": "Tỉnh / Thành phố",
+      "district": "Quận/Huyện",
+      "coordinates": "Tọa độ địa lý",
+      "coordinatesValue": "Vĩ độ: {{latitude}}, Kinh độ: {{longitude}}",
+      "description": "Mô tả",
+      "noDescription": "Chưa có mô tả cho chi nhánh này.",
+      "recordMetadata": "Thông tin bản ghi",
+      "status": "Trạng thái",
+      "totalCourts": "Tổng số sân",
+      "createdAt": "Ngày tạo",
+      "updatedAt": "Ngày cập nhật",
+      "coverPhoto": "Ảnh bìa"
+    },
+    "courts": {
+      "title": "Danh sách sân",
+      "description": "Tất cả các sân thi đấu trong cơ sở này",
+      "name": "Tên sân",
+      "surface": "Mặt sân",
+      "category": "Loại sân",
+      "status": "Trạng thái",
+      "standardRate": "Giá tiêu chuẩn",
+      "actions": "Thao tác"
+    },
+    "hours": {
+      "title": "Giờ hoạt động",
+      "description": "Giờ mở cửa và đóng cửa hằng ngày của cơ sở",
+      "open": "Giờ mở cửa",
+      "close": "Giờ đóng cửa",
+      "everyDay": "Giờ hoạt động áp dụng cho tất cả các ngày trong tuần."
+    },
+    "pricing": {
+      "title": "Gói giá",
+      "description": "Giá theo giờ và các khung giá được cấu hình cho chi nhánh này"
+    },
+    "images": {
+      "title": "Thư viện ảnh",
+      "description": "Hình ảnh độ phân giải cao của chi nhánh",
+      "cover": "Ảnh bìa",
+      "photoAlt": "Ảnh {{index}}",
+      "zoomAlt": "Ảnh phóng to"
+    },
+    "addCourt": {
+      "title": "Thêm sân mới",
+      "name": "Tên sân",
+      "namePlaceholder": "VD: Sân 5 (VIP)",
+      "surface": "Chất liệu mặt sân",
+      "category": "Loại sân"
+    }
+  },
+  "form": {
+    "unsavedChanges": "Bạn có thay đổi chưa được lưu. Hãy lưu lại trước khi rời trang.",
+    "sections": {
+      "general": "Thông tin chung",
+      "location": "Vị trí",
+      "operatingHours": "Giờ hoạt động",
+      "images": "Hình ảnh",
+      "pricing": "Bảng giá",
+      "courts": "Sân"
+    },
+    "general": {
+      "title": "Thông tin chung",
+      "description": "Thông tin cơ bản về tên chi nhánh, liên hệ và giới thiệu"
+    },
+    "location": {
+      "title": "Vị trí",
+      "description": "Địa chỉ và tọa độ địa lý phục vụ chỉ đường"
+    },
+    "hours": {
+      "title": "Giờ hoạt động",
+      "description": "Giờ mở cửa và đóng cửa, áp dụng cho tất cả các ngày trong tuần",
+      "open": "Giờ mở cửa",
+      "close": "Giờ đóng cửa"
+    },
+    "images": {
+      "title": "Hình ảnh chi nhánh",
+      "description": "Tải lên ảnh cơ sở, ảnh sân và ảnh bìa",
+      "urlPlaceholder": "Dán URL hình ảnh (https://...)",
+      "dropzoneTitle": "Kéo & thả tệp hình ảnh vào đây, hoặc nhấn để tải lên",
+      "dropzoneHint": "Hỗ trợ PNG, JPG, WEBP tối đa 5MB",
+      "previewAlt": "Ảnh xem trước chi nhánh {{index}}",
+      "cover": "Ảnh bìa"
+    },
+    "pricing": {
+      "title": "Gói giá",
+      "description": "Cấu hình giá theo giờ cho khung giờ thường, giờ cao điểm và cuối tuần",
+      "tierName": "Tên khung giá",
+      "timeRange": "Khung giờ",
+      "pricePerHour": "Giá / Giờ (VND)"
+    },
+    "courts": {
+      "title": "Quản lý sân",
+      "description": "Cấu hình các sân cầu lông trong chi nhánh này",
+      "name": "Tên sân",
+      "surface": "Mặt sân",
+      "category": "Loại sân",
+      "status": "Trạng thái",
+      "defaultName": "Sân {{index}}",
+      "active": "Hoạt động",
+      "inactive": "Ngưng hoạt động",
+      "pricePerHour": "Giá / Giờ (VND)",
+      "empty": "Chưa có sân nào. Hãy thêm sân đầu tiên cho chi nhánh này.",
+      "dialogDescription": "Thiết lập tên sân, loại sân và trạng thái hoạt động."
+    },
+    "fields": {
+      "branchName": "Tên chi nhánh",
+      "phone": "Số điện thoại",
+      "status": "Trạng thái",
+      "description": "Mô tả",
+      "city": "Thành phố",
+      "district": "Quận/Huyện",
+      "address": "Địa chỉ",
+      "latitude": "Vĩ độ",
+      "longitude": "Kinh độ"
+    },
+    "placeholders": {
+      "branchName": "VD: ALOBO Arena Quận 7",
+      "phone": "VD: 0901234567",
+      "status": "Chọn trạng thái",
+      "description": "Mô tả chi tiết tiện ích, chỗ đậu xe và các đặc điểm nổi bật...",
+      "city": "Chọn thành phố",
+      "district": "Chọn quận/huyện",
+      "address": "VD: 123 Nguyễn Văn Linh, Phường Tân Phong",
+      "latitude": "VD: 10.7303",
+      "longitude": "VD: 106.7072",
+      "surface": "Mặt sân",
+      "category": "Loại sân",
+      "courtStatus": "Trạng thái"
+    },
+    "defaults": {
+      "weekday": {
+        "name": "Ngày thường",
+        "timeRange": "06:00 - 17:00 (T2 - T6)",
+        "description": "Giờ thường ngày trong tuần"
+      },
+      "peak": {
+        "name": "Giờ cao điểm",
+        "timeRange": "17:00 - 22:00 (Hằng ngày)",
+        "description": "Giờ cao điểm"
+      },
+      "weekend": {
+        "name": "Cuối tuần",
+        "timeRange": "06:00 - 23:00 (T7 - CN)",
+        "description": "Cuối tuần Thứ 7 & Chủ Nhật"
+      },
+      "custom": {
+        "name": "Khung giá tùy chỉnh",
+        "timeRange": "08:00 - 16:00",
+        "description": "Khung giờ ưu đãi"
+      }
+    }
+  },
+  "validation": {
+    "branchNameRequired": "Tên chi nhánh là bắt buộc",
+    "phoneRequired": "Số điện thoại là bắt buộc",
+    "cityRequired": "Thành phố là bắt buộc",
+    "districtRequired": "Quận/Huyện là bắt buộc",
+    "addressRequired": "Địa chỉ là bắt buộc",
+    "openTimeRequired": "Giờ mở cửa là bắt buộc",
+    "closeTimeRequired": "Giờ đóng cửa là bắt buộc",
+    "closeAfterOpen": "Giờ đóng cửa phải lớn hơn giờ mở cửa.",
+    "courtNameRequired": "Tên sân là bắt buộc"
+  },
+  "messages": {
+    "createSuccess": "Tạo chi nhánh thành công",
+    "updateSuccess": "Cập nhật chi nhánh thành công",
+    "deleteSuccess": "Xóa chi nhánh thành công",
+    "errorTitle": "Lỗi",
+    "createError": "Không thể tạo chi nhánh.",
+    "updateError": "Không thể cập nhật chi nhánh.",
+    "deleteError": "Không thể xóa chi nhánh.",
+    "loadListError": "Không thể tải danh sách chi nhánh",
+    "loadDetailError": "Không thể tải chi tiết chi nhánh",
+    "loadStatsError": "Không thể tải thống kê chi nhánh",
+    "invalidId": "ID chi nhánh không hợp lệ"
+  },
+  "deleteDialog": {
+    "title": "Xóa chi nhánh",
+    "description": "Bạn có chắc chắn muốn xóa <bold>\"{{name}}\"</bold>? Hành động này không thể hoàn tác. Toàn bộ cấu hình sân, giờ hoạt động và dữ liệu liên quan của chi nhánh sẽ bị xóa vĩnh viễn.",
+    "descriptionGeneric": "Bạn có chắc chắn muốn xóa chi nhánh này? Hành động này không thể hoàn tác. Toàn bộ cấu hình sân, giờ hoạt động và dữ liệu liên quan của chi nhánh sẽ bị xóa vĩnh viễn."
+  }
+}

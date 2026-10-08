@@ -18,6 +18,11 @@ export const paths = {
       : `/customer/branches/${branchId}/court-status`,
   playerMatching: '/player-matching',
   playerMatchingDetail: (id: string = ':id') => `/player-matching/${id}`,
+  adminBranches: '/admin/branches',
+  adminBranchCreate: '/admin/branches/create',
+  adminBranchDetail: (id: string = ':id') => `/admin/branches/${id}`,
+  adminBranchEdit: (id: string = ':id') => `/admin/branches/${id}/edit`,
   notFound: '*',
 } as const;
+
 

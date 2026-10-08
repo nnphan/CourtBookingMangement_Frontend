@@ -8,9 +8,9 @@ import {
   LayoutGrid,
   Lightbulb,
   Plus,
-  CalendarCheck,
 } from 'lucide-react';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { ManagementNavigation } from '@/components/navigation';
 import { paths } from '@/app/router/paths';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 
@@ -67,18 +67,12 @@ export const CustomerLayout: React.FC = () => {
           </div>
         </div>
 
+        {/* Center / Navigation Links on desktop */}
+        <ManagementNavigation />
+
         {/* Right header actions */}
         <div className="flex items-center gap-2 sm:gap-3">
           <LanguageSwitcher variant="contrast" />
-
-          <button
-            type="button"
-            onClick={() => navigate(paths.courtStatus)}
-            className="hidden md:flex items-center gap-1.5 rounded-xl bg-white/15 hover:bg-white/25 px-3 py-1.5 text-xs font-bold text-white transition-colors"
-          >
-            <CalendarCheck className="size-3.5 text-emerald-200" />
-            <span>Trạng thái sân</span>
-          </button>
 
           <button
             type="button"

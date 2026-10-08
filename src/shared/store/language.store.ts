@@ -1,7 +1,12 @@
 import { create } from 'zustand';
-import i18n from '@/i18n';
+import i18n, {
+  DEFAULT_LANGUAGE,
+  LANGUAGE_STORAGE_KEY,
+  isSupportedLanguage,
+  type AppLanguage,
+} from '@/i18n';
 
-export type Language = 'en' | 'vi';
+export type Language = AppLanguage;
 
 export interface LanguageState {
   language: Language;
@@ -9,16 +14,15 @@ export interface LanguageState {
 }
 
 const getInitialLanguage = (): Language => {
-  if (typeof window === 'undefined') return 'vi';
-  const saved = localStorage.getItem('language');
-  if (saved === 'en' || saved === 'vi') return saved;
-  return 'vi';
+  if (typeof window === 'undefined') return DEFAULT_LANGUAGE;
+  const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+  return isSupportedLanguage(saved) ? saved : DEFAULT_LANGUAGE;
 };
 
 export const useLanguageStore = create<LanguageState>((set) => ({
   language: getInitialLanguage(),
   setLanguage: (language: Language) => {
-    localStorage.setItem('language', language);
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
     localStorage.setItem('i18nextLng', language);
     void i18n.changeLanguage(language);
     set({ language });

@@ -1,6 +1,5 @@
 import React, { memo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Filter, RotateCcw } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -8,36 +7,34 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
+import { FILTER_CONTROL_CLASS } from '@/components/management';
 import type { CustomerFilters as CustomerFiltersType, CustomerStatus, MemberType } from '../types/customer';
 import { CUSTOMER_STATUS_CONFIG, MEMBER_TYPE_CONFIG } from '../constants/customer-status';
 
 interface CustomerFiltersProps {
   filters: CustomerFiltersType;
   onChangeFilters: (filters: Partial<CustomerFiltersType>) => void;
-  onResetFilters: () => void;
 }
 
+/** Dropdown filters only; search and the reset action live in the shared FilterPanel. */
 export const CustomerFilters: React.FC<CustomerFiltersProps> = memo(
-  ({ filters, onChangeFilters, onResetFilters }) => {
+  ({ filters, onChangeFilters }) => {
     const { t } = useTranslation();
 
-    const isFiltered =
-      filters.status !== 'all' ||
-      filters.memberType !== 'all' ||
-      filters.isGuest !== 'all';
-
     return (
-      <div className="flex flex-wrap items-center gap-2.5">
+      <div className="flex flex-wrap items-center gap-3">
         {/* Status Select */}
-        <div className="w-36 sm:w-44">
+        <div className="w-full sm:w-44">
           <Select
             value={filters.status ?? 'all'}
             onValueChange={(val) =>
               onChangeFilters({ status: val as CustomerStatus | 'all' })
             }
           >
-            <SelectTrigger className="h-9 text-xs bg-white border-slate-200">
+            <SelectTrigger
+              aria-label={t('customer.filterStatus', 'Trạng thái')}
+              className={FILTER_CONTROL_CLASS}
+            >
               <SelectValue placeholder={t('customer.filterStatus', 'Trạng thái')} />
             </SelectTrigger>
             <SelectContent>
@@ -50,13 +47,13 @@ export const CustomerFilters: React.FC<CustomerFiltersProps> = memo(
               </SelectItem>
               <SelectItem value="inactive">
                 <span className="flex items-center gap-1.5">
-                  <span className="size-2 rounded-full bg-amber-500" />
+                  <span className="size-2 rounded-full bg-slate-400" />
                   {CUSTOMER_STATUS_CONFIG.inactive.labelVi}
                 </span>
               </SelectItem>
               <SelectItem value="blocked">
                 <span className="flex items-center gap-1.5">
-                  <span className="size-2 rounded-full bg-rose-500" />
+                  <span className="size-2 rounded-full bg-red-500" />
                   {CUSTOMER_STATUS_CONFIG.blocked.labelVi}
                 </span>
               </SelectItem>
@@ -65,14 +62,17 @@ export const CustomerFilters: React.FC<CustomerFiltersProps> = memo(
         </div>
 
         {/* Member Type Select */}
-        <div className="w-36 sm:w-44">
+        <div className="w-full sm:w-44">
           <Select
             value={filters.memberType ?? 'all'}
             onValueChange={(val) =>
               onChangeFilters({ memberType: val as MemberType | 'all' })
             }
           >
-            <SelectTrigger className="h-9 text-xs bg-white border-slate-200">
+            <SelectTrigger
+              aria-label={t('customer.filterMemberType', 'Hạng thành viên')}
+              className={FILTER_CONTROL_CLASS}
+            >
               <SelectValue placeholder={t('customer.filterMemberType', 'Hạng thành viên')} />
             </SelectTrigger>
             <SelectContent>
@@ -87,7 +87,7 @@ export const CustomerFilters: React.FC<CustomerFiltersProps> = memo(
         </div>
 
         {/* Guest Type Select */}
-        <div className="w-36 sm:w-40">
+        <div className="w-full sm:w-44">
           <Select
             value={filters.isGuest === 'all' || filters.isGuest === undefined ? 'all' : filters.isGuest ? 'guest' : 'registered'}
             onValueChange={(val) =>
@@ -96,7 +96,10 @@ export const CustomerFilters: React.FC<CustomerFiltersProps> = memo(
               })
             }
           >
-            <SelectTrigger className="h-9 text-xs bg-white border-slate-200">
+            <SelectTrigger
+              aria-label={t('customer.filterType', 'Phân loại')}
+              className={FILTER_CONTROL_CLASS}
+            >
               <SelectValue placeholder={t('customer.filterType', 'Phân loại')} />
             </SelectTrigger>
             <SelectContent>
@@ -106,20 +109,6 @@ export const CustomerFilters: React.FC<CustomerFiltersProps> = memo(
             </SelectContent>
           </Select>
         </div>
-
-        {/* Reset Filter Button */}
-        {isFiltered && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onResetFilters}
-            className="h-9 px-2.5 text-xs text-slate-500 hover:text-slate-900"
-          >
-            <RotateCcw className="size-3.5 mr-1" />
-            {t('customer.resetFilters', 'Đặt lại')}
-          </Button>
-        )}
       </div>
     );
   },
