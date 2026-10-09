@@ -1,18 +1,16 @@
 import React from 'react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Building2, ShieldAlert } from 'lucide-react';
-import { useCreateBranch, useBranchPermissions } from '@/hooks/branches';
-import { BranchForm } from '@/components/branches';
+import { ShieldAlert } from 'lucide-react';
+import { useBranchPermissions } from '@/hooks/branches';
 import { Button } from '@/components/ui/button';
-import { PageHeader } from '@/components/management';
-import type { CreateBranchInput } from '@/types/branch';
+import { AdminBranchCreate } from '@/features/branch-management';
+import { paths } from '@/app/router/paths';
 
 export const BranchCreatePage: React.FC = () => {
   const { t } = useTranslation('branch');
   const navigate = useNavigate();
   const permissions = useBranchPermissions();
-  const { mutateAsync: createBranchMutation, isPending } = useCreateBranch();
 
   // Role Guard: Only ADMIN can create branches
   if (!permissions.canCreate) {
@@ -29,7 +27,7 @@ export const BranchCreatePage: React.FC = () => {
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => navigate('/admin/branches')}
+          onClick={() => navigate(paths.adminBranches)}
           className="mt-4 rounded-xl border-slate-200 text-xs font-semibold"
         >
           {t('actions.backToList')}
@@ -38,57 +36,7 @@ export const BranchCreatePage: React.FC = () => {
     );
   }
 
-  const handleSubmit = async (data: CreateBranchInput, continueEditing = false) => {
-    try {
-      const created = await createBranchMutation(data);
-      if (continueEditing) {
-        navigate(`/admin/branches/${created.id}/edit`);
-      } else {
-        navigate('/admin/branches');
-      }
-    } catch {
-      // Error handled by mutation toast
-    }
-  };
-
-  return (
-    <div className="w-full space-y-6 max-w-5xl mx-auto">
-      {/* Page Header */}
-      <PageHeader
-        leading={
-          <button
-            type="button"
-            onClick={() => navigate('/admin/branches')}
-            aria-label={t('actions.backToListAria')}
-            className="size-10 shrink-0 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-600 transition-colors"
-          >
-            <ArrowLeft className="size-5 stroke-[2.2]" />
-          </button>
-        }
-        icon={Building2}
-        title={t('page.createTitle')}
-        description={t('page.createDescription')}
-        actions={
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/admin/branches')}
-          >
-            {t('actions.cancel')}
-          </Button>
-        }
-      />
-
-      {/* Multi-section Branch Form */}
-      <BranchForm
-        onSubmit={handleSubmit}
-        onCancel={() => navigate('/admin/branches')}
-        isLoading={isPending}
-        isEditMode={false}
-      />
-    </div>
-  );
+  return <AdminBranchCreate />;
 };
 
 export default BranchCreatePage;
