@@ -7,41 +7,51 @@ import {
   Trash2,
   AlertCircle,
   RefreshCw,
+  RotateCcw,
 } from 'lucide-react';
 import {
-  useGetBranchDetail,
-  useDeleteBranch,
-  useUpdateBranch,
-  useBranchPermissions,
-} from '@/hooks/branches';
-import {
+  useBranchDetail,
   BranchDetailTabs,
-  BranchDeleteDialog,
-} from '@/components/branches';
+  BranchDetailSkeleton,
+  EditBranchDialog,
+  buildFullAddress,
+  BRANCH_DETAIL_QUERY_KEYS,
+} from '@/features/branches';
+import { useDeleteBranch, useBranchPermissions } from '@/hooks/branches';
+import { BranchDeleteDialog } from '@/components/branches';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { PageHeader, StatusBadge } from '@/components/management';
-import type { CourtItem } from '@/types/branch';
+import { PageHeader } from '@/components/management';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const BranchDetailPage: React.FC = () => {
   const { t } = useTranslation('branch');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const permissions = useBranchPermissions();
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const {
-    branch,
+    data: branch,
     isLoading,
     isError,
     error,
     refetch,
     isFetching,
-  } = useGetBranchDetail(id);
+  } = useBranchDetail(id);
 
   const { mutateAsync: deleteBranchMutation, isPending: isDeleting } = useDeleteBranch();
-  const { mutateAsync: updateBranchMutation } = useUpdateBranch();
+
+  const handleRefresh = () => {
+    if (id) {
+      queryClient.invalidateQueries({
+        queryKey: BRANCH_DETAIL_QUERY_KEYS.detail(id),
+      });
+    }
+    refetch();
+  };
 
   const handleDeleteConfirm = async () => {
     if (!id) return;
@@ -49,51 +59,13 @@ export const BranchDetailPage: React.FC = () => {
       await deleteBranchMutation(id);
       navigate('/admin/branches');
     } catch {
-      // Error handled by hook toast
+      // Toast notification is managed by hook
     }
-  };
-
-  const handleAddCourt = async (courtData: Partial<CourtItem>) => {
-    if (!branch) return;
-    const existingCourts = branch.courts || [];
-    const newCourt: CourtItem = {
-      id: `court-${Date.now().toString().slice(-4)}`,
-      name: courtData.name || t('form.courts.defaultName', { index: existingCourts.length + 1 }),
-      surface: courtData.surface || 'bwf_mat',
-      category: courtData.category || 'standard',
-      status: courtData.status || 'available',
-      pricePerHour: courtData.pricePerHour || 120000,
-    };
-
-    await updateBranchMutation({
-      id: branch.id,
-      data: {
-        courts: [...existingCourts, newCourt],
-      },
-    });
   };
 
   // Loading Skeleton State
   if (isLoading) {
-    return (
-      <div className="w-full space-y-6 max-w-6xl mx-auto">
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/90 shadow-xs flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Skeleton className="size-10 rounded-xl" />
-            <div className="space-y-2">
-              <Skeleton className="h-6 w-56" />
-              <Skeleton className="h-4 w-36" />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Skeleton className="h-9 w-20 rounded-xl" />
-            <Skeleton className="h-9 w-20 rounded-xl" />
-          </div>
-        </div>
-        <Skeleton className="h-12 w-full rounded-2xl" />
-        <Skeleton className="h-96 w-full rounded-2xl" />
-      </div>
-    );
+    return <BranchDetailSkeleton />;
   }
 
   // Error State
@@ -103,9 +75,11 @@ export const BranchDetailPage: React.FC = () => {
         <div className="size-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-4 border border-red-100">
           <AlertCircle className="size-6 stroke-[2.2]" />
         </div>
-        <h2 className="text-lg font-bold text-slate-900">{t('errors.notFoundTitle')}</h2>
+        <h2 className="text-lg font-bold text-slate-900">
+          {t('errors.loadDetailTitle', 'Không thể tải thông tin chi nhánh.')}
+        </h2>
         <p className="text-sm text-slate-500 mt-1">
-          {error?.message || t('errors.notFoundDescription')}
+          {error?.message || t('errors.notFoundDescription', 'Tải thông tin chi nhánh thất bại. Vui lòng thử lại.')}
         </p>
         <div className="flex items-center justify-center gap-2 mt-5">
           <Button
@@ -115,23 +89,32 @@ export const BranchDetailPage: React.FC = () => {
             onClick={() => navigate('/admin/branches')}
             className="rounded-xl border-slate-200 text-xs font-semibold"
           >
-            {t('actions.backToList')}
+            {t('actions.backToList', 'Quay lại danh sách')}
           </Button>
           <Button
             type="button"
             variant="primary"
             size="sm"
-            onClick={() => refetch()}
-            
+            onClick={handleRefresh}
           >
-            {t('actions.retry')}
+            <RefreshCw className="size-3.5 mr-1.5" />
+            {t('actions.retry', 'Thử lại')}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => window.location.reload()}
+          >
+            <RotateCcw className="size-3.5 mr-1.5" />
+            {t('actions.reload', 'Tải lại')}
           </Button>
         </div>
       </div>
     );
   }
 
-  const isActive = branch.status === 'active';
+  const fullAddress = buildFullAddress(branch.address, branch.district, branch.city);
 
   return (
     <div className="w-full space-y-6 max-w-6xl mx-auto">
@@ -141,44 +124,56 @@ export const BranchDetailPage: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate('/admin/branches')}
-            aria-label={t('actions.backToListAria')}
-            className="size-10 shrink-0 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-600 transition-colors"
+            aria-label={t('actions.backToListAria', 'Quay lại danh sách chi nhánh')}
+            className="size-10 shrink-0 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-600 transition-colors cursor-pointer"
           >
             <ArrowLeft className="size-5 stroke-[2.2]" />
           </button>
         }
-        title={branch.branchName}
-        description={`${branch.address}, ${branch.district}, ${branch.city}`}
+        title={branch.name}
+        description={fullAddress || undefined}
         actions={
           <>
-            <StatusBadge status={isActive ? 'active' : 'inactive'}>
-              {isActive ? t('status.active') : t('status.inactive')}
-            </StatusBadge>
+            {/* Status Badge */}
+            {branch.isActive ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap bg-emerald-50 text-emerald-700 border-emerald-200">
+                <span aria-hidden className="size-1.5 rounded-full bg-emerald-500" />
+                {t('status.active', 'Hoạt động')}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap bg-red-50 text-red-700 border-red-200">
+                <span aria-hidden className="size-1.5 rounded-full bg-red-500" />
+                {t('status.inactive', 'Ngưng hoạt động')}
+              </span>
+            )}
 
+            {/* Refresh Button */}
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => refetch()}
+              onClick={handleRefresh}
               disabled={isFetching}
-              aria-label={t('actions.refresh')}
-              title={t('actions.refresh')}
+              aria-label={t('actions.refresh', 'Làm mới')}
+              title={t('actions.refresh', 'Làm mới')}
             >
               <RefreshCw className={`size-4 ${isFetching ? 'animate-spin' : ''}`} />
             </Button>
 
+            {/* Edit Button */}
             {permissions.canEdit && (
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => navigate(`/admin/branches/${branch.id}/edit`)}
+                onClick={() => setIsEditDialogOpen(true)}
               >
                 <Edit2 className="size-4" />
-                {t('actions.edit')}
+                {t('actions.edit', 'Chỉnh sửa')}
               </Button>
             )}
 
+            {/* Delete Button */}
             {permissions.canDelete && (
               <Button
                 type="button"
@@ -187,7 +182,7 @@ export const BranchDetailPage: React.FC = () => {
                 onClick={() => setIsDeleteDialogOpen(true)}
               >
                 <Trash2 className="size-4" />
-                {t('actions.delete')}
+                {t('actions.delete', 'Xóa')}
               </Button>
             )}
           </>
@@ -197,8 +192,15 @@ export const BranchDetailPage: React.FC = () => {
       {/* Tabs Container */}
       <BranchDetailTabs
         branch={branch}
-        onEdit={() => navigate(`/admin/branches/${branch.id}/edit`)}
-        onAddCourt={handleAddCourt}
+        onEdit={() => setIsEditDialogOpen(true)}
+        canEdit={permissions.canEdit}
+      />
+
+      {/* Edit Branch Dialog */}
+      <EditBranchDialog
+        branch={branch}
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
       />
 
       {/* Delete Confirmation Dialog */}
@@ -206,7 +208,7 @@ export const BranchDetailPage: React.FC = () => {
         isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
         onConfirm={handleDeleteConfirm}
-        branchName={branch.branchName}
+        branchName={branch.name}
         isDeleting={isDeleting}
       />
     </div>
