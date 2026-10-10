@@ -43,7 +43,7 @@ export interface BranchDetailDto {
   supportsInstantBooking?: boolean;
   isActive: boolean;
   amenityIds?: string[];
-  amenities?: BranchAmenityDto[];
+  branchAmenities?: BranchAmenityDto[];
   images?: (BranchImageDto | string)[];
   operatingHours?: BranchOperatingHourDto[];
   courts?: BranchCourtDto[];

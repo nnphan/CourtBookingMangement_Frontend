@@ -21,19 +21,23 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   const { t } = useTranslation('branch');
   const fullAddress = buildFullAddress(branch.address, branch.district, branch.city);
 
+  console.log(branch.branchAmenities);
+
   const { data: amenityCatalog = [] } = useAmenities();
 
   // Resolve amenities from amenityIds via catalog or directly from branch.amenities
   const resolvedAmenities = useMemo(() => {
-    if (branch.amenities && branch.amenities.length > 0) {
-      return branch.amenities;
+    if (branch.branchAmenities && branch.branchAmenities.length > 0) {
+      return branch.branchAmenities;
     }
     const ids = branch.amenityIds ?? [];
     return ids.flatMap((id) => {
       const found = amenityCatalog.find((item) => item.id === id);
       return found ? [found] : [];
     });
-  }, [branch.amenities, branch.amenityIds, amenityCatalog]);
+  }, [branch.branchAmenities, branch.amenityIds, amenityCatalog]);
+
+
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

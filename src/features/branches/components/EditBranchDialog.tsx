@@ -87,11 +87,13 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({
       setSupportsInstantBooking(branch.supportsInstantBooking ?? true);
 
       // Amenity IDs
+      console.log(branch);
       const initialAmenityIds =
-        branch.amenityIds?.length
-          ? branch.amenityIds
-          : branch.amenities?.map((a) => a.id) || [];
+        branch.branchAmenities?.map(
+          (amenity) => amenity.id
+        ) ?? [];
       setSelectedAmenityIds(initialAmenityIds);
+      console.log(initialAmenityIds);
 
       // Images
       const normalizedImgs = normalizeBranchImages(branch.images);
@@ -450,11 +452,10 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({
                     <button
                       type="button"
                       onClick={() => handleToggleCourtActive(idx)}
-                      className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
-                        court.isActive
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : 'bg-red-50 text-red-700 border-red-200'
-                      }`}
+                      className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${court.isActive
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-red-50 text-red-700 border-red-200'
+                        }`}
                     >
                       {court.isActive ? 'Hoạt động' : 'Ngưng hoạt động'}
                     </button>
@@ -485,11 +486,10 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({
                     key={amenity.id}
                     type="button"
                     onClick={() => toggleAmenity(amenity.id)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                      isSelected
-                        ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs'
-                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                    }`}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${isSelected
+                      ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs'
+                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                      }`}
                   >
                     {amenity.name}
                   </button>
