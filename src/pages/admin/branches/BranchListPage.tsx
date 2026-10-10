@@ -3,22 +3,21 @@ import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Plus, Building, RefreshCw } from 'lucide-react';
 import {
-  useGetBranches,
-  useGetBranchStats,
+  useBranches,
+  useBranchSummary,
   useDeleteBranch,
-  useBranchPermissions,
-} from '@/hooks/branches';
-import {
-  BranchStats,
-  BranchFilters,
+  BranchSummaryCards,
+  BranchFilter,
   BranchTable,
-  BranchDeleteDialog,
+  mapFiltersToParams,
   type BranchFilterValues,
-} from '@/components/branches';
+  type BranchListItemDto,
+} from '@/features/admin-branches';
+import { useBranchPermissions } from '@/hooks/branches';
+import { BranchDeleteDialog } from '@/components/branches';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/management';
 import { useLocaleFormatters } from '@/hooks/useLocaleFormatters';
-import type { Branch } from '@/types/branch';
 
 export const BranchListPage: React.FC = () => {
   const { t } = useTranslation('branch');
@@ -37,39 +36,45 @@ export const BranchListPage: React.FC = () => {
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // Delete Dialog States
-  const [deleteTarget, setDeleteTarget] = useState<Branch | null>(null);
+  // Delete Dialog Target
+  const [deleteTarget, setDeleteTarget] = useState<BranchListItemDto | null>(null);
 
-  // API Hooks
+  // API Query Params
   const queryParams = useMemo(
-    () => ({
-      pageNumber,
-      pageSize,
-      keyword: filterValues.keyword,
-      city: filterValues.city === 'all' ? undefined : filterValues.city,
-      district: filterValues.district === 'all' ? undefined : filterValues.district,
-      status: filterValues.status,
-    }),
-    [pageNumber, pageSize, filterValues],
+    () => mapFiltersToParams(filterValues, pageNumber, pageSize),
+    [filterValues, pageNumber, pageSize],
   );
 
+  // TanStack Query Hooks
   const {
-    branches,
-    metadata,
-    isLoading,
-    isFetching,
-    isError,
-    error,
-    refetch,
-  } = useGetBranches(queryParams);
+    data: branchData,
+    isLoading: isBranchesLoading,
+    isFetching: isBranchesFetching,
+    isError: isBranchesError,
+    error: branchesError,
+    refetch: refetchBranches,
+  } = useBranches(queryParams);
 
-  const { data: stats, isLoading: isStatsLoading } = useGetBranchStats();
+  const {
+    data: summaryData,
+    isLoading: isSummaryLoading,
+    isFetching: isSummaryFetching,
+    refetch: refetchSummary,
+  } = useBranchSummary();
+
   const { mutateAsync: deleteBranchMutation, isPending: isDeleting } = useDeleteBranch();
 
-  // Filter Change Handler
+  const isRefreshing = isBranchesFetching || isSummaryFetching;
+
+  const handleRefresh = useCallback(() => {
+    refetchBranches();
+    refetchSummary();
+  }, [refetchBranches, refetchSummary]);
+
+  // Filter Handlers
   const handleFilterChange = useCallback((changed: Partial<BranchFilterValues>) => {
     setFilterValues((prev) => ({ ...prev, ...changed }));
-    setPageNumber(1); // Reset to page 1 on filter modification
+    setPageNumber(1);
   }, []);
 
   const handleResetFilters = useCallback(() => {
@@ -84,14 +89,14 @@ export const BranchListPage: React.FC = () => {
 
   // Navigation Handlers
   const handleView = useCallback(
-    (branch: Branch) => {
+    (branch: BranchListItemDto) => {
       navigate(`/admin/branches/${branch.id}`);
     },
     [navigate],
   );
 
   const handleEdit = useCallback(
-    (branch: Branch) => {
+    (branch: BranchListItemDto) => {
       navigate(`/admin/branches/${branch.id}/edit`);
     },
     [navigate],
@@ -111,50 +116,63 @@ export const BranchListPage: React.FC = () => {
     }
   }, [deleteTarget, deleteBranchMutation]);
 
+  const branches = branchData?.items ?? [];
+  const metadata = branchData
+    ? {
+        pageNumber: branchData.pageNumber,
+        pageSize: branchData.pageSize,
+        totalCount: branchData.totalCount,
+        totalPages: branchData.totalPages,
+        hasPreviousPage: branchData.hasPreviousPage,
+        hasNextPage: branchData.hasNextPage,
+      }
+    : null;
+
   return (
     <div className="w-full space-y-6">
       {/* 1. Page Header */}
       <PageHeader
         icon={Building}
-        title={t('page.title')}
+        title={t('page.title', 'Quản lý chi nhánh')}
         badge={
           metadata
             ? t('page.totalBadge', {
                 count: metadata.totalCount,
                 formatted: formatNumber(metadata.totalCount),
+                defaultValue: `${formatNumber(metadata.totalCount)} chi nhánh`,
               })
             : undefined
         }
-        description={t('page.description')}
+        description={t('page.description', 'Quản lý các chi nhánh và cơ sở cầu lông')}
         actions={
           <>
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => refetch()}
-              disabled={isFetching}
+              onClick={handleRefresh}
+              disabled={isRefreshing}
             >
-              <RefreshCw className={`size-4 ${isFetching ? 'animate-spin' : ''}`} />
-              {t('actions.refresh')}
+              <RefreshCw className={`size-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {t('actions.refresh', 'Làm mới')}
             </Button>
 
             {/* Show button ONLY when Role = ADMIN */}
             {permissions.canCreate && (
               <Button type="button" variant="primary" size="sm" onClick={handleCreate}>
                 <Plus className="size-4" strokeWidth={2.5} />
-                {t('actions.create')}
+                {t('actions.create', 'Tạo chi nhánh')}
               </Button>
             )}
           </>
         }
       />
 
-      {/* 2. Statistics Cards */}
-      <BranchStats stats={stats} isLoading={isStatsLoading} />
+      {/* 2. Dashboard Summary Cards */}
+      <BranchSummaryCards summary={summaryData} isLoading={isSummaryLoading} />
 
       {/* 3. Search & Filters */}
-      <BranchFilters
+      <BranchFilter
         values={filterValues}
         onChange={handleFilterChange}
         onReset={handleResetFilters}
@@ -164,10 +182,10 @@ export const BranchListPage: React.FC = () => {
       <BranchTable
         branches={branches}
         metadata={metadata}
-        isLoading={isLoading}
-        isError={isError}
-        errorMessage={error?.message}
-        canCreate={permissions.canCreate}
+        isLoading={isBranchesLoading}
+        isError={isBranchesError}
+        errorMessage={branchesError?.message}
+        canEdit={permissions.canEdit}
         canDelete={permissions.canDelete}
         onPageChange={setPageNumber}
         onPageSizeChange={(sz) => {
@@ -177,8 +195,8 @@ export const BranchListPage: React.FC = () => {
         onView={handleView}
         onEdit={handleEdit}
         onDelete={setDeleteTarget}
-        onCreate={handleCreate}
-        onRetry={refetch}
+        onRetry={refetchBranches}
+        onResetFilters={handleResetFilters}
       />
 
       {/* 5. Delete Confirmation Dialog */}
@@ -186,7 +204,7 @@ export const BranchListPage: React.FC = () => {
         isOpen={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDeleteConfirm}
-        branchName={deleteTarget?.branchName}
+        branchName={deleteTarget?.name}
         isDeleting={isDeleting}
       />
     </div>
