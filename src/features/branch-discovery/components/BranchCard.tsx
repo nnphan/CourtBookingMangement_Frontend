@@ -77,19 +77,10 @@ export const BranchCard = ({ branch }: BranchCardProps) => {
               </span>
             )}
 
-            {branch.isFeatured && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-accent-gold px-2.5 py-1 text-[11px] font-black text-black shadow-xs">
-                <Flame className="size-3 fill-current" />
-                Nổi bật
-              </span>
-            )}
+
           </div>
 
-          {branch.distanceKm !== undefined && (
-            <span className="rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur-xs">
-              {branch.distanceKm} km
-            </span>
-          )}
+
         </div>
 
         {/* Carousel Prev/Next Buttons */}
@@ -126,9 +117,8 @@ export const BranchCard = ({ branch }: BranchCardProps) => {
                   setActiveImageIndex(idx);
                 }}
                 aria-label={`Chuyển đến ảnh ${idx + 1}`}
-                className={`h-1.5 rounded-full transition-all ${
-                  idx === activeImageIndex ? 'w-4 bg-white' : 'w-1.5 bg-white/50'
-                }`}
+                className={`h-1.5 rounded-full transition-all ${idx === activeImageIndex ? 'w-4 bg-white' : 'w-1.5 bg-white/50'
+                  }`}
               />
             ))}
           </div>
@@ -143,14 +133,6 @@ export const BranchCard = ({ branch }: BranchCardProps) => {
             <MapPin className="size-3.5 text-brand-600 shrink-0" />
             <span className="truncate">{branch.district}, {branch.city}</span>
           </div>
-
-          <div className="flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-800">
-            <Star className="size-3.5 fill-current text-amber-500" />
-            <span>{branch.rating.toFixed(2)}</span>
-            <span className="text-[10px] text-amber-700 font-normal">
-              ({branch.reviewCount})
-            </span>
-          </div>
         </div>
 
         {/* Branch Title */}
@@ -162,14 +144,6 @@ export const BranchCard = ({ branch }: BranchCardProps) => {
         <p className="mt-1 text-xs font-normal text-content-secondary line-clamp-2">
           {branch.tagline}
         </p>
-
-        {/* Court summary pill */}
-        <div className="mt-3 flex items-center gap-2 rounded-lg bg-surface-muted p-2 text-xs font-medium text-content-primary">
-          <ShieldCheck className="size-4 text-brand-600 shrink-0" />
-          <span className="truncate">
-            {branch.courtsCount} sân • <strong className="text-brand-600">{branch.availableCourtsCount} sân trống</strong> hôm nay
-          </span>
-        </div>
 
         {/* Selected Amenities Chips */}
         <div className="mt-3 flex flex-wrap gap-1.5">
