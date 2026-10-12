@@ -105,8 +105,8 @@ export const BookingBlock: React.FC<ExtendedBookingBlockProps> = memo(
                 width: `${width - 2}px`,
                 height: `${height - 2}px`,
                 top: '1px',
-                backgroundColor: statusCfg.color,
-                color: statusCfg.textColor,
+                backgroundColor: (fullBooking as unknown as { color?: string })?.color || statusCfg.color,
+                color: (fullBooking as unknown as { color?: string })?.color ? '#1e293b' : statusCfg.textColor,
               }}
               className={cn(
                 'group z-10 flex cursor-pointer select-none items-center justify-center overflow-visible rounded-xs px-2 text-center text-xs font-semibold shadow-xs transition-all',
@@ -125,10 +125,16 @@ export const BookingBlock: React.FC<ExtendedBookingBlockProps> = memo(
                 </div>
               )}
 
-              {/* Block text: Customer Name - Phone */}
+              {/* Block text: Priority title if available, fallback customerName - phoneNumber */}
               <div className="truncate px-1 text-center font-medium drop-shadow-xs">
-                <span>{customerName}</span>
-                {phoneNumber && <span className="opacity-90"> - {phoneNumber}</span>}
+                {(fullBooking as unknown as { title?: string })?.title ? (
+                  <span>{(fullBooking as unknown as { title?: string }).title}</span>
+                ) : (
+                  <>
+                    <span>{customerName}</span>
+                    {phoneNumber && <span className="opacity-90"> - {phoneNumber}</span>}
+                  </>
+                )}
               </div>
             </div>
           </BookingTooltip>

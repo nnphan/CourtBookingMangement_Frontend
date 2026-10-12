@@ -4,13 +4,14 @@ import { AlertTriangle, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ErrorStateProps {
+  title?: string;
   message?: string;
   onRetry: () => void;
   onRefresh?: () => void;
 }
 
 export const ErrorState: React.FC<ErrorStateProps> = memo(
-  ({ message, onRetry, onRefresh }) => {
+  ({ title, message, onRetry, onRefresh }) => {
     const { t } = useTranslation();
 
     return (
@@ -23,7 +24,7 @@ export const ErrorState: React.FC<ErrorStateProps> = memo(
         </div>
 
         <h3 className="text-lg font-bold text-slate-900 mb-1">
-          {t('courtStatus.error.title', 'Không thể tải lịch trạng thái sân')}
+          {title || t('courtStatus.error.title', 'Không thể tải lịch trạng thái sân')}
         </h3>
 
         <p className="text-xs text-slate-500 max-w-md mb-6">

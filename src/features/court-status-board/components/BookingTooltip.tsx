@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/tooltip';
 import type { BookingItem } from '../types/booking';
 import { getStatusConfig } from '../constants/booking-status';
+import { getBookingTypeLabel } from '../utils/booking.utils';
 import { User, Phone, MapPin, Calendar, Clock, CreditCard, FileText } from 'lucide-react';
 
 interface BookingTooltipProps {
@@ -18,6 +19,7 @@ interface BookingTooltipProps {
 export const BookingTooltip: React.FC<BookingTooltipProps> = memo(({ booking, children }) => {
   const { t } = useTranslation();
   const statusCfg = getStatusConfig(booking.bookingType);
+  const bookingTypeLabel = getBookingTypeLabel(booking.bookingType);
 
   const paymentText = (() => {
     switch (booking.paymentStatus) {
@@ -55,7 +57,7 @@ export const BookingTooltip: React.FC<BookingTooltipProps> = memo(({ booking, ch
               className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
               style={{ backgroundColor: statusCfg.color, color: statusCfg.textColor }}
             >
-              {statusCfg.name}
+              {bookingTypeLabel}
             </span>
           </div>
 

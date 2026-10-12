@@ -8,6 +8,7 @@ import type { CourtStatusFilterParams } from '../types/common';
 export const useCourtStatusFilters = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlDate = searchParams.get('date');
+  const urlBranch = searchParams.get('branchId');
 
   const selectedDate = useCourtStatusStore((s) => s.selectedDate);
   const selectedBranch = useCourtStatusStore((s) => s.selectedBranch);
@@ -26,6 +27,13 @@ export const useCourtStatusFilters = () => {
       setSelectedDate(urlDate);
     }
   }, [urlDate, selectedDate, setSelectedDate]);
+
+  // Synchronize URL branch parameter if provided
+  useEffect(() => {
+    if (urlBranch && urlBranch !== selectedBranch) {
+      setSelectedBranch(urlBranch);
+    }
+  }, [urlBranch, selectedBranch, setSelectedBranch]);
 
   const filterParams: CourtStatusFilterParams = useMemo(
     () => ({
@@ -60,8 +68,20 @@ export const useCourtStatusFilters = () => {
   const handleBranchChange = useCallback(
     (newBranch: string) => {
       setSelectedBranch(newBranch);
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (newBranch) {
+            next.set('branchId', newBranch);
+          } else {
+            next.delete('branchId');
+          }
+          return next;
+        },
+        { replace: true },
+      );
     },
-    [setSelectedBranch],
+    [setSelectedBranch, setSearchParams],
   );
 
   const handleGroupChange = useCallback(

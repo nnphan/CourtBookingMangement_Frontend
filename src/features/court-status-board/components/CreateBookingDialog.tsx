@@ -3,7 +3,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
-import { Clock, AlertTriangle, Crown, UserCheck, Sparkles, User } from 'lucide-react';
+import { Clock, AlertTriangle, Crown, Sparkles, User } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { CustomerSearch } from '@/features/customer-management/components/CustomerSearch';
 import type { Customer } from '@/features/customer-management/types/customer';
@@ -25,8 +25,10 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import type { CourtItem } from '../types/court';
-import type { BookingItem, BookingType, PaymentStatus } from '../types/booking';
-import { COURT_BOOKING_STATUSES } from '../constants/booking-status';
+import type { BookingItem, PaymentStatus } from '../types/booking';
+import { BookingType } from '@/types/booking-type.enum';
+import { BOOKING_TYPE_OPTIONS } from '../constants/booking.constants';
+import { toBookingTypeEnum } from '../utils/booking.utils';
 import { SchedulerService } from '../services/scheduler.service';
 import { useCourtStatusStore } from '../store/court-status.store';
 import dayjs from '@/lib/dayjs';
@@ -42,14 +44,9 @@ const bookingSchema = z
     date: z.string().min(1, 'Vui lòng chọn ngày'),
     startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Giờ bắt đầu không hợp lệ (HH:mm)'),
     endTime: z.string().regex(/^([01]\d|2[0-4]):([0-5]\d)$/, 'Giờ kết thúc không hợp lệ (HH:mm)'),
-    bookingType: z.enum([
-      'recurring',
-      'daily',
-      'flexible',
-      'event',
-      'deposit_pending',
-      'maintenance',
-    ]),
+    bookingType: z.nativeEnum(BookingType, {
+      errorMap: () => ({ message: 'Vui lòng chọn loại đặt sân' }),
+    }),
     notes: z.string().optional(),
   })
   .refine(
@@ -114,7 +111,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
         date: defaultValues?.date ?? storeSelectedDate,
         startTime: '08:00',
         endTime: '10:00',
-        bookingType: 'daily',
+        bookingType: BookingType.FLEXIBLE,
         notes: '',
       },
     });
@@ -158,7 +155,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
             date: editingBooking.date,
             startTime: editingBooking.startTime,
             endTime: editingBooking.endTime,
-            bookingType: editingBooking.bookingType,
+            bookingType: toBookingTypeEnum(editingBooking.bookingType),
             notes: editingBooking.notes ?? '',
           });
         } else if (defaultValues) {
@@ -176,7 +173,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
             date: defaultValues.date ?? storeSelectedDate,
             startTime: defaultValues.startTime ?? '08:00',
             endTime: calculatedEndTime ?? '10:00',
-            bookingType: 'daily',
+            bookingType: BookingType.FLEXIBLE,
             notes: '',
           });
         }
@@ -475,33 +472,31 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
 
             {/* Booking Type */}
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700">
-                {t('courtStatus.fields.bookingType', 'Loại lịch')}
+              <label htmlFor="booking-type-select" className="text-xs font-semibold text-slate-700">
+                {t('courtStatus.fields.bookingType', 'Loại đặt sân')}{' '}
+                <span className="text-red-500">*</span>
               </label>
               <Controller
                 control={control}
                 name="bookingType"
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder={t('courtStatus.fields.bookingType', 'Loại lịch')} />
+                    <SelectTrigger id="booking-type-select" className="w-full">
+                      <SelectValue placeholder="Chọn loại đặt sân" />
                     </SelectTrigger>
                     <SelectContent>
-                      {COURT_BOOKING_STATUSES.filter((s) => s.id !== 'available').map((status) => (
-                        <SelectItem key={status.id} value={status.id}>
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="size-2.5 rounded-full shrink-0"
-                              style={{ backgroundColor: status.color }}
-                            />
-                            <span>{status.name}</span>
-                          </div>
+                      {BOOKING_TYPE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 )}
               />
+              {errors.bookingType && (
+                <p className="text-xs text-red-500">{errors.bookingType.message}</p>
+              )}
             </div>
 
             {/* Notes */}

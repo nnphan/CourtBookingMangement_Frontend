@@ -81,7 +81,29 @@ export const COURT_BOOKING_STATUSES: readonly BookingStatusConfig[] = [
 ] as const;
 
 export const getStatusConfig = (statusId: string): BookingStatusConfig => {
-  const found = COURT_BOOKING_STATUSES.find((s) => s.id === statusId);
+  const normId = (statusId || '').toUpperCase();
+  if (normId === 'FLEXIBLE' || normId === 'DAILY') {
+    return {
+      id: 'FLEXIBLE',
+      name: 'Vãng lai',
+      color: STATUS_COLORS.DAILY_BOOKING,
+      textColor: '#ffffff',
+      description: 'Lịch đặt vãng lai',
+    };
+  }
+  if (normId === 'FIXED' || normId === 'RECURRING') {
+    return {
+      id: 'FIXED',
+      name: 'Cố định',
+      color: STATUS_COLORS.RECURRING_BOOKING,
+      textColor: '#ffffff',
+      description: 'Lịch đặt cố định',
+    };
+  }
+
+  const found = COURT_BOOKING_STATUSES.find(
+    (s) => s.id.toLowerCase() === (statusId || '').toLowerCase(),
+  );
   if (found) return found;
   return {
     id: statusId,

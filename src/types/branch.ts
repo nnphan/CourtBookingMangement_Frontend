@@ -95,3 +95,9 @@ export interface CreateBranchInput {
 export interface UpdateBranchInput extends Partial<CreateBranchInput> {
   id: string;
 }
+
+export interface BranchLookupResponse {
+  id: string;
+  ownerId?: string;
+  name: string;
+}

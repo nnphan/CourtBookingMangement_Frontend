@@ -137,7 +137,7 @@
       "date": "Ngày đặt sân",
       "startTime": "Giờ bắt đầu",
       "endTime": "Giờ kết thúc",
-      "bookingType": "Loại lịch",
+      "bookingType": "Loại đặt sân",
       "notes": "Ghi chú thêm"
     },
     "empty": {

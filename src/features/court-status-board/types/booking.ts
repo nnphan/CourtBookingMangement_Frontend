@@ -1,10 +1,5 @@
-export type BookingType =
-  | 'recurring'
-  | 'daily'
-  | 'flexible'
-  | 'event'
-  | 'deposit_pending'
-  | 'maintenance';
+import { BookingType } from '@/types/booking-type.enum';
+export { BookingType };
 
 export type PaymentStatus =
   | 'paid'

@@ -9,10 +9,12 @@ import {
 } from '@/components/ui/sheet';
 import type { BookingItem } from '../types/booking';
 import { getStatusConfig } from '../constants/booking-status';
+import { getBookingTypeLabel } from '../utils/booking.utils';
 import {
   Calendar,
   Clock,
   MapPin,
+  Tag,
   User,
   Phone,
   Award,
@@ -41,6 +43,7 @@ export const BookingDetailDrawer: React.FC<BookingDetailDrawerProps> = memo(
     if (!booking) return null;
 
     const statusCfg = getStatusConfig(booking.bookingType);
+    const bookingTypeLabel = getBookingTypeLabel(booking.bookingType);
 
     return (
       <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -51,7 +54,7 @@ export const BookingDetailDrawer: React.FC<BookingDetailDrawerProps> = memo(
                 className="px-2.5 py-1 rounded-full text-xs font-semibold"
                 style={{ backgroundColor: statusCfg.color, color: statusCfg.textColor }}
               >
-                {statusCfg.name}
+                {bookingTypeLabel}
               </span>
               <span className="text-xs font-mono text-slate-500">{booking.bookingNumber}</span>
             </div>
@@ -79,6 +82,14 @@ export const BookingDetailDrawer: React.FC<BookingDetailDrawerProps> = memo(
                 </div>
 
                 <div className="flex items-center gap-2 text-slate-700">
+                  <Tag className="size-4 text-emerald-600 shrink-0" />
+                  <div>
+                    <div className="text-[10px] text-slate-400">Loại đặt sân</div>
+                    <div className="font-semibold text-slate-900">{bookingTypeLabel}</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 text-slate-700">
                   <Calendar className="size-4 text-emerald-600 shrink-0" />
                   <div>
                     <div className="text-[10px] text-slate-400">Ngày đặt</div>
@@ -86,7 +97,7 @@ export const BookingDetailDrawer: React.FC<BookingDetailDrawerProps> = memo(
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 text-slate-700 col-span-2">
+                <div className="flex items-center gap-2 text-slate-700">
                   <Clock className="size-4 text-emerald-600 shrink-0" />
                   <div>
                     <div className="text-[10px] text-slate-400">Khung giờ</div>

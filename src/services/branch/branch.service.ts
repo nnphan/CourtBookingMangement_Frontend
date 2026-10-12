@@ -7,6 +7,7 @@ import type {
   CreateBranchInput,
   CourtItem,
   PricingTier,
+  BranchLookupResponse,
 } from '@/types/branch';
 import { createSuccessResponse } from '@/mocks/shared/mock-api-response';
 import { createErrorResponse } from '@/mocks/shared/mock-error';
@@ -630,4 +631,29 @@ export const branchService = {
       return createSuccessResponse({ id }, null, 'Xóa chi nhánh thành công.');
     }
   },
+
+  /**
+   * Get owner's branches for lookup / selection dropdown
+   */
+  getMyBranches: async (): Promise<BranchLookupResponse[]> => {
+    return getMyBranches();
+  },
+};
+
+/**
+ * Get current owner's branches for lookup / dropdown selection
+ * GET /api/branches/my-branches
+ */
+export const getMyBranches = async (): Promise<BranchLookupResponse[]> => {
+  const apiClient = http;
+  const response = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: BranchLookupResponse[];
+  }>('/api/branches/my-branches');
+
+  if (Array.isArray(response.data)) {
+    return response.data;
+  }
+  return response.data?.data ?? [];
 };

@@ -26,6 +26,12 @@ http.interceptors.request.use((config) => {
     'Accept-Language',
     localStorage.getItem('language') ?? localStorage.getItem('i18nextLng') ?? 'vi',
   );
+  if (config.url && config.baseURL) {
+    const cleanBase = config.baseURL.replace(/\/+$/, '');
+    if (cleanBase.endsWith('/api') && config.url.startsWith('/api/')) {
+      config.url = config.url.substring(4);
+    }
+  }
   return config;
 });
 

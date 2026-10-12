@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Filter } from 'lucide-react';
@@ -8,12 +8,13 @@ import { useCourtStatus } from '../hooks/useCourtStatus';
 import { useCourtStatusFilters } from '../hooks/useCourtStatusFilters';
 import { useCourtStatusSocket } from '../hooks/useCourtStatusSocket';
 import { useCourtStatusStore } from '../store/court-status.store';
+import { useMyBranches } from '@/hooks/branches/useMyBranches';
 import { CourtStatusFilters } from '../components/CourtStatusFilters';
 import { LegendBar } from '../components/LegendBar';
 import { CourtScheduler } from '../components/CourtScheduler';
 import { BookingDetailDrawer } from '../components/BookingDetailDrawer';
 import { CreateBookingDialog } from '../components/CreateBookingDialog';
-import { CourtStatusSkeleton } from '../components/CourtStatusSkeleton';
+import { CourtStatusBoardSkeleton } from '../components/CourtStatusBoardSkeleton';
 import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
 import type { BookingItem } from '../types/booking';
@@ -23,6 +24,15 @@ import { ManagementNavigation } from '@/components/navigation';
 export const CourtStatusPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+
+  // Branch list from backend API
+  const {
+    data: myBranches = [],
+    isLoading: isBranchesLoading,
+    isError: isBranchesError,
+    error: branchesError,
+    refetch: refetchBranches,
+  } = useMyBranches();
 
   // Filters hook
   const {
@@ -39,12 +49,25 @@ export const CourtStatusPage: React.FC = () => {
     resetFilters,
   } = useCourtStatusFilters();
 
-  // Server state query & mutations
+  // Auto-select branch logic
+  // Case 1 & Case 2: Auto select first branch when branches are loaded and none or invalid branch selected
+  // Case 3: No branches returned -> do not select branch
+  useEffect(() => {
+    if (myBranches.length === 0) return;
+
+    const branchExists = myBranches.some((b) => b.id === selectedBranch);
+    if (!selectedBranch || !branchExists) {
+      handleBranchChange(myBranches[0]!.id);
+    }
+  }, [myBranches, selectedBranch, handleBranchChange]);
+
+  // Server state query & mutations (automatically refetches when filterParams.branchId changes)
   const {
     courts,
     bookings,
-    branches,
-    groups,
+    groups = [],
+    openTime,
+    closeTime,
     isLoading,
     isError,
     error,
@@ -81,11 +104,6 @@ export const CourtStatusPage: React.FC = () => {
   }, [navigate]);
 
   const isPastDate = useMemo(() => SchedulerService.isPastDate(selectedDate), [selectedDate]);
-
-  const currentBranch = useMemo(
-    () => branches.find((b) => b.id === selectedBranch) ?? branches[0],
-    [branches, selectedBranch],
-  );
 
   const handleOpenCreateBooking = useCallback(
     (initial?: {
@@ -206,13 +224,16 @@ export const CourtStatusPage: React.FC = () => {
       {/* Filter Section */}
       <section aria-label="Bộ lọc trạng thái sân" className="bg-[#0d6838] border-b border-white/10">
         <CourtStatusFilters
-          branches={branches}
+          branches={myBranches}
           groups={groups}
           selectedBranch={selectedBranch}
           selectedGroup={selectedCourtGroup}
           selectedDate={selectedDate}
           slotInterval={slotInterval}
           isLoading={isLoading}
+          isBranchesLoading={isBranchesLoading}
+          isBranchesError={isBranchesError}
+          onRetryBranches={() => void refetchBranches()}
           onBranchChange={handleBranchChange}
           onGroupChange={handleGroupChange}
           onDateChange={handleDateChange}
@@ -228,11 +249,37 @@ export const CourtStatusPage: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col w-full h-full bg-white overflow-hidden">
-        {isLoading ? (
-          <CourtStatusSkeleton />
+        {isBranchesLoading || (isLoading && Boolean(selectedBranch)) ? (
+          <CourtStatusBoardSkeleton />
+        ) : isBranchesError ? (
+          <div className="p-6">
+            <ErrorState
+              title={t('courtStatus.filters.branchLoadError', 'Failed to load branches')}
+              message={
+                (branchesError as Error)?.message ||
+                t('courtStatus.branchLoadErrorDesc', 'Unable to retrieve your branch list.')
+              }
+              onRetry={() => void refetchBranches()}
+            />
+          </div>
+        ) : myBranches.length === 0 ? (
+          <div className="p-6">
+            <EmptyState
+              title={t('courtStatus.noBranches', 'No branches available')}
+              description={t(
+                'courtStatus.noBranchesDesc',
+                'No branches found for your account. Please contact the administrator.',
+              )}
+              date={selectedDate}
+            />
+          </div>
         ) : isError ? (
           <div className="p-6">
-            <ErrorState message={(error as Error)?.message} onRetry={() => refetch()} />
+            <ErrorState
+              title={t('courtStatus.error.title', 'Failed to load court schedule')}
+              message={(error as Error)?.message || t('courtStatus.error.tryAgain', 'Try Again')}
+              onRetry={() => refetch()}
+            />
           </div>
         ) : courts.length === 0 ? (
           <div className="p-6">
@@ -246,8 +293,8 @@ export const CourtStatusPage: React.FC = () => {
             <CourtScheduler
               courts={courts}
               bookings={bookings}
-              openTime={currentBranch?.openTime}
-              closeTime={currentBranch?.closeTime}
+              openTime={openTime}
+              closeTime={closeTime}
               slotInterval={slotInterval}
               dateLabel={dateLabel}
               zoomLevel={zoomLevel}

@@ -15,6 +15,7 @@ export const QUERY_KEYS = {
   BRANCHES_LIST: (params?: BranchSearchParams) => ['branches', 'list', params] as const,
   BRANCH_DETAIL: (id: string) => ['branches', 'detail', id] as const,
   BRANCH_STATS: ['branches', 'stats'] as const,
+  MY_BRANCHES: ['branches', 'my-branches'] as const,
 };
 
 export interface UseGetBranchesResult {

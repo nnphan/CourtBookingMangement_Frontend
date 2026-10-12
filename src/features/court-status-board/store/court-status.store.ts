@@ -63,12 +63,22 @@ const getInitialCourtStatusDate = (): string => {
   return dayjs().format('YYYY-MM-DD');
 };
 
-const DEFAULT_BRANCH = 'tmt-demo';
+const getInitialCourtStatusBranch = (): string => {
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search);
+    const urlBranch = params.get('branchId');
+    if (urlBranch) {
+      return urlBranch;
+    }
+  }
+  return '';
+};
+
 const DEFAULT_GROUP = 'all';
 
 export const useCourtStatusStore = create<CourtStatusState>((set) => ({
   selectedDate: getInitialCourtStatusDate(),
-  selectedBranch: DEFAULT_BRANCH,
+  selectedBranch: getInitialCourtStatusBranch(),
   selectedCourtGroup: DEFAULT_GROUP,
   selectedCourt: null,
   selectedBooking: null,
@@ -139,7 +149,7 @@ export const useCourtStatusStore = create<CourtStatusState>((set) => ({
   reset: () =>
     set({
       selectedDate: dayjs().format('YYYY-MM-DD'),
-      selectedBranch: DEFAULT_BRANCH,
+      selectedBranch: '',
       selectedCourtGroup: DEFAULT_GROUP,
       selectedCourt: null,
       selectedBooking: null,
