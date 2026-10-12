@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import dayjs from '@/lib/dayjs';
 import type {
   BadmintonBranch,
   BranchAmenityId,
@@ -58,10 +59,21 @@ const getTodayDateString = () => {
   return `${yyyy}-${mm}-${dd}`;
 };
 
+const getInitialSearchDate = (): string => {
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search);
+    const urlDate = params.get('date');
+    if (urlDate && dayjs(urlDate, 'YYYY-MM-DD', true).isValid()) {
+      return urlDate;
+    }
+  }
+  return getTodayDateString();
+};
+
 export const useBranchSearchStore = create<BranchSearchState>((set) => ({
   searchQuery: '',
   selectedDistrict: 'all',
-  selectedDate: getTodayDateString(),
+  selectedDate: getInitialSearchDate(),
   selectedTimeSlot: 'all',
   selectedAmenities: [],
   selectedCourtSurface: 'all',

@@ -1,14 +1,11 @@
 import React, { memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Clock,
   GitBranch,
-  SlidersHorizontal,
   Calendar,
   RotateCw,
 } from 'lucide-react';
 import type { CourtBranch, CourtGroup } from '../types/court';
-import { SCHEDULER_CONFIG } from '../constants/scheduler';
 import { SchedulerService } from '../services/scheduler.service';
 import {
   Select,
@@ -37,16 +34,11 @@ interface CourtStatusFiltersProps {
 export const CourtStatusFilters: React.FC<CourtStatusFiltersProps> = memo(
   ({
     branches,
-    groups,
     selectedBranch,
-    selectedGroup,
     selectedDate,
-    slotInterval,
     isLoading = false,
     onBranchChange,
-    onGroupChange,
     onDateChange,
-    onIntervalChange,
     onRefresh,
   }) => {
     const { t } = useTranslation();
@@ -57,30 +49,6 @@ export const CourtStatusFilters: React.FC<CourtStatusFiltersProps> = memo(
 
     return (
       <div className="flex flex-wrap items-center gap-2.5 px-3 py-2 text-white">
-        {/* Court Group Dropdown */}
-        <div className="flex-1 min-w-[140px] max-w-[200px]">
-          <Select value={selectedGroup} onValueChange={onGroupChange}>
-            <SelectTrigger
-              aria-label={t('courtStatus.filters.groupLabel', 'Nhóm sân')}
-              rightIcon={<Clock className="size-3.5 text-white/80" />}
-              className="h-10 border-white/25 bg-white/20 px-3 text-xs font-semibold text-white shadow-none backdrop-blur-xs transition-colors hover:bg-white/25 focus:ring-white/40"
-            >
-              <SelectValue placeholder={t('courtStatus.filters.allCourts', 'Tất cả')} />
-            </SelectTrigger>
-            <SelectContent align="start" className="min-w-[180px]">
-              <SelectItem value="all">
-                {t('courtStatus.filters.allCourts', 'Tất cả')}
-              </SelectItem>
-              {groups
-                .filter((g) => g.id !== 'all')
-                .map((group) => (
-                  <SelectItem key={group.id} value={group.id}>
-                    {group.name}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
-        </div>
 
         {/* Branch Dropdown */}
         <div className="flex-2 min-w-[200px] max-w-[340px]">
@@ -102,29 +70,6 @@ export const CourtStatusFilters: React.FC<CourtStatusFiltersProps> = memo(
           </Select>
         </div>
 
-        {/* Slot Interval Dropdown (15, 30, 60 minutes) */}
-        <div className="flex-1 min-w-[90px] max-w-[130px]">
-          <Select
-            value={String(slotInterval)}
-            onValueChange={(val) => onIntervalChange(Number(val))}
-          >
-            <SelectTrigger
-              aria-label={t('courtStatus.filters.intervalLabel', 'Khoảng thời gian (phút)')}
-              rightIcon={<SlidersHorizontal className="size-3.5 text-white/80" />}
-              className="h-10 border-white/25 bg-white/20 px-3 text-xs font-semibold text-white shadow-none backdrop-blur-xs transition-colors hover:bg-white/25 focus:ring-white/40"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent align="start" className="min-w-[120px]">
-              {SCHEDULER_CONFIG.SUPPORTED_INTERVALS.map((intv) => (
-                <SelectItem key={intv} value={String(intv)}>
-                  {intv} {t('courtStatus.filters.minutes', 'phút')}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
         {/* Date Selector Pill & Vietnamese Calendar Dialog */}
         <div className="relative flex-1 min-w-[140px] max-w-[200px]">
           <button
@@ -140,8 +85,8 @@ export const CourtStatusFilters: React.FC<CourtStatusFiltersProps> = memo(
           <VietnameseDatePickerDialog
             isOpen={isDatePickerOpen}
             onClose={() => setIsDatePickerOpen(false)}
-            selectedDate={selectedDate}
-            onConfirmDate={onDateChange}
+            value={selectedDate}
+            onChange={onDateChange}
           />
         </div>
 

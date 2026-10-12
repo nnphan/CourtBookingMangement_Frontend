@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Search, Filter } from 'lucide-react';
+import { ArrowLeft, Filter } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { SchedulerService } from '../services/scheduler.service';
 import { useCourtStatus } from '../hooks/useCourtStatus';
@@ -184,28 +184,15 @@ export const CourtStatusPage: React.FC = () => {
           <ArrowLeft className="size-5 stroke-[2.5]" />
         </button>
 
-        {/* Center: Title */}
-        <div className="min-w-0 text-center">
-          <h1 className="text-base sm:text-lg font-bold tracking-tight text-white drop-shadow-xs">
-            {t('courtStatus.title', 'Trạng thái sân')}
-          </h1>
-          <p className="hidden xl:block text-xs text-white/70 truncate">
-            {t('courtStatus.description', 'Theo dõi lịch đặt và tình trạng các sân theo thời gian thực')}
-          </p>
-        </div>
+
 
         <ManagementNavigation />
 
         {/* Right: Language Switcher, Search and Filter Icons */}
         <div className="flex items-center gap-1 sm:gap-2">
           <LanguageSwitcher variant="contrast" className="mr-1" />
-          <button
-            type="button"
-            aria-label={t('courtStatus.header.search', 'Tìm kiếm')}
-            className="grid size-9 place-items-center rounded-full text-white/90 transition-colors hover:bg-white/15 active:scale-95"
-          >
-            <Search className="size-5 stroke-[2.2]" />
-          </button>
+
+          {/* Avatar here */}
           <button
             type="button"
             aria-label={t('courtStatus.header.filter', 'Bộ lọc')}

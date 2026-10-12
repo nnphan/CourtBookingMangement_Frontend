@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import dayjs from '@/lib/dayjs';
 import {
   MapPin,
@@ -8,8 +8,6 @@ import {
   Search,
   Sparkles,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   Check,
 } from 'lucide-react';
 import { useBranchSearchStore } from '../store/branch-search.store';
@@ -20,8 +18,7 @@ import {
   COURT_SURFACE_LABELS,
 } from '../constants/amenities';
 import type { TimeSlotCategory, CourtSurface } from '../types/branch';
-
-const WEEKDAY_HEADERS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'] as const;
+import { VietnameseDatePickerDialog } from '@/features/court-status-board';
 
 export const SearchHeroBar = () => {
   const {
@@ -41,60 +38,6 @@ export const SearchHeroBar = () => {
   } = useBranchSearchStore();
 
   const [activeTab, setActiveTab] = useState<'location' | 'date' | 'time' | 'filters' | null>(null);
-
-  // Calendar state for Date Selector
-  const [viewDate, setViewDate] = useState(() =>
-    selectedDate && dayjs(selectedDate).isValid() ? dayjs(selectedDate) : dayjs(),
-  );
-  const [tempDate, setTempDate] = useState(selectedDate);
-
-  // Sync calendar view and tempDate whenever date dropdown opens or selectedDate changes
-  useEffect(() => {
-    if (activeTab === 'date') {
-      const d = selectedDate && dayjs(selectedDate).isValid() ? dayjs(selectedDate) : dayjs();
-      setViewDate(d);
-      setTempDate(selectedDate);
-    }
-  }, [activeTab, selectedDate]);
-
-  const handlePrevMonth = useCallback(() => {
-    setViewDate((prev) => prev.subtract(1, 'month'));
-  }, []);
-
-  const handleNextMonth = useCallback(() => {
-    setViewDate((prev) => prev.add(1, 'month'));
-  }, []);
-
-  const monthHeaderLabel = useMemo(() => {
-    return viewDate.isValid() ? `tháng ${viewDate.month() + 1} năm ${viewDate.year()}` : '';
-  }, [viewDate]);
-
-  const calendarDays = useMemo(() => {
-    const daysInMonth = viewDate.daysInMonth();
-    const firstDayOfMonth = viewDate.startOf('month');
-    // Monday is 0, Tuesday is 1, ..., Sunday is 6
-    const leadingEmptyCount = (firstDayOfMonth.day() + 6) % 7;
-
-    const days: { dayNumber: number; dateString: string }[] = [];
-    for (let day = 1; day <= daysInMonth; day++) {
-      const d = viewDate.date(day);
-      days.push({
-        dayNumber: day,
-        dateString: d.format('YYYY-MM-DD'),
-      });
-    }
-
-    return { leadingEmptyCount, days };
-  }, [viewDate]);
-
-  // Quick Date Helpers
-  const setQuickDate = (daysFromToday: number) => {
-    const target = dayjs().add(daysFromToday, 'day');
-    const formatted = target.format('YYYY-MM-DD');
-    setTempDate(formatted);
-    setViewDate(target);
-    setSelectedDate(formatted);
-  };
 
   const getDayLabel = (dateStr: string) => {
     const parsed = dayjs(dateStr);
@@ -219,148 +162,17 @@ export const SearchHeroBar = () => {
               />
             </button>
 
-            {/* Date Dropdown with Vietnamese Calendar (matches screenshot) */}
-            {activeTab === 'date' && (
-              <div
-                role="dialog"
-                aria-label="Chọn ngày chơi cầu lông"
-                className="absolute left-0 top-full z-50 mt-2 w-[320px] sm:w-[340px] rounded-2xl border border-slate-100 bg-white p-4 sm:p-5 shadow-2xl ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-150 select-none"
-              >
-                {/* Quick Select Pills */}
-                <div className="grid grid-cols-3 gap-1.5 mb-3 pb-3 border-b border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setQuickDate(0);
-                      setActiveTab(null);
-                    }}
-                    className={`rounded-lg border py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
-                      tempDate === dayjs().format('YYYY-MM-DD')
-                        ? 'border-[#0d6838] bg-emerald-50 text-[#0d6838]'
-                        : 'border-slate-200 text-slate-700 hover:bg-emerald-50 hover:text-[#0d6838]'
-                    }`}
-                  >
-                    Hôm nay
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setQuickDate(1);
-                      setActiveTab(null);
-                    }}
-                    className={`rounded-lg border py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
-                      tempDate === dayjs().add(1, 'day').format('YYYY-MM-DD')
-                        ? 'border-[#0d6838] bg-emerald-50 text-[#0d6838]'
-                        : 'border-slate-200 text-slate-700 hover:bg-emerald-50 hover:text-[#0d6838]'
-                    }`}
-                  >
-                    Ngày mai
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setQuickDate(2);
-                      setActiveTab(null);
-                    }}
-                    className={`rounded-lg border py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
-                      tempDate === dayjs().add(2, 'day').format('YYYY-MM-DD')
-                        ? 'border-[#0d6838] bg-emerald-50 text-[#0d6838]'
-                        : 'border-slate-200 text-slate-700 hover:bg-emerald-50 hover:text-[#0d6838]'
-                    }`}
-                  >
-                    Ngày kia
-                  </button>
-                </div>
-
-                {/* 1. Month / Year Header Navigation: < tháng 9 năm 2026 > */}
-                <div className="flex items-center justify-between pb-3">
-                  <button
-                    type="button"
-                    onClick={handlePrevMonth}
-                    aria-label="Tháng trước"
-                    className="grid size-8 place-items-center rounded-full text-[#0d6838] transition-colors hover:bg-emerald-50 active:scale-95 cursor-pointer"
-                  >
-                    <ChevronLeft className="size-4 stroke-[2.5]" />
-                  </button>
-
-                  <span className="text-sm font-bold text-slate-800 tracking-tight lowercase">
-                    {monthHeaderLabel}
-                  </span>
-
-                  <button
-                    type="button"
-                    onClick={handleNextMonth}
-                    aria-label="Tháng tiếp theo"
-                    className="grid size-8 place-items-center rounded-full text-[#0d6838] transition-colors hover:bg-emerald-50 active:scale-95 cursor-pointer"
-                  >
-                    <ChevronRight className="size-4 stroke-[2.5]" />
-                  </button>
-                </div>
-
-                {/* 2. Weekday Headers: T2, T3, T4, T5, T6, T7, CN */}
-                <div className="grid grid-cols-7 gap-1 pb-2 pt-1 text-center text-xs font-medium text-slate-400">
-                  {WEEKDAY_HEADERS.map((dayLabel) => (
-                    <div key={dayLabel} className="h-6 flex items-center justify-center">
-                      {dayLabel}
-                    </div>
-                  ))}
-                </div>
-
-                {/* 3. Calendar Days Grid */}
-                <div className="grid grid-cols-7 gap-1 text-center text-xs">
-                  {Array.from({ length: calendarDays.leadingEmptyCount }).map((_, i) => (
-                    <div key={`empty-${i}`} className="size-9" />
-                  ))}
-
-                  {calendarDays.days.map(({ dayNumber, dateString }) => {
-                    const isSelected = dateString === tempDate;
-                    const isToday = dateString === dayjs().format('YYYY-MM-DD');
-
-                    return (
-                      <button
-                        key={dateString}
-                        type="button"
-                        onClick={() => setTempDate(dateString)}
-                        className={`grid size-9 place-items-center rounded-lg text-xs font-medium transition-all select-none cursor-pointer ${
-                          isSelected
-                            ? 'bg-[#0d6838] text-white font-bold shadow-xs ring-1 ring-[#0d6838]'
-                            : isToday
-                              ? 'text-[#0d6838] font-bold hover:bg-emerald-50'
-                              : 'text-slate-700 hover:bg-emerald-50'
-                        }`}
-                      >
-                        {dayNumber}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* 4. Footer Actions: Hủy & Xác nhận */}
-                <div className="flex items-center justify-end gap-2 pt-4 mt-3 border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTempDate(selectedDate);
-                      setActiveTab(null);
-                    }}
-                    className="rounded-lg px-3.5 py-1.5 text-xs font-bold text-[#0d6838] transition-colors hover:bg-emerald-50 active:scale-95 cursor-pointer"
-                  >
-                    Hủy
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedDate(tempDate);
-                      setActiveTab(null);
-                    }}
-                    className="rounded-lg bg-[#0d6838] px-4 py-1.5 text-xs font-bold text-white shadow-xs transition-all hover:bg-[#0a522c] active:scale-95 cursor-pointer"
-                  >
-                    Xác nhận
-                  </button>
-                </div>
-              </div>
-            )}
+            {/* Vietnamese Date Picker Dialog */}
+            <VietnameseDatePickerDialog
+              isOpen={activeTab === 'date'}
+              onClose={() => setActiveTab(null)}
+              value={selectedDate}
+              onChange={(newDate) => {
+                setSelectedDate(newDate);
+                setActiveTab(null);
+              }}
+              showQuickPills
+            />
           </div>
 
           {/* Section 3: Time Slot */}

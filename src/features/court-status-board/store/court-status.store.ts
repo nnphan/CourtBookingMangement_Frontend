@@ -1,7 +1,9 @@
 import { create } from 'zustand';
+import dayjs from '@/lib/dayjs';
 import type { BookingItem } from '../types/booking';
 import type { SlotSelectionRange } from '../types/common';
 import { SCHEDULER_CONFIG } from '../constants/scheduler';
+import { useBranchSearchStore } from '@/features/branch-discovery/store/branch-search.store';
 
 interface CreateDialogInitialValues {
   courtId?: string;
@@ -46,12 +48,26 @@ interface CourtStatusState {
   reset: () => void;
 }
 
-const DEFAULT_DATE = '2026-09-27'; // matching Vietnamese calendar screenshot date (Sunday 27/09/2026)
+const getInitialCourtStatusDate = (): string => {
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search);
+    const urlDate = params.get('date');
+    if (urlDate && dayjs(urlDate, 'YYYY-MM-DD', true).isValid()) {
+      return urlDate;
+    }
+  }
+  const branchSearchDate = useBranchSearchStore.getState().selectedDate;
+  if (branchSearchDate && dayjs(branchSearchDate).isValid()) {
+    return branchSearchDate;
+  }
+  return dayjs().format('YYYY-MM-DD');
+};
+
 const DEFAULT_BRANCH = 'tmt-demo';
 const DEFAULT_GROUP = 'all';
 
 export const useCourtStatusStore = create<CourtStatusState>((set) => ({
-  selectedDate: DEFAULT_DATE,
+  selectedDate: getInitialCourtStatusDate(),
   selectedBranch: DEFAULT_BRANCH,
   selectedCourtGroup: DEFAULT_GROUP,
   selectedCourt: null,
@@ -122,7 +138,7 @@ export const useCourtStatusStore = create<CourtStatusState>((set) => ({
 
   reset: () =>
     set({
-      selectedDate: DEFAULT_DATE,
+      selectedDate: dayjs().format('YYYY-MM-DD'),
       selectedBranch: DEFAULT_BRANCH,
       selectedCourtGroup: DEFAULT_GROUP,
       selectedCourt: null,
