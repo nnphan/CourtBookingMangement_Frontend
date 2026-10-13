@@ -32,13 +32,13 @@ function getStatusBadgeStyle(status: string) {
   if (normalized.includes('pending') || normalized.includes('cho')) {
     return 'bg-amber-500/90 text-white border-amber-400';
   }
-  if (normalized.includes('confirmed') || normalized.includes('xacnhan')) {
+  if (normalized.includes('CONFIRMED') || normalized.includes('xacnhan')) {
     return 'bg-blue-600/90 text-white border-blue-400';
   }
-  if (normalized.includes('completed') || normalized.includes('hoanthanh')) {
+  if (normalized.includes('CHECKED-IN') || normalized.includes('hoanthanh')) {
     return 'bg-emerald-600/90 text-white border-emerald-400';
   }
-  if (normalized.includes('cancel') || normalized.includes('huy')) {
+  if (normalized.includes('CANCELLED') || normalized.includes('huy')) {
     return 'bg-rose-600/90 text-white border-rose-400';
   }
   return 'bg-slate-700/90 text-white border-slate-500';
@@ -46,16 +46,16 @@ function getStatusBadgeStyle(status: string) {
 
 function getStatusIcon(status: string) {
   const normalized = (status || '').toLowerCase().replace(/[\s_-]+/g, '');
-  if (normalized.includes('pending') || normalized.includes('cho')) {
+  if (normalized.includes('PENDING') || normalized.includes('cho')) {
     return <AlertCircle className="size-3 shrink-0" />;
   }
-  if (normalized.includes('confirmed') || normalized.includes('xacnhan')) {
+  if (normalized.includes('CONFIRMED') || normalized.includes('xacnhan')) {
     return <CheckCircle2 className="size-3 shrink-0" />;
   }
-  if (normalized.includes('completed') || normalized.includes('hoanthanh')) {
+  if (normalized.includes('CHECKED-IN') || normalized.includes('hoanthanh')) {
     return <CheckCircle2 className="size-3 shrink-0" />;
   }
-  if (normalized.includes('cancel') || normalized.includes('huy')) {
+  if (normalized.includes('CANCELLED') || normalized.includes('huy')) {
     return <XCircle className="size-3 shrink-0" />;
   }
   return null;

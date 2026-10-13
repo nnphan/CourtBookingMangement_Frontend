@@ -19,8 +19,6 @@ export const BOOKING_TYPE_OPTIONS: readonly BookingTypeOption[] = [
 export const BOOKING_TYPE_LABELS: Record<string, string> = {
   [BookingType.FLEXIBLE]: 'Vãng lai',
   [BookingType.FIXED]: 'Cố định',
-  FLEXIBLE: 'Vãng lai',
-  FIXED: 'Cố định',
   flexible: 'Vãng lai',
   fixed: 'Cố định',
   daily: 'Vãng lai',

@@ -1,11 +1,9 @@
 import React, { memo, useEffect, useMemo, useState } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
-import { Clock, AlertTriangle, Crown, Sparkles, User } from 'lucide-react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 import { toast } from '@/lib/toast';
-import { CustomerSearch } from '@/features/customer-management/components/CustomerSearch';
 import type { Customer } from '@/features/customer-management/types/customer';
 import { customerApi } from '@/features/customer-management/api/customer.api';
 import {
@@ -16,66 +14,38 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import type { CourtItem } from '../types/court';
 import type { BookingItem, PaymentStatus } from '../types/booking';
-import { BookingType } from '@/types/booking-type.enum';
-import { BOOKING_TYPE_OPTIONS } from '../constants/booking.constants';
-import { toBookingTypeEnum } from '../utils/booking.utils';
 import { SchedulerService } from '../services/scheduler.service';
 import { useCourtStatusStore } from '../store/court-status.store';
+import { schedulerSelectionStore } from '../store/scheduler-selection.store';
 import dayjs from '@/lib/dayjs';
+import {
+  createBookingSchema,
+  type CreateBookingSchemaType,
+} from '@/features/bookings/schemas/create-booking.schema';
+import { useCreateBooking } from '@/features/bookings/hooks/useCreateBooking';
+import { BookingService } from '@/features/bookings/services/booking.service';
+import { toCreateBookingPayload } from '@/features/bookings/utils/booking.mapper';
+import { BookingForm } from './BookingForm';
 
-const bookingSchema = z
-  .object({
-    customerName: z.string().min(2, 'Họ và tên khách hàng ít nhất 2 ký tự'),
-    phoneNumber: z
-      .string()
-      .min(9, 'Số điện thoại gồm 9-10 chữ số')
-      .regex(/^[0-9+]+$/, 'Số điện thoại không hợp lệ'),
-    courtId: z.string().min(1, 'Vui lòng chọn sân'),
-    date: z.string().min(1, 'Vui lòng chọn ngày'),
-    startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Giờ bắt đầu không hợp lệ (HH:mm)'),
-    endTime: z.string().regex(/^([01]\d|2[0-4]):([0-5]\d)$/, 'Giờ kết thúc không hợp lệ (HH:mm)'),
-    bookingType: z.nativeEnum(BookingType, {
-      errorMap: () => ({ message: 'Vui lòng chọn loại đặt sân' }),
-    }),
-    notes: z.string().optional(),
-  })
-  .refine(
-    (data) => {
-      const startMin = SchedulerService.parseTimeToMinutes(data.startTime);
-      const endMin = SchedulerService.parseTimeToMinutes(data.endTime);
-      return endMin > startMin;
-    },
-    {
-      message: 'Giờ kết thúc phải sau giờ bắt đầu',
-      path: ['endTime'],
-    },
-  );
-
-type BookingFormValues = z.infer<typeof bookingSchema>;
-
-interface CreateBookingDialogProps {
+export interface CreateBookingDialogProps {
   isOpen: boolean;
   onClose: () => void;
   courts: CourtItem[];
+  branchId?: string;
   defaultValues?: {
+    branchId?: string;
     courtId?: string;
     courtName?: string;
     date?: string;
+    bookingDate?: string;
     startTime?: string;
     endTime?: string;
   } | null;
   editingBooking?: BookingItem | null;
-  onSubmitBooking: (data: Partial<BookingItem>) => Promise<unknown>;
+  onSubmitBooking?: (data: Partial<BookingItem>) => Promise<unknown>;
   isLoading?: boolean;
 }
 
@@ -84,6 +54,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
     isOpen,
     onClose,
     courts,
+    branchId: propBranchId,
     defaultValues,
     editingBooking,
     onSubmitBooking,
@@ -91,8 +62,23 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
   }) => {
     const { t } = useTranslation();
     const storeSelectedDate = useCourtStatusStore((s) => s.selectedDate);
+    const storeSelectedBranch = useCourtStatusStore((s) => s.selectedBranch);
 
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+
+    // TanStack Query Mutation for Create Booking (POST /api/bookings)
+    const { mutateAsync: createBookingMutation, isPending: isCreatingBooking } = useCreateBooking();
+
+    // Effective branch ID from props, defaultValues, store, or court list
+    const effectiveBranchId = useMemo(() => {
+      return (
+        propBranchId ||
+        defaultValues?.branchId ||
+        storeSelectedBranch ||
+        courts[0]?.branchId ||
+        ''
+      );
+    }, [propBranchId, defaultValues?.branchId, storeSelectedBranch, courts]);
 
     const {
       register,
@@ -101,24 +87,25 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
       reset,
       watch,
       setValue,
-      formState: { errors },
-    } = useForm<BookingFormValues>({
-      resolver: zodResolver(bookingSchema),
+      formState: { errors, isSubmitting },
+    } = useForm<CreateBookingSchemaType>({
+      resolver: zodResolver(createBookingSchema),
       defaultValues: {
+        customerId: null,
         customerName: '',
         phoneNumber: '',
         courtId: courts[0]?.id ?? 'court-1',
-        date: defaultValues?.date ?? storeSelectedDate,
-        startTime: '08:00',
-        endTime: '10:00',
-        bookingType: BookingType.FLEXIBLE,
-        notes: '',
+        bookingDate: defaultValues?.bookingDate ?? defaultValues?.date ?? storeSelectedDate,
+        startTime: '13:00',
+        endTime: '15:00',
+        bookingType: 'FLEXIBLE',
+        note: '',
       },
     });
 
-    const watchedStart = watch('startTime');
-    const watchedEnd = watch('endTime');
-    const watchedDate = watch('date');
+    const watchedStart = watch('startTime') || '13:00';
+    const watchedEnd = watch('endTime') || '15:00';
+    const watchedDate = watch('bookingDate');
 
     const isPastDate = useMemo(() => {
       if (editingBooking) return false;
@@ -130,16 +117,17 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
       return SchedulerService.isPastSlot(watchedDate, watchedStart);
     }, [editingBooking, watchedDate, watchedStart]);
 
-    // Format date as dd-MM-yyyy for user display (e.g. 29-09-2026)
+    // Format date as dd-MM-yyyy for user display (e.g. 13-10-2026)
     const formattedDisplayDate = useMemo(() => {
       if (!watchedDate) return '';
       const d = dayjs(watchedDate);
       return d.isValid() ? d.format('DD-MM-YYYY') : watchedDate;
     }, [watchedDate]);
 
+    // Auto calculate duration (e.g., "2 giờ (13:00 - 15:00)")
     const durationInfo = useMemo(() => {
       if (watchedStart && watchedEnd) {
-        return SchedulerService.calculateDuration(watchedStart, watchedEnd);
+        return BookingService.calculateDuration(watchedStart, watchedEnd);
       }
       return null;
     }, [watchedStart, watchedEnd]);
@@ -149,41 +137,74 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
         setSelectedCustomer(null);
         if (editingBooking) {
           reset({
+            customerId: null,
             customerName: editingBooking.customerName,
             phoneNumber: editingBooking.phoneNumber,
             courtId: editingBooking.courtId,
-            date: editingBooking.date,
+            bookingDate: editingBooking.date,
             startTime: editingBooking.startTime,
             endTime: editingBooking.endTime,
-            bookingType: toBookingTypeEnum(editingBooking.bookingType),
-            notes: editingBooking.notes ?? '',
+            bookingType: editingBooking.bookingType === 'FIXED' ? 'FIXED' : 'FLEXIBLE',
+            note: editingBooking.notes ?? '',
           });
         } else if (defaultValues) {
-          // If startTime is provided, compute a 1-hour or 2-hour default end time
+          const targetDate =
+            defaultValues.bookingDate ?? defaultValues.date ?? storeSelectedDate;
+          const targetCourtId = defaultValues.courtId ?? courts[0]?.id ?? 'court-1';
+          const targetCourt = courts.find((c) => c.id === targetCourtId);
+          const targetStart = defaultValues.startTime ?? '13:00';
+
           let calculatedEndTime = defaultValues.endTime;
           if (!calculatedEndTime && defaultValues.startTime) {
             const startMin = SchedulerService.parseTimeToMinutes(defaultValues.startTime);
-            calculatedEndTime = SchedulerService.minutesToTime(Math.min(24 * 60, startMin + 60));
+            calculatedEndTime = SchedulerService.minutesToTime(Math.min(24 * 60, startMin + 120));
           }
 
+          const targetEnd = calculatedEndTime ?? '15:00';
+
+          // Synchronize selection store
+          schedulerSelectionStore.getState().setSelection({
+            branchId: effectiveBranchId,
+            courtId: targetCourtId,
+            courtName: targetCourt?.name ?? defaultValues.courtName,
+            bookingDate: targetDate,
+            startTime: targetStart,
+            endTime: targetEnd,
+          });
+
           reset({
+            customerId: null,
             customerName: '',
             phoneNumber: '',
-            courtId: defaultValues.courtId ?? courts[0]?.id ?? 'court-1',
-            date: defaultValues.date ?? storeSelectedDate,
-            startTime: defaultValues.startTime ?? '08:00',
-            endTime: calculatedEndTime ?? '10:00',
-            bookingType: BookingType.FLEXIBLE,
-            notes: '',
+            courtId: targetCourtId,
+            bookingDate: targetDate,
+            startTime: targetStart,
+            endTime: targetEnd,
+            bookingType: 'FLEXIBLE',
+            note: '',
           });
         }
       }
-    }, [isOpen, defaultValues, editingBooking, courts, storeSelectedDate, reset]);
+    }, [
+      isOpen,
+      defaultValues,
+      editingBooking,
+      courts,
+      storeSelectedDate,
+      effectiveBranchId,
+      reset,
+    ]);
 
     const handleSelectCustomer = (customer: Customer) => {
       setSelectedCustomer(customer);
+      setValue('customerId', customer.id, { shouldValidate: true });
       setValue('customerName', customer.fullName, { shouldValidate: true });
       setValue('phoneNumber', customer.phoneNumber, { shouldValidate: true });
+    };
+
+    const handleDeselectCustomer = () => {
+      setSelectedCustomer(null);
+      setValue('customerId', null);
     };
 
     const handleConvertGuest = async () => {
@@ -201,17 +222,17 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
       }
     };
 
-    const onSubmit = async (values: BookingFormValues) => {
+    const onSubmit = async (values: CreateBookingSchemaType) => {
       // Validate past date / time slot before submitting
       if (!editingBooking) {
-        if (SchedulerService.isPastDate(values.date)) {
+        if (SchedulerService.isPastDate(values.bookingDate)) {
           toast.error(
             t('courtStatus.pastDateAlert', 'Cannot create bookings for past dates.'),
             'Không thể đặt lịch cho các ngày trong quá khứ.',
           );
           return;
         }
-        if (SchedulerService.isPastSlot(values.date, values.startTime)) {
+        if (SchedulerService.isPastSlot(values.bookingDate, values.startTime)) {
           toast.error(
             t('courtStatus.pastSlotTooltip', 'Past time slots cannot be booked.'),
             'Không thể đặt khung giờ trong quá khứ.',
@@ -223,29 +244,74 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
       const selectedCourt = courts.find((c) => c.id === values.courtId);
       const courtName = selectedCourt?.name ?? 'Sân';
 
-      const payload: Partial<BookingItem> = {
-        courtId: values.courtId,
-        courtName,
-        customerName: values.customerName,
-        phoneNumber: values.phoneNumber,
-        date: values.date,
-        startTime: values.startTime,
-        endTime: values.endTime,
-        bookingType: values.bookingType as BookingType,
-        notes: values.notes,
-        paymentStatus: (editingBooking?.paymentStatus ?? 'unpaid') as PaymentStatus,
-      };
-
       if (editingBooking) {
-        payload.id = editingBooking.id;
+        // Edit mode - update existing booking
+        const updatePayload: Partial<BookingItem> = {
+          id: editingBooking.id,
+          courtId: values.courtId,
+          courtName,
+          customerName: values.customerName.trim(),
+          phoneNumber: values.phoneNumber.trim(),
+          date: values.bookingDate,
+          startTime: values.startTime,
+          endTime: values.endTime,
+          bookingType: values.bookingType === 'FIXED' ? 'FIXED' : 'FLEXIBLE',
+          notes: values.note,
+          paymentStatus: (editingBooking?.paymentStatus ?? 'unpaid') as PaymentStatus,
+        };
+
+        if (onSubmitBooking) {
+          await onSubmitBooking(updatePayload);
+        }
+        onClose();
+        return;
       }
 
-      await onSubmitBooking(payload);
-      onClose();
+      // Create Booking Flow: Calls POST /api/bookings with standard payload
+      const payload = toCreateBookingPayload(
+        {
+          customerName: values.customerName,
+          phoneNumber: values.phoneNumber,
+          bookingType: values.bookingType,
+          note: values.note,
+        },
+        {
+          branchId: effectiveBranchId,
+          courtId: values.courtId,
+          bookingDate: values.bookingDate,
+          startTime: values.startTime,
+          endTime: values.endTime,
+          customerId: selectedCustomer?.id ?? values.customerId ?? null,
+          paymentMethod: 'CASH',
+        },
+      );
+
+      try {
+        await createBookingMutation(payload);
+        // Also call onSubmitBooking callback if provided by parent for local sync
+        if (onSubmitBooking) {
+          await onSubmitBooking({
+            courtId: values.courtId,
+            courtName,
+            customerName: values.customerName.trim(),
+            phoneNumber: values.phoneNumber.trim(),
+            date: values.bookingDate,
+            startTime: values.startTime,
+            endTime: values.endTime,
+            bookingType: values.bookingType === 'FIXED' ? 'FIXED' : 'FLEXIBLE',
+            notes: values.note,
+          });
+        }
+        onClose();
+      } catch {
+        // Error is automatically toasted by useCreateBooking
+      }
     };
 
+    const isProcessing = isCreatingBooking || isSubmitting || isLoading;
+
     return (
-      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && !isProcessing && onClose()}>
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
@@ -254,11 +320,14 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                 : t('courtStatus.dialog.createTitle', 'Đặt sân mới')}
             </DialogTitle>
             <DialogDescription>
-              {t('courtStatus.dialog.description', 'Nhập đầy đủ thông tin khách hàng và giờ thuê sân.')}
+              {t(
+                'courtStatus.dialog.description',
+                'Nhập đầy đủ thông tin khách hàng và giờ thuê sân.',
+              )}
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Past Date / Past Slot Protection Alert */}
             {!editingBooking && (isPastDate || isPastSlot) && (
               <div
@@ -274,266 +343,48 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
               </div>
             )}
 
-            {/* Customer Search & Quick Selection */}
-            {!editingBooking && (
-              <div className="space-y-2 p-3 bg-slate-50/80 rounded-xl border border-slate-200">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <User className="size-3.5 text-emerald-600" />
-                    <span>{t('courtStatus.fields.customerSearch', 'Tìm & Chọn Khách Hàng')}</span>
-                  </label>
-
-                  {selectedCustomer && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedCustomer(null)}
-                      className="text-[11px] text-slate-500 hover:text-slate-800 underline cursor-pointer"
-                    >
-                      Bỏ chọn
-                    </button>
-                  )}
-                </div>
-
-                <CustomerSearch
-                  onSelectCustomer={handleSelectCustomer}
-                  placeholder="Gõ SĐT (0909...), Tên hoặc Mã KH để tìm nhanh..."
-                />
-
-                {/* Customer Status & Tier Pill */}
-                {selectedCustomer ? (
-                  <div className="flex flex-wrap items-center justify-between gap-2 p-2 rounded-lg bg-white border border-slate-200 text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-900">{selectedCustomer.fullName}</span>
-                      <span className="font-mono text-slate-500">({selectedCustomer.phoneNumber})</span>
-                      {selectedCustomer.isGuest ? (
-                        <span className="text-[10px] bg-amber-50 text-amber-800 px-1.5 py-0.5 rounded font-medium border border-amber-200">
-                          Khách vãng lai
-                        </span>
-                      ) : (
-                        <span className="text-[10px] bg-emerald-50 text-emerald-800 px-1.5 py-0.5 rounded font-bold border border-emerald-200 flex items-center gap-1">
-                          <Crown className="size-2.5" />
-                          Hội viên: {selectedCustomer.memberType.toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-
-                    {selectedCustomer.isGuest && (
-                      <button
-                        type="button"
-                        onClick={handleConvertGuest}
-                        className="text-[11px] font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1 underline cursor-pointer"
-                      >
-                        <Sparkles className="size-3" />
-                        Chuyển sang hội viên
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-[11px] text-slate-500">
-                    💡 Chọn từ danh sách gợi ý hoặc nhập thông tin bên dưới cho khách vãng lai.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Customer Name */}
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700">
-                {t('courtStatus.fields.customerName', 'Tên khách hàng (*) ')}
-              </label>
-              <input
-                type="text"
-                placeholder="Ví dụ: Coach Hiếu, Nguyễn Văn A..."
-                {...register('customerName')}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none"
-              />
-              {errors.customerName && (
-                <p className="text-[11px] text-red-500">{errors.customerName.message}</p>
-              )}
-            </div>
-
-            {/* Phone */}
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700">
-                {t('courtStatus.fields.phoneNumber', 'Số điện thoại (*)')}
-              </label>
-              <input
-                type="tel"
-                placeholder="0903xxxxxx"
-                {...register('phoneNumber')}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none font-mono"
-              />
-              {errors.phoneNumber && (
-                <p className="text-[11px] text-red-500">{errors.phoneNumber.message}</p>
-              )}
-            </div>
-
-            {/* Court Selection (Read-Only: pre-filled from scheduler) */}
-            <div className="space-y-1">
-              <label className="flex items-center justify-between text-xs font-semibold text-slate-700">
-                <span>{t('courtStatus.fields.court', 'Sân đã chọn')}</span>
-              </label>
-              <Controller
-                control={control}
-                name="courtId"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange} disabled>
-                    <SelectTrigger className="w-full border-slate-200 bg-slate-100 text-slate-700 select-none disabled:opacity-100 disabled:bg-slate-100 disabled:text-slate-700 shadow-none focus:ring-0">
-                      <SelectValue placeholder={t('courtStatus.fields.court', 'Chọn sân')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {courts.map((court) => (
-                        <SelectItem key={court.id} value={court.id}>
-                          {court.name} - {court.pricePerHour.toLocaleString('vi-VN')} đ/giờ
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {errors.courtId && (
-                <p className="text-[11px] text-red-500">{errors.courtId.message}</p>
-              )}
-            </div>
-
-            {/* Date (Read-Only: pre-filled from scheduler, displayed as dd-MM-yyyy) */}
-            <div className="space-y-1">
-              <label className="flex items-center justify-between text-xs font-semibold text-slate-700">
-                <span>{t('courtStatus.fields.date', 'Ngày đặt sân')}</span>
-              </label>
-              <input type="hidden" {...register('date')} />
-              <input
-                type="text"
-                value={formattedDisplayDate}
-                readOnly
-                tabIndex={-1}
-                placeholder="dd-MM-yyyy"
-                className="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-700 select-none focus:outline-none"
-              />
-              {errors.date && <p className="text-[11px] text-red-500">{errors.date.message}</p>}
-            </div>
-
-            {/* Time range (start time & end time: Read-Only from scheduler selection) */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="flex items-center justify-between text-xs font-semibold text-slate-700">
-                  <span>{t('courtStatus.fields.startTime', 'Giờ bắt đầu')}</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="08:00"
-                    {...register('startTime')}
-                    readOnly
-                    tabIndex={-1}
-                    className="w-full rounded-lg border border-slate-200 bg-slate-100 pr-9 pl-3 py-2 text-sm text-slate-700 cursor-not-allowed select-none pointer-events-none focus:outline-none"
-                  />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                  </div>
-                </div>
-                {errors.startTime && (
-                  <p className="text-[11px] text-red-500">{errors.startTime.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-1">
-                <label className="flex items-center justify-between text-xs font-semibold text-slate-700">
-                  <span>{t('courtStatus.fields.endTime', 'Giờ kết thúc')}</span>                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="10:00"
-                    {...register('endTime')}
-                    readOnly
-                    tabIndex={-1}
-                    className="w-full rounded-lg border border-slate-200 bg-slate-100 pr-9 pl-3 py-2 text-sm text-slate-700 cursor-not-allowed select-none pointer-events-none focus:outline-none"
-                  />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                  </div>
-                </div>
-                {errors.endTime && (
-                  <p className="text-[11px] text-red-500">{errors.endTime.message}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Calculated Duration Display */}
-            {durationInfo && durationInfo.minutes > 0 && (
-              <div className="flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 border border-emerald-200 shadow-xs">
-                <div className="flex items-center gap-1.5">
-                  <Clock className="size-3.5 text-emerald-600" />
-                  <span>Thời lượng đặt sân:</span>
-                </div>
-                <span className="font-bold text-emerald-700">
-                  {durationInfo.formatted} ({watchedStart} → {watchedEnd})
-                </span>
-              </div>
-            )}
-
-            {/* Booking Type */}
-            <div className="space-y-1">
-              <label htmlFor="booking-type-select" className="text-xs font-semibold text-slate-700">
-                {t('courtStatus.fields.bookingType', 'Loại đặt sân')}{' '}
-                <span className="text-red-500">*</span>
-              </label>
-              <Controller
-                control={control}
-                name="bookingType"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger id="booking-type-select" className="w-full">
-                      <SelectValue placeholder="Chọn loại đặt sân" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {BOOKING_TYPE_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {errors.bookingType && (
-                <p className="text-xs text-red-500">{errors.bookingType.message}</p>
-              )}
-            </div>
-
-            {/* Notes */}
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700">
-                {t('courtStatus.fields.notes', 'Ghi chú thêm')}
-              </label>
-              <textarea
-                rows={2}
-                placeholder="Ví dụ: Đặt trước nước uống, khách cần mượn bóng..."
-                {...register('notes')}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none"
-              />
-            </div>
+            {/* Booking Form Inputs */}
+            <BookingForm
+              register={register}
+              control={control}
+              errors={errors}
+              courts={courts}
+              selectedCustomer={selectedCustomer}
+              onSelectCustomer={handleSelectCustomer}
+              onDeselectCustomer={handleDeselectCustomer}
+              onConvertGuest={handleConvertGuest}
+              isEditing={Boolean(editingBooking)}
+              formattedDisplayDate={formattedDisplayDate}
+              durationDisplayText={durationInfo?.displayText}
+            />
 
             <DialogFooter className="pt-2">
-              <Button type="button" variant="outline" size="sm" onClick={onClose}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onClose}
+                disabled={isProcessing}
+              >
                 {t('common.cancel', 'Đóng')}
               </Button>
               <Button
                 type="submit"
                 variant="primary"
                 size="sm"
-                disabled={!editingBooking && (isPastDate || isPastSlot)}
-                loading={isLoading}
-                title={
-                  !editingBooking && (isPastDate || isPastSlot)
-                    ? isPastDate
-                      ? 'Cannot create bookings for past dates.'
-                      : 'Past time slots cannot be booked.'
-                    : undefined
-                }
+                disabled={isProcessing || (!editingBooking && (isPastDate || isPastSlot))}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {editingBooking
-                  ? t('courtStatus.actions.save', 'Cập nhật')
-                  : t('courtStatus.actions.confirm', 'Xác nhận đặt sân')}
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                    {editingBooking ? 'Đang lưu...' : 'Đang tạo...'}
+                  </>
+                ) : editingBooking ? (
+                  t('courtStatus.actions.save', 'Cập nhật')
+                ) : (
+                  'Tạo đặt sân'
+                )}
               </Button>
             </DialogFooter>
           </form>

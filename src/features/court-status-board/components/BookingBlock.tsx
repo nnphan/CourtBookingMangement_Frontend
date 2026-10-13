@@ -116,10 +116,10 @@ export const BookingBlock: React.FC<ExtendedBookingBlockProps> = memo(
               {/* Unpaid Red Ribbon Badge on Top-Left (Exact match to screenshot) */}
               {isUnpaid && (
                 <div
-                  className="absolute -top-1.5 left-0 z-20 flex items-center shadow-xs"
+                  className="absolute -top-0.5 left-0 z-20 flex items-center shadow-xs"
                   title="Chưa thanh toán"
                 >
-                  <span className="rounded-xs bg-[#e53935] px-1 py-0.2 text-[9px] font-bold text-white tracking-tighter uppercase whitespace-nowrap">
+                  <span className="relative top-[1px] rounded-xs bg-[#e53935] px-1 py-0.2 text-[9px] font-bold text-white tracking-tighter uppercase whitespace-nowrap">
                     {unpaidBadgeText}
                   </span>
                 </div>

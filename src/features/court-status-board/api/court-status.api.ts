@@ -80,7 +80,7 @@ export const courtStatusApi = {
   },
 
   /**
-   * Create a new booking
+   * Create a new booking via POST /api/bookings
    */
   createBooking: async (data: Partial<BookingItem>): Promise<BookingItem> => {
     if (data.date && SchedulerService.isPastDate(data.date)) {
@@ -90,11 +90,34 @@ export const courtStatusApi = {
       throw new Error('Past time slots cannot be booked.');
     }
 
-    return await request<BookingItem>({
-      url: '/court-status/bookings',
+    const payload = {
+      branchId: (data as { branchId?: string }).branchId || '',
+      courtId: data.courtId || '',
+      customerId: (data as { customerId?: string | null }).customerId ?? null,
+      customerName: data.customerName || '',
+      phoneNumber: data.phoneNumber || '',
+      bookingDate: data.date || '',
+      startTime: data.startTime || '',
+      endTime: data.endTime || '',
+      bookingType: (data.bookingType === BookingType.FIXED ? 'FIXED' : 'FLEXIBLE') as 'FIXED' | 'FLEXIBLE',
+      paymentMethod: 'CASH',
+      note: data.notes || '',
+    };
+
+    const res = await request<BookingItem>({
+      url: '/api/bookings',
       method: 'POST',
-      data,
+      data: payload,
+    }).catch(async () => {
+      // Fallback for mock environments
+      return request<BookingItem>({
+        url: '/court-status/bookings',
+        method: 'POST',
+        data,
+      });
     });
+
+    return res;
   },
 
   /**

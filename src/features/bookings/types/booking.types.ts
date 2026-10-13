@@ -1,0 +1,56 @@
+export type BookingTypeApi = 'FLEXIBLE' | 'FIXED';
+
+export interface CreateBookingRequest {
+  branchId: string;
+  courtId: string;
+  customerId?: string | null;
+  customerName: string;
+  phoneNumber: string;
+  bookingDate: string; // YYYY-MM-DD
+  startTime: string; // HH:mm
+  endTime: string; // HH:mm
+  bookingType: BookingTypeApi;
+  paymentMethod: string; // Default: 'CASH'
+  note?: string;
+}
+
+export interface CreateBookingResponse {
+  id?: string;
+  bookingId?: string;
+  bookingNumber?: string;
+  branchId?: string;
+  courtId?: string;
+  customerId?: string | null;
+  customerName?: string;
+  phoneNumber?: string;
+  bookingDate?: string;
+  startTime?: string;
+  endTime?: string;
+  bookingType?: string;
+  paymentMethod?: string;
+  bookingStatus?: string;
+  paymentStatus?: string;
+  note?: string;
+  createdAt?: string;
+}
+
+export interface CreateBookingFormValues {
+  customerId?: string | null;
+  customerName: string;
+  phoneNumber: string;
+  courtId: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  bookingType: BookingTypeApi;
+  note?: string;
+}
+
+export interface SchedulerBookingContext {
+  branchId: string;
+  courtId: string;
+  courtName?: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+}

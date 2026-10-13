@@ -5,10 +5,12 @@ import type { SlotSelectionRange } from '../types/common';
 import { SCHEDULER_CONFIG } from '../constants/scheduler';
 import { useBranchSearchStore } from '@/features/branch-discovery/store/branch-search.store';
 
-interface CreateDialogInitialValues {
+export interface CreateDialogInitialValues {
+  branchId?: string;
   courtId?: string;
   courtName?: string;
   date?: string;
+  bookingDate?: string;
   startTime?: string;
   endTime?: string;
 }
@@ -113,10 +115,14 @@ export const useCourtStatusStore = create<CourtStatusState>((set) => ({
       createDialogDefaultValues: initialValues
         ? {
             ...initialValues,
-            date: initialValues.date ?? state.selectedDate,
+            branchId: initialValues.branchId ?? state.selectedBranch,
+            date: initialValues.date ?? initialValues.bookingDate ?? state.selectedDate,
+            bookingDate: initialValues.bookingDate ?? initialValues.date ?? state.selectedDate,
           }
         : {
+            branchId: state.selectedBranch,
             date: state.selectedDate,
+            bookingDate: state.selectedDate,
           },
     })),
 

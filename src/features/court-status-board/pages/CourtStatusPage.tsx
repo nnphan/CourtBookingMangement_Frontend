@@ -107,13 +107,15 @@ export const CourtStatusPage: React.FC = () => {
 
   const handleOpenCreateBooking = useCallback(
     (initial?: {
+      branchId?: string;
       courtId?: string;
       courtName?: string;
       date?: string;
+      bookingDate?: string;
       startTime?: string;
       endTime?: string;
     }) => {
-      const targetDate = initial?.date ?? selectedDate;
+      const targetDate = initial?.bookingDate ?? initial?.date ?? selectedDate;
       if (SchedulerService.isPastDate(targetDate)) {
         toast.error(
           t('courtStatus.pastDateAlert', 'Cannot create bookings for past dates.'),
@@ -128,9 +130,14 @@ export const CourtStatusPage: React.FC = () => {
         );
         return;
       }
-      openCreateDialog({ date: targetDate, ...initial });
+      openCreateDialog({
+        branchId: initial?.branchId ?? selectedBranch,
+        date: targetDate,
+        bookingDate: targetDate,
+        ...initial,
+      });
     },
-    [openCreateDialog, selectedDate, t],
+    [openCreateDialog, selectedDate, selectedBranch, t],
   );
 
   const handleOpenCreateEvent = useCallback(() => {
@@ -331,6 +338,7 @@ export const CourtStatusPage: React.FC = () => {
         isOpen={isCreateDialogOpen}
         onClose={closeCreateDialog}
         courts={courts}
+        branchId={selectedBranch}
         defaultValues={createDialogDefaultValues}
         editingBooking={editingBooking}
         onSubmitBooking={handleSubmitBooking}

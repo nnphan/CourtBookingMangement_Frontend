@@ -64,25 +64,25 @@ export const BookingHistoryTable: React.FC<BookingHistoryTableProps> = memo(
 
     const statusBadge = (status: BookingHistoryStatus) => {
       switch (status) {
-        case 'confirmed':
+        case 'CONFIRMED':
           return (
             <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
               Đã xác nhận
             </span>
           );
-        case 'completed':
+        case 'CHECKED-IN':
           return (
             <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
               Hoàn thành
             </span>
           );
-        case 'pending':
+        case 'PENDING':
           return (
             <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
               Chờ duyệt
             </span>
           );
-        case 'cancelled':
+        case 'CANCELLED':
           return (
             <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
               Đã hủy
@@ -93,25 +93,25 @@ export const BookingHistoryTable: React.FC<BookingHistoryTableProps> = memo(
 
     const paymentBadge = (status: PaymentHistoryStatus) => {
       switch (status) {
-        case 'paid':
+        case 'PAID':
           return (
             <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
               Đã thanh toán
             </span>
           );
-        case 'unpaid':
+        case 'UNPAID':
           return (
             <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
               Chưa thanh toán
             </span>
           );
-        case 'deposit_pending':
+        case 'DEPOSIT_PENDING':
           return (
             <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
               Chờ cọc
             </span>
           );
-        case 'partially_paid':
+        case 'PARTIALLY_PAID':
           return (
             <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
               Cọc một phần
@@ -149,10 +149,10 @@ export const BookingHistoryTable: React.FC<BookingHistoryTableProps> = memo(
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tất cả đặt</SelectItem>
-                  <SelectItem value="confirmed">Đã xác nhận</SelectItem>
-                  <SelectItem value="completed">Hoàn thành</SelectItem>
-                  <SelectItem value="pending">Chờ duyệt</SelectItem>
-                  <SelectItem value="cancelled">Đã hủy</SelectItem>
+                  <SelectItem value="CONFIRMED">Đã xác nhận</SelectItem>
+                  <SelectItem value="CHECKED-IN">Hoàn thành</SelectItem>
+                  <SelectItem value="PENDING">Chờ duyệt</SelectItem>
+                  <SelectItem value="CANCELLED">Đã hủy</SelectItem>
                 </SelectContent>
               </Select>
             </div>
