@@ -16,3 +16,13 @@ export interface BookingPayloadMapping {
 export const mapBookingTypeToPayload = (type: BookingType): BookingType => {
   return type === BookingType.FIXED ? BookingType.FIXED : BookingType.FLEXIBLE;
 };
+
+export {
+  mapBookingStatus,
+  mapPaymentMethod,
+  mapPaymentStatus,
+  formatBookingDate,
+  formatBookingTime,
+  calculateBookingDuration,
+  formatCurrency,
+} from '@/features/bookings/utils/booking.mapper';

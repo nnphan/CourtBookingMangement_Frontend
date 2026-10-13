@@ -26,6 +26,8 @@ export * from './components/BookingBlock';
 export * from './components/BookingTooltip';
 export * from './components/BookingContextMenu';
 export * from './components/BookingDetailDrawer';
+export * from './components/BookingDetails';
+export * from './components/BookingDetailSkeleton';
 export * from './components/CreateBookingDialog';
 export * from './components/CourtStatusSkeleton';
 export * from './components/EmptyState';

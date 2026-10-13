@@ -322,6 +322,7 @@ export const CourtStatusPage: React.FC = () => {
 
       {/* Booking Detail Drawer (Sheet) */}
       <BookingDetailDrawer
+        bookingId={selectedBooking?.id}
         booking={selectedBooking}
         isOpen={isDetailDrawerOpen}
         onClose={closeDetailDrawer}

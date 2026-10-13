@@ -54,3 +54,22 @@ export interface SchedulerBookingContext {
   startTime: string;
   endTime: string;
 }
+
+export interface BookingDetailDto {
+  bookingId: string;
+  bookingCode: string;
+  courtName: string;
+  customerName: string;
+  phoneNumber: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  bookingType: string;
+  paymentMethod: string;
+  bookingStatus: string;
+  paymentStatus: string;
+  totalAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  notes: string | null;
+}
