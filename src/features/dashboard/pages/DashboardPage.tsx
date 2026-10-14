@@ -22,7 +22,7 @@ const cards = [
     title: 'Quản lý chi nhánh',
     icon: Building2,
     gradient: 'bg-gradient-social',
-    path: paths.root,
+    path: paths.adminBranches,
   },
   { title: 'Bán hàng', icon: ShoppingBag, gradient: 'bg-gradient-sales', path: '#' },
   {

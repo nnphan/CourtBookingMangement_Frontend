@@ -48,4 +48,6 @@ export * from './components/CourtScheduler';
 export * from './store/scheduler-selection.store';
 export * from './components/CustomerSearchInput';
 export * from './components/BookingForm';
+export * from './components/BookingPriceSummary';
 export * from './pages/CourtStatusPage';
+

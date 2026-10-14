@@ -33,11 +33,11 @@ interface NavigationLocationState {
 export const CustomerCourtStatusPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { branchId: paramBranchId } = useParams<{ branchId?: string }>();
+  const { branchId: paramBranchId, id: paramId } = useParams<{ branchId?: string; id?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const queryBranchId = searchParams.get('branchId');
-  const targetBranchId = paramBranchId || queryBranchId;
+  const targetBranchId = paramBranchId || paramId || queryBranchId;
 
   const queryDate = searchParams.get('date');
   const locationState = location.state as NavigationLocationState | null;

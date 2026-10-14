@@ -26,9 +26,15 @@ import {
   type CreateBookingSchemaType,
 } from '@/features/bookings/schemas/create-booking.schema';
 import { useCreateBooking } from '@/features/bookings/hooks/useCreateBooking';
+import { useCalculateBookingPrice } from '@/features/bookings/hooks/useCalculateBookingPrice';
 import { BookingService } from '@/features/bookings/services/booking.service';
-import { toCreateBookingPayload } from '@/features/bookings/utils/booking.mapper';
+import {
+  toCreateBookingPayload,
+  formatTimeToApi,
+  formatBookingDateToApi,
+} from '@/features/bookings/utils/booking.mapper';
 import { BookingForm } from './BookingForm';
+
 
 export interface CreateBookingDialogProps {
   isOpen: boolean;
@@ -69,17 +75,6 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
     // TanStack Query Mutation for Create Booking (POST /api/bookings)
     const { mutateAsync: createBookingMutation, isPending: isCreatingBooking } = useCreateBooking();
 
-    // Effective branch ID from props, defaultValues, store, or court list
-    const effectiveBranchId = useMemo(() => {
-      return (
-        propBranchId ||
-        defaultValues?.branchId ||
-        storeSelectedBranch ||
-        courts[0]?.branchId ||
-        ''
-      );
-    }, [propBranchId, defaultValues?.branchId, storeSelectedBranch, courts]);
-
     const {
       register,
       control,
@@ -103,9 +98,26 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
       },
     });
 
+    const watchedCourtId = watch('courtId');
     const watchedStart = watch('startTime') || '13:00';
     const watchedEnd = watch('endTime') || '15:00';
     const watchedDate = watch('bookingDate');
+
+    const selectedCourt = useMemo(() => {
+      return courts.find((c) => c.id === watchedCourtId) || courts[0];
+    }, [courts, watchedCourtId]);
+
+    // Effective branch ID from props, defaultValues, selected court, store, or court list
+    const effectiveBranchId = useMemo(() => {
+      return (
+        propBranchId ||
+        defaultValues?.branchId ||
+        selectedCourt?.branchId ||
+        storeSelectedBranch ||
+        courts[0]?.branchId ||
+        ''
+      );
+    }, [propBranchId, defaultValues?.branchId, selectedCourt?.branchId, storeSelectedBranch, courts]);
 
     const isPastDate = useMemo(() => {
       if (editingBooking) return false;
@@ -124,13 +136,57 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
       return d.isValid() ? d.format('DD-MM-YYYY') : watchedDate;
     }, [watchedDate]);
 
-    // Auto calculate duration (e.g., "2 giờ (13:00 - 15:00)")
+    // Auto calculate duration fallback (e.g., "2 giờ (13:00 - 15:00)")
     const durationInfo = useMemo(() => {
       if (watchedStart && watchedEnd) {
         return BookingService.calculateDuration(watchedStart, watchedEnd);
       }
       return null;
     }, [watchedStart, watchedEnd]);
+
+    // Format parameters for API call (HH:mm:ss and YYYY-MM-DD)
+    const apiStartTime = useMemo(() => formatTimeToApi(watchedStart), [watchedStart]);
+    const apiEndTime = useMemo(() => formatTimeToApi(watchedEnd), [watchedEnd]);
+    const apiBookingDate = useMemo(() => formatBookingDateToApi(watchedDate), [watchedDate]);
+
+    // Automatic Booking Price Calculation via TanStack Query
+    // Auto re-triggers whenever branch, court, date, startTime, or endTime changes
+    const {
+      data: pricingData,
+      isLoading: isPricingLoading,
+      isFetching: isPricingFetching,
+      isError: isPricingError,
+      refetch: refetchPricing,
+    } = useCalculateBookingPrice(
+      {
+        branchId: effectiveBranchId,
+        bookingDate: apiBookingDate,
+        startTime: apiStartTime,
+        endTime: apiEndTime,
+        courtId: watchedCourtId,
+      },
+      {
+        enabled:
+          isOpen &&
+          Boolean(effectiveBranchId && apiBookingDate && apiStartTime && apiEndTime),
+      },
+    );
+
+    // Sync calculated price to scheduler selection store
+    useEffect(() => {
+      if (pricingData?.totalAmount !== undefined) {
+        schedulerSelectionStore.getState().setEstimatedPrice(pricingData.totalAmount);
+      }
+    }, [pricingData?.totalAmount]);
+
+    // Prefer API durationHours, fallback to frontend calculated duration
+    const effectiveDurationText = useMemo(() => {
+      if (pricingData?.durationHours !== undefined && pricingData.durationHours > 0) {
+        return `${pricingData.durationHours} giờ`;
+      }
+      return durationInfo?.displayText;
+    }, [pricingData?.durationHours, durationInfo?.displayText]);
+
 
     useEffect(() => {
       if (isOpen) {
@@ -355,7 +411,11 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
               onConvertGuest={handleConvertGuest}
               isEditing={Boolean(editingBooking)}
               formattedDisplayDate={formattedDisplayDate}
-              durationDisplayText={durationInfo?.displayText}
+              durationDisplayText={effectiveDurationText}
+              pricingData={pricingData}
+              isPricingLoading={isPricingLoading || (isPricingFetching && !pricingData)}
+              isPricingError={isPricingError}
+              onRetryPricing={refetchPricing}
             />
 
             <DialogFooter className="pt-2">
@@ -366,27 +426,28 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                 onClick={onClose}
                 disabled={isProcessing}
               >
-                {t('common.cancel', 'Đóng')}
+                {t('common.cancel', 'Hủy')}
               </Button>
               <Button
                 type="submit"
                 variant="primary"
                 size="sm"
                 disabled={isProcessing || (!editingBooking && (isPastDate || isPastSlot))}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isProcessing ? (
                   <>
                     <Loader2 className="mr-2 size-4 animate-spin" />
-                    {editingBooking ? 'Đang lưu...' : 'Đang tạo...'}
+                    {editingBooking ? 'Đang lưu...' : 'Đang xử lý...'}
                   </>
                 ) : editingBooking ? (
                   t('courtStatus.actions.save', 'Cập nhật')
                 ) : (
-                  'Tạo đặt sân'
+                  'Đặt sân'
                 )}
               </Button>
             </DialogFooter>
+
           </form>
         </DialogContent>
       </Dialog>

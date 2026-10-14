@@ -1,11 +1,8 @@
 import { useState } from 'react';
 import {
-  Star,
   MapPin,
   ChevronLeft,
   ChevronRight,
-  ShieldCheck,
-  Flame,
   CheckCircle2,
   CalendarCheck,
   Info,

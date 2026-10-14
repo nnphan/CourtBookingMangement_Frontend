@@ -8,6 +8,7 @@ export interface SchedulerSelectionState {
   startTime: string | null;
   endTime: string | null;
   durationMinutes: number;
+  estimatedPrice: number | null;
 
   // Actions
   setSelection: (selection: {
@@ -18,7 +19,9 @@ export interface SchedulerSelectionState {
     startTime: string;
     endTime: string;
     durationMinutes?: number;
+    estimatedPrice?: number | null;
   }) => void;
+  setEstimatedPrice: (price: number | null) => void;
   clearSelection: () => void;
 }
 
@@ -30,6 +33,7 @@ export const useSchedulerSelectionStore = create<SchedulerSelectionState>((set) 
   startTime: null,
   endTime: null,
   durationMinutes: 0,
+  estimatedPrice: null,
 
   setSelection: ({
     branchId,
@@ -39,6 +43,7 @@ export const useSchedulerSelectionStore = create<SchedulerSelectionState>((set) 
     startTime,
     endTime,
     durationMinutes = 0,
+    estimatedPrice = null,
   }) =>
     set({
       branchId: branchId ?? null,
@@ -48,7 +53,10 @@ export const useSchedulerSelectionStore = create<SchedulerSelectionState>((set) 
       startTime,
       endTime,
       durationMinutes,
+      estimatedPrice,
     }),
+
+  setEstimatedPrice: (estimatedPrice) => set({ estimatedPrice }),
 
   clearSelection: () =>
     set({
@@ -59,7 +67,9 @@ export const useSchedulerSelectionStore = create<SchedulerSelectionState>((set) 
       startTime: null,
       endTime: null,
       durationMinutes: 0,
+      estimatedPrice: null,
     }),
 }));
+
 
 export const schedulerSelectionStore = useSchedulerSelectionStore;

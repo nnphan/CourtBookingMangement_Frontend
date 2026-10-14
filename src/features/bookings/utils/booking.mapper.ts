@@ -174,6 +174,31 @@ export const formatCurrency = (amount?: number | null): string => {
   return `${new Intl.NumberFormat('vi-VN').format(numeric)} VNĐ`;
 };
 
+/**
+ * Formats time string (e.g. "16:00" -> "16:00:00") for Backend API
+ */
+export const formatTimeToApi = (time?: string | null): string => {
+  if (!time) return '';
+  const trimmed = time.trim();
+  if (/^\d{1,2}:\d{2}$/.test(trimmed)) {
+    const parts = trimmed.split(':');
+    const h = parts[0]?.padStart(2, '0');
+    const m = parts[1];
+    return `${h}:${m}:00`;
+  }
+  return trimmed;
+};
+
+/**
+ * Ensures booking date is formatted as YYYY-MM-DD for Backend API
+ */
+export const formatBookingDateToApi = (date?: string | null): string => {
+  if (!date) return '';
+  const parsed = dayjs(date);
+  return parsed.isValid() ? parsed.format('YYYY-MM-DD') : date;
+};
+
+
 export const toCreateBookingPayload = (
   values: {
     customerName: string;

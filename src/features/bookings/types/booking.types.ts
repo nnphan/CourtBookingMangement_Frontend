@@ -14,6 +14,25 @@ export interface CreateBookingRequest {
   note?: string;
 }
 
+export interface CalculateBookingPriceRequest {
+  branchId: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+}
+
+export interface CalculateBookingPriceResponse {
+  branchId: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  durationHours: number;
+  subtotalAmount: number;
+  paidAmount: number;
+  totalAmount: number;
+}
+
+
 export interface CreateBookingResponse {
   id?: string;
   bookingId?: string;

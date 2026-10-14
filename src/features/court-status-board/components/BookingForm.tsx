@@ -14,6 +14,8 @@ import {
 import type { CourtItem } from '../types/court';
 import { BOOKING_TYPE_OPTIONS } from '../constants/booking.constants';
 import type { CreateBookingSchemaType } from '@/features/bookings/schemas/create-booking.schema';
+import type { CalculateBookingPriceResponse } from '@/features/bookings/types/booking.types';
+import { BookingPriceSummary } from './BookingPriceSummary';
 
 export interface BookingFormProps {
   register: UseFormRegister<CreateBookingSchemaType>;
@@ -27,6 +29,10 @@ export interface BookingFormProps {
   isEditing?: boolean;
   formattedDisplayDate: string;
   durationDisplayText?: string;
+  pricingData?: CalculateBookingPriceResponse | null;
+  isPricingLoading?: boolean;
+  isPricingError?: boolean;
+  onRetryPricing?: () => void;
 }
 
 export const BookingForm: React.FC<BookingFormProps> = memo(
@@ -42,8 +48,13 @@ export const BookingForm: React.FC<BookingFormProps> = memo(
     isEditing = false,
     formattedDisplayDate,
     durationDisplayText,
+    pricingData,
+    isPricingLoading = false,
+    isPricingError = false,
+    onRetryPricing,
   }) => {
     const { t } = useTranslation();
+
 
     return (
       <div className="space-y-4 py-2">
@@ -234,7 +245,18 @@ export const BookingForm: React.FC<BookingFormProps> = memo(
           </div>
         )}
 
+        {/* Pricing Summary Section (Directly below duration, above booking type) */}
+        <BookingPriceSummary
+          durationHours={pricingData?.durationHours}
+          subtotalAmount={pricingData?.subtotalAmount}
+          totalAmount={pricingData?.totalAmount}
+          isLoading={isPricingLoading}
+          isError={isPricingError}
+          onRetry={onRetryPricing}
+        />
+
         {/* Booking Type */}
+
         <div className="space-y-1">
           <label htmlFor="booking-type-select" className="text-xs font-semibold text-slate-700">
             {t('courtStatus.fields.bookingType', 'Loại đặt sân')}{' '}

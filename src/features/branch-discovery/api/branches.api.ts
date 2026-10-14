@@ -540,103 +540,29 @@ export const branchesApi = {
    * Search & browse badminton clubs with filters
    */
   getBranches: async (params?: BranchSearchParams): Promise<ApiResponse<BadmintonBranch[]>> => {
-    try {
-      const res = await http.get<Record<string, unknown> | unknown[]>('/branches', { params });
-      const rawData = res.data;
-      const rawList: (Partial<BadmintonBranch> & Record<string, unknown>)[] | null = Array.isArray(
-        rawData,
-      )
-        ? (rawData as (Partial<BadmintonBranch> & Record<string, unknown>)[])
-        : typeof rawData === 'object' &&
-          rawData !== null &&
-          'data' in rawData &&
-          Array.isArray((rawData as { data: unknown }).data)
-          ? ((rawData as { data: unknown[] })
-            .data as (Partial<BadmintonBranch> & Record<string, unknown>)[])
-          : null;
+    const res = await http.get<Record<string, unknown> | unknown[]>('/branches', { params });
+    const rawData = res.data;
+    const rawList: (Partial<BadmintonBranch> & Record<string, unknown>)[] | null = Array.isArray(
+      rawData,
+    )
+      ? (rawData as (Partial<BadmintonBranch> & Record<string, unknown>)[])
+      : typeof rawData === 'object' &&
+        rawData !== null &&
+        'data' in rawData &&
+        Array.isArray((rawData as { data: unknown }).data)
+        ? ((rawData as { data: unknown[] })
+          .data as (Partial<BadmintonBranch> & Record<string, unknown>)[])
+        : null;
 
-      if (rawList && rawList.length > 0) {
-        const normalized = rawList.map(normalizeBranch);
-        return createSuccessResponse(normalized, {
-          pageNumber: params?.page ?? 1,
-          pageSize: params?.pageSize ?? 20,
-          totalCount: normalized.length,
-          totalPages: 1,
-          hasPreviousPage: false,
-          hasNextPage: false,
-        });
-      }
-
-      // If backend returns empty array or unexpected format, use rich seed dataset
-      throw new Error('Fallback to rich seed dataset');
-    } catch {
-      await mockDelay(250);
-
-      let list = [...SEED_BRANCHES];
-
-      if (params?.keyword?.trim()) {
-        const q = params.keyword.toLowerCase().trim();
-        list = list.filter(
-          (b) =>
-            b.name.toLowerCase().includes(q) ||
-            b.address.toLowerCase().includes(q) ||
-            b.district.toLowerCase().includes(q) ||
-            b.city.toLowerCase().includes(q) ||
-            b.tagline.toLowerCase().includes(q),
-        );
-      }
-
-      if (params?.district && params.district !== 'all') {
-        list = list.filter((b) => b.district.toLowerCase() === params.district?.toLowerCase());
-      }
-
-      if (params?.city && params.city !== 'all') {
-        list = list.filter((b) => b.city.toLowerCase().includes(params.city!.toLowerCase()));
-      }
-
-      if (params?.amenities && params.amenities.length > 0) {
-        list = list.filter((b) =>
-          params.amenities!.every((reqAmenity) => b.amenities.includes(reqAmenity)),
-        );
-      }
-
-      if (params?.onlyOpenNow) {
-        list = list.filter((b) => b.isOpenNow);
-      }
-
-      if (params?.courtSurface && params.courtSurface !== 'all') {
-        list = list.filter((b) => b.courts.some((c) => c.surface === params.courtSurface));
-      }
-
-      if (params?.minPrice !== undefined && params.minPrice > 0) {
-        list = list.filter((b) => b.priceRange.max >= params.minPrice!);
-      }
-
-      if (params?.maxPrice !== undefined && params.maxPrice < 500000) {
-        list = list.filter((b) => b.priceRange.min <= params.maxPrice!);
-      }
-
-      // Sort
-      const sortBy = params?.sortBy ?? 'recommended';
-      list.sort((a, b) => {
-        if (sortBy === 'rating_desc') return b.rating - a.rating;
-        if (sortBy === 'price_asc') return a.priceRange.min - b.priceRange.min;
-        if (sortBy === 'price_desc') return b.priceRange.max - a.priceRange.max;
-        if (sortBy === 'distance_asc') return (a.distanceKm ?? 99) - (b.distanceKm ?? 99);
-        if (sortBy === 'courts_desc') return b.courtsCount - a.courtsCount;
-        // recommended
-        return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0) || b.rating - a.rating;
-      });
-
-      return createSuccessResponse(list, {
-        pageNumber: params?.page ?? 1,
-        pageSize: params?.pageSize ?? 20,
-        totalCount: list.length,
-        totalPages: 1,
-        hasPreviousPage: false,
-        hasNextPage: false,
-      });
-    }
+    const normalized = (rawList ?? []).map(normalizeBranch);
+    return createSuccessResponse(normalized, {
+      pageNumber: params?.page ?? 1,
+      pageSize: params?.pageSize ?? 20,
+      totalCount: normalized.length,
+      totalPages: 1,
+      hasPreviousPage: false,
+      hasNextPage: false,
+    });
   },
 
   /**

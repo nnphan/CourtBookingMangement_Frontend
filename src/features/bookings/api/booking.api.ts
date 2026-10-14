@@ -1,5 +1,8 @@
 import { http } from '@/lib/axios';
 import type { CreateBookingRequest, CreateBookingResponse } from '../types/booking.types';
+import { calculateBookingPrice } from './booking-pricing.api';
+
+export { calculateBookingPrice } from './booking-pricing.api';
 
 export const bookingApi = {
   /**
@@ -19,4 +22,11 @@ export const bookingApi = {
 
     return body as CreateBookingResponse;
   },
+
+  /**
+   * Calculate Booking Price from Backend API
+   * POST /api/bookings/calculate-price
+   */
+  calculateBookingPrice,
 };
+
