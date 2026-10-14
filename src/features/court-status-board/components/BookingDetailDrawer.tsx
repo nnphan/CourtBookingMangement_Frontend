@@ -11,6 +11,7 @@ import type { BookingItem } from '../types/booking';
 import { useBookingDetail } from '@/features/bookings/hooks/useBookingDetail';
 import { BookingDetails } from './BookingDetails';
 import { BookingDetailSkeleton } from './BookingDetailSkeleton';
+import { BookingStatusBadge } from './BookingStatusBadge';
 import { Button } from '@/components/ui/button';
 import {
   AlertTriangle,
@@ -78,12 +79,21 @@ export const BookingDetailDrawer: React.FC<BookingDetailDrawerProps> = memo(
         <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto flex flex-col justify-between">
           <div>
             <SheetHeader className="pb-4 border-b border-slate-200">
-              <SheetTitle className="text-xl font-bold text-slate-900">
-                {t('courtStatus.detail.title', 'Chi tiết đặt sân')}
-              </SheetTitle>
-              <SheetDescription className="text-xs text-slate-500">
-                {t('courtStatus.detail.subtitle', 'Thông tin lịch đặt sân và trạng thái thanh toán')}
-              </SheetDescription>
+              <div className="flex items-start justify-between gap-3 pr-6">
+                <div>
+                  <SheetTitle className="text-xl font-bold text-slate-900">
+                    {t('courtStatus.detail.title', 'Chi tiết đặt sân')}
+                  </SheetTitle>
+                  <SheetDescription className="text-xs text-slate-500 mt-0.5">
+                    {t('courtStatus.detail.subtitle', 'Thông tin lịch đặt sân và trạng thái thanh toán')}
+                  </SheetDescription>
+                </div>
+                {bookingDetail && (
+                  <div className="pt-0.5 shrink-0">
+                    <BookingStatusBadge status={bookingDetail.bookingStatus} size="sm" />
+                  </div>
+                )}
+              </div>
             </SheetHeader>
 
             <div className="py-2">

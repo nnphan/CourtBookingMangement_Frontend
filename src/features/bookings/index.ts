@@ -8,3 +8,4 @@ export * from './hooks/useCreateBooking';
 export * from './hooks/useBookingDetail';
 export * from './services/booking.service';
 export * from './utils/booking.mapper';
+export * from './utils/booking-status.utils';

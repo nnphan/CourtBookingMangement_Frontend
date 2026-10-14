@@ -10,11 +10,10 @@ import {
   CreditCard,
   FileText,
   Hourglass,
-  BadgeCheck,
+  Activity,
 } from 'lucide-react';
 import type { BookingDetailDto } from '@/features/bookings/types/booking.types';
 import {
-  mapBookingStatus,
   mapBookingTypeToLabel,
   mapPaymentMethod,
   mapPaymentStatus,
@@ -23,6 +22,7 @@ import {
   calculateBookingDuration,
   formatCurrency,
 } from '@/features/bookings/utils/booking.mapper';
+import { BookingStatusBadge } from './BookingStatusBadge';
 import { cn } from '@/lib/utils';
 
 interface BookingDetailsProps {
@@ -32,7 +32,6 @@ interface BookingDetailsProps {
 export const BookingDetails: React.FC<BookingDetailsProps> = memo(({ booking }) => {
   const { t } = useTranslation();
 
-  const statusConfig = mapBookingStatus(booking.bookingStatus);
   const paymentStatusConfig = mapPaymentStatus(booking.paymentStatus);
   const formattedDate = formatBookingDate(booking.bookingDate);
   const startTime = formatBookingTime(booking.startTime);
@@ -53,15 +52,7 @@ export const BookingDetails: React.FC<BookingDetailsProps> = memo(({ booking }) 
             {booking.bookingCode || booking.bookingId}
           </div>
         </div>
-        <span
-          className={cn(
-            'px-2.5 py-1 rounded-full text-xs font-semibold border shadow-2xs flex items-center gap-1.5',
-            statusConfig.badgeClass,
-          )}
-        >
-          <BadgeCheck className="size-3.5" />
-          {statusConfig.label}
-        </span>
+        <BookingStatusBadge status={booking.bookingStatus} size="md" />
       </div>
 
       {/* Customer Information Section */}
@@ -146,6 +137,18 @@ export const BookingDetails: React.FC<BookingDetailsProps> = memo(({ booking }) 
           <span className="font-bold text-slate-900 bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-md">
             {bookingTypeLabel}
           </span>
+        </div>
+      </div>
+
+      {/* Booking Status Section */}
+      <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-2 shadow-2xs">
+        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+          <Activity className="size-3.5 text-blue-600" />
+          {t('courtStatus.detail.bookingStatusSection', 'Trạng thái đặt sân')}
+        </h4>
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-slate-500">Tình trạng:</span>
+          <BookingStatusBadge status={booking.bookingStatus} size="md" />
         </div>
       </div>
 

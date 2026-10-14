@@ -449,9 +449,9 @@ export const normalizeBranch = (
       : typeof raw.coverImage === 'string'
         ? [raw.coverImage]
         : [
-            'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=1200&auto=format&fit=crop',
-            'https://images.unsplash.com/photo-1613918108466-292b78a8ef95?q=80&w=1200&auto=format&fit=crop',
-          ];
+          'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=1200&auto=format&fit=crop',
+          'https://images.unsplash.com/photo-1613918108466-292b78a8ef95?q=80&w=1200&auto=format&fit=crop',
+        ];
 
   return {
     id: String(raw.id ?? `branch-${Math.random().toString(36).slice(2, 7)}`),
@@ -459,8 +459,8 @@ export const normalizeBranch = (
       typeof raw.slug === 'string'
         ? raw.slug
         : String(raw.name ?? 'club')
-            .toLowerCase()
-            .replace(/\s+/g, '-'),
+          .toLowerCase()
+          .replace(/\s+/g, '-'),
     name: typeof raw.name === 'string' ? raw.name : 'Câu lạc bộ cầu lông ALOBO',
     tagline:
       typeof raw.tagline === 'string'
@@ -511,27 +511,27 @@ export const normalizeBranch = (
       Array.isArray(raw.courts) && raw.courts.length > 0
         ? (raw.courts as BranchCourtSummary[])
         : [
-            {
-              id: `${raw.id || 'b'}-c1`,
-              name: 'Sân 1 (VIP)',
-              surface: 'bwf_mat',
-              surfaceLabel: 'Thảm Yonex BWF Pro',
-              category: 'vip',
-              pricePerHour: maxPrice,
-              isAvailableNow: true,
-              availableSlotCount: 6,
-            },
-            {
-              id: `${raw.id || 'b'}-c2`,
-              name: 'Sân 2',
-              surface: 'bwf_mat',
-              surfaceLabel: 'Thảm tiêu chuẩn BWF',
-              category: 'standard',
-              pricePerHour: minPrice,
-              isAvailableNow: true,
-              availableSlotCount: 8,
-            },
-          ],
+          {
+            id: `${raw.id || 'b'}-c1`,
+            name: 'Sân 1 (VIP)',
+            surface: 'bwf_mat',
+            surfaceLabel: 'Thảm Yonex BWF Pro',
+            category: 'vip',
+            pricePerHour: maxPrice,
+            isAvailableNow: true,
+            availableSlotCount: 6,
+          },
+          {
+            id: `${raw.id || 'b'}-c2`,
+            name: 'Sân 2',
+            surface: 'bwf_mat',
+            surfaceLabel: 'Thảm tiêu chuẩn BWF',
+            category: 'standard',
+            pricePerHour: minPrice,
+            isAvailableNow: true,
+            availableSlotCount: 8,
+          },
+        ],
   };
 };
 
@@ -548,11 +548,11 @@ export const branchesApi = {
       )
         ? (rawData as (Partial<BadmintonBranch> & Record<string, unknown>)[])
         : typeof rawData === 'object' &&
-            rawData !== null &&
-            'data' in rawData &&
-            Array.isArray((rawData as { data: unknown }).data)
+          rawData !== null &&
+          'data' in rawData &&
+          Array.isArray((rawData as { data: unknown }).data)
           ? ((rawData as { data: unknown[] })
-              .data as (Partial<BadmintonBranch> & Record<string, unknown>)[])
+            .data as (Partial<BadmintonBranch> & Record<string, unknown>)[])
           : null;
 
       if (rawList && rawList.length > 0) {
@@ -671,7 +671,7 @@ export const branchesApi = {
       const result: BranchBookingResult = {
         bookingId: `res-${Date.now()}`,
         bookingCode,
-        status: 'confirmed',
+        status: 'CONFIRMED',
         branchName: booking.branchName,
         courtName: booking.courtName,
         bookingTime: `${booking.date} (${booking.startTime} - ${booking.endTime})`,

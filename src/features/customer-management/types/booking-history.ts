@@ -1,6 +1,6 @@
-export type BookingHistoryStatus = 'confirmed' | 'pending' | 'completed' | 'cancelled';
+export type BookingHistoryStatus = 'CONFIRMED' | 'PENDING' | 'CHECKED-IN' | 'CANCELLED';
 
-export type PaymentHistoryStatus = 'paid' | 'unpaid' | 'deposit_pending' | 'partially_paid';
+export type PaymentHistoryStatus = 'PAID' | 'UNPAID' | 'DEPOSIT_PENDING' | 'PARTIALLY_PAID';
 
 export interface CustomerBookingHistory {
   id: string;

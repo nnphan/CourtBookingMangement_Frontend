@@ -55,6 +55,8 @@ export interface SchedulerBookingContext {
   endTime: string;
 }
 
+export type BookingStatusValue = 'PENDING' | 'CHECKED_IN' | 'COMPLETED' | string;
+
 export interface BookingDetailDto {
   bookingId: string;
   bookingCode: string;
@@ -66,7 +68,7 @@ export interface BookingDetailDto {
   endTime: string;
   bookingType: string;
   paymentMethod: string;
-  bookingStatus: string;
+  bookingStatus: BookingStatusValue;
   paymentStatus: string;
   totalAmount: number;
   paidAmount: number;

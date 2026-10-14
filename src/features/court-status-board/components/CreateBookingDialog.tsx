@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import type { CourtItem } from '../types/court';
-import type { BookingItem, PaymentStatus } from '../types/booking';
+import { BookingType, type BookingItem, type PaymentStatus } from '../types/booking';
 import { SchedulerService } from '../services/scheduler.service';
 import { useCourtStatusStore } from '../store/court-status.store';
 import { schedulerSelectionStore } from '../store/scheduler-selection.store';
@@ -255,7 +255,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
           date: values.bookingDate,
           startTime: values.startTime,
           endTime: values.endTime,
-          bookingType: values.bookingType === 'FIXED' ? 'FIXED' : 'FLEXIBLE',
+          bookingType: values.bookingType === 'FIXED' ? BookingType.FIXED : BookingType.FLEXIBLE,
           notes: values.note,
           paymentStatus: (editingBooking?.paymentStatus ?? 'unpaid') as PaymentStatus,
         };
@@ -298,7 +298,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
             date: values.bookingDate,
             startTime: values.startTime,
             endTime: values.endTime,
-            bookingType: values.bookingType === 'FIXED' ? 'FIXED' : 'FLEXIBLE',
+            bookingType: values.bookingType === 'FIXED' ? BookingType.FIXED : BookingType.FLEXIBLE,
             notes: values.note,
           });
         }

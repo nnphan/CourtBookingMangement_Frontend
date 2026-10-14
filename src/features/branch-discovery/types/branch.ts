@@ -126,7 +126,7 @@ export interface BranchBookingRequest {
 export interface BranchBookingResult {
   bookingId: string;
   bookingCode: string;
-  status: 'confirmed' | 'pending';
+  status: 'CONFIRMED' | 'PENDING' | 'CHECKED-IN' | 'CANCELLED';
   branchName: string;
   courtName: string;
   bookingTime: string;
