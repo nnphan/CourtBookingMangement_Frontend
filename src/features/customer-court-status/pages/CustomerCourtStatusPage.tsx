@@ -16,7 +16,6 @@ import { CustomerCourtStatusSkeleton } from '../components/CustomerCourtStatusSk
 import { CustomerCourtStatusEmpty } from '../components/CustomerCourtStatusEmpty';
 import { CustomerCourtStatusError } from '../components/CustomerCourtStatusError';
 import { CustomerDatePickerDialog } from '../components/CustomerDatePickerDialog';
-import { BookingDetailDrawer } from '@/features/court-status-board/components/BookingDetailDrawer';
 import type { CourtSelection } from '@/features/court-status/utils/time-selection.utils';
 import type { BookingSelection } from '@/features/bookings/types/booking.types';
 import { useCourtSelectionStore } from '@/features/court-status/store/court-selection.store';
@@ -122,10 +121,6 @@ export const CustomerCourtStatusPage: React.FC = () => {
     }
   }, [activeBranchId, branches, setSelectedBranchId]);
 
-  // Booking Detail Drawer State
-  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
-  const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState<boolean>(false);
-
   // Date Picker Dialog State
   const [isDatePickerOpen, setIsDatePickerOpen] = useState<boolean>(false);
 
@@ -171,18 +166,6 @@ export const CustomerCourtStatusPage: React.FC = () => {
     },
     [navigate, selectedDate, setSelectedBranchId],
   );
-
-  // Open booking detail drawer when booking card is clicked
-  const handleSelectBooking = useCallback((bookingId: string) => {
-    setSelectedBookingId(bookingId);
-    setIsDetailDrawerOpen(true);
-  }, []);
-
-  // Handle booking cancellation inside drawer with automatic query invalidation
-  const handleCancelBooking = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ['court-status'] });
-    setIsDetailDrawerOpen(false);
-  }, [queryClient]);
 
   // Handle confirming multi-cell selection from CourtStatusBoard
   const handleConfirmSelection = useCallback(
@@ -241,10 +224,19 @@ export const CustomerCourtStatusPage: React.FC = () => {
     if (!bookingSelection) setIsCreateBookingOpen(false);
   }, [bookingSelection]);
 
+  const invalidateCourtStatus = useCallback(() => {
+    if (!activeBranchId) return;
+    void queryClient.invalidateQueries({
+      queryKey: ['court-status', activeBranchId, selectedDate],
+      exact: true,
+    });
+  }, [activeBranchId, queryClient, selectedDate]);
+
   const handleBookingCreated = useCallback(() => {
     useCourtSelectionStore.getState().clearSelection();
     setIsCreateBookingOpen(false);
-  }, []);
+    invalidateCourtStatus();
+  }, [invalidateCourtStatus]);
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-[#0d6838] text-white">
@@ -314,7 +306,6 @@ export const CustomerCourtStatusPage: React.FC = () => {
               selectedBranchId={activeBranchId}
               zoomLevel={zoomLevel}
               onZoomChange={setZoomLevel}
-              onSelectBooking={handleSelectBooking}
               onConfirmSelection={handleConfirmSelection}
             />
           </div>
@@ -333,18 +324,7 @@ export const CustomerCourtStatusPage: React.FC = () => {
         mode="CUSTOMER"
         initialSelection={bookingSelection}
         onBookingCreated={handleBookingCreated}
-        onBookingConflict={handleBookingCreated}
-      />
-
-      {/* Booking Detail Drawer (Sheet) */}
-      <BookingDetailDrawer
-        bookingId={selectedBookingId}
-        isOpen={isDetailDrawerOpen}
-        onClose={() => {
-          setIsDetailDrawerOpen(false);
-          setSelectedBookingId(null);
-        }}
-        onCancel={handleCancelBooking}
+        onBookingConflict={invalidateCourtStatus}
       />
 
       {/* Vietnamese Date Picker Dialog */}

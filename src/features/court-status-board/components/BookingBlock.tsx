@@ -4,6 +4,7 @@ import { getStatusConfig } from '../constants/booking-status';
 import { BookingTooltip } from './BookingTooltip';
 import { BookingContextMenu } from './BookingContextMenu';
 import { cn } from '@/lib/utils';
+import { CourtStatusBookingFrame } from '@/features/court-status/shared/components/CourtStatusBookingFrame';
 
 interface ExtendedBookingBlockProps extends BookingBlockProps {
   fullBooking: BookingItem;
@@ -92,25 +93,27 @@ export const BookingBlock: React.FC<ExtendedBookingBlockProps> = memo(
       >
         <div>
           <BookingTooltip booking={fullBooking}>
-            <div
+            <CourtStatusBookingFrame
               role="button"
               tabIndex={0}
-              aria-label={`Lịch đặt sân: ${customerName}, ${phoneNumber}, ${fullBooking.startTime} đến ${fullBooking.endTime}`}
+              ariaLabel={`Lịch đặt sân: ${customerName}, ${phoneNumber}, ${fullBooking.startTime} đến ${fullBooking.endTime}`}
               onClick={handleClick}
               onDoubleClick={handleDoubleClick}
               onKeyDown={handleKeyDown}
-              style={{
-                position: 'absolute',
-                left: `${left + 1}px`,
-                width: `${width - 2}px`,
-                height: `${height - 2}px`,
-                top: '1px',
-                backgroundColor: (fullBooking as unknown as { color?: string })?.color || statusCfg.color,
-                color: (fullBooking as unknown as { color?: string })?.color ? '#1e293b' : statusCfg.textColor,
-              }}
+              left={left + 1}
+              width={width - 2}
+              height={height - 2}
+              backgroundColor={
+                (fullBooking as unknown as { color?: string })?.color || statusCfg.color
+              }
+              color={
+                (fullBooking as unknown as { color?: string })?.color
+                  ? '#1e293b'
+                  : statusCfg.textColor
+              }
               className={cn(
-                'group z-10 flex cursor-pointer select-none items-center justify-center overflow-visible rounded-xs px-2 text-center text-xs font-semibold shadow-xs transition-all',
-                'hover:brightness-95 hover:shadow-md focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-1',
+                'cursor-pointer overflow-visible',
+                'hover:shadow-md hover:brightness-95 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-1',
               )}
             >
               {/* Unpaid Red Ribbon Badge on Top-Left (Exact match to screenshot) */}
@@ -119,7 +122,7 @@ export const BookingBlock: React.FC<ExtendedBookingBlockProps> = memo(
                   className="absolute -top-0.5 left-0 z-20 flex items-center shadow-xs"
                   title="Chưa thanh toán"
                 >
-                  <span className="relative top-[1px] rounded-xs bg-[#e53935] px-1 py-0.2 text-[9px] font-bold text-white tracking-tighter uppercase whitespace-nowrap">
+                  <span className="py-0.2 relative top-[1px] rounded-xs bg-[#e53935] px-1 text-[9px] font-bold tracking-tighter whitespace-nowrap text-white uppercase">
                     {unpaidBadgeText}
                   </span>
                 </div>
@@ -136,7 +139,7 @@ export const BookingBlock: React.FC<ExtendedBookingBlockProps> = memo(
                   </>
                 )}
               </div>
-            </div>
+            </CourtStatusBookingFrame>
           </BookingTooltip>
         </div>
       </BookingContextMenu>

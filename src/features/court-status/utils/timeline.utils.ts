@@ -17,22 +17,21 @@ export const timeToMinutes = (timeStr: string): number => {
 };
 
 /**
- * Generate an array of hourly labels from openTime to closeTime dynamically.
- * e.g. openTime = '05:00:00', closeTime = '23:00:00' -> ['05:00', '06:00', ..., '23:00']
+ * Generate hourly slot starts from openTime up to, but not including, closeTime.
+ * e.g. openTime = '05:00:00', closeTime = '23:00:00' -> ['05:00', '06:00', ..., '22:00']
  */
 export const generateTimelineHours = (openTime: string, closeTime: string): string[] => {
   const { hour: startHour } = parseHourMinute(openTime || '05:00:00');
-  const { hour: endHour, minute: endMinute } = parseHourMinute(closeTime || '23:00:00');
-
-  // If closing at 23:30, include 23:00 and 24:00/00:00
-  const effectiveEndHour = endMinute > 0 ? endHour + 1 : endHour;
+  const endMinutes = timeToMinutes(closeTime || '23:00:00');
   const hours: string[] = [];
 
-  for (let h = startHour; h <= effectiveEndHour && h <= 24; h++) {
+  for (let h = startHour; h * 60 < endMinutes && h < 24; h++) {
     hours.push(`${String(h).padStart(2, '0')}:00`);
   }
 
-  return hours.length > 0 ? hours : ['05:00', '06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00'];
+  return hours.length > 0
+    ? hours
+    : Array.from({ length: 18 }, (_, index) => `${String(index + 5).padStart(2, '0')}:00`);
 };
 
 /**

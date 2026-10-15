@@ -1,10 +1,13 @@
 import React, { memo } from 'react';
+import { CourtStatusTimelineHeader } from '@/features/court-status/shared/components/CourtStatusTimelineHeader';
 
 export interface CourtTimelineProps {
   timelineHours: string[];
   hourWidth: number;
   courtColumnWidth: number;
   courtCount: number;
+  closeTime: string;
+  timelineWidth: number;
   currentTimeOffsetPx?: number | null;
   currentTimeLabel?: string;
 }
@@ -15,48 +18,39 @@ export const CourtTimeline: React.FC<CourtTimelineProps> = memo(
     hourWidth,
     courtColumnWidth,
     courtCount,
+    closeTime,
+    timelineWidth,
     currentTimeOffsetPx = null,
     currentTimeLabel = '',
   }) => {
+    const gridWidth = Math.round(timelineHours.length * hourWidth);
     return (
-      <div className="sticky top-0 z-30 flex h-11 border-b border-slate-200 bg-slate-100/95 backdrop-blur-md shadow-2xs select-none">
-        {/* Sticky Court Column Header */}
-        <div
-          style={{ width: `${courtColumnWidth}px` }}
-          className="sticky left-0 z-40 flex shrink-0 items-center justify-between border-r border-slate-200 bg-slate-200/95 px-3 font-bold text-xs text-slate-800 backdrop-blur-md shadow-xs"
-        >
-          <span>Sân</span>
-          <span className="text-[10px] text-slate-500 font-semibold bg-white/60 px-1.5 py-0.5 rounded-full">
-            {courtCount}
-          </span>
-        </div>
-
-        {/* Dynamic Timeline Columns */}
-        <div className="relative flex flex-1">
-          {timelineHours.map((hour) => (
-            <div
-              key={hour}
-              style={{ width: `${hourWidth}px` }}
-              className="flex shrink-0 items-center justify-center border-r border-slate-200/70 text-xs font-semibold text-slate-700"
-            >
-              <span>{hour}</span>
-            </div>
-          ))}
-
-          {/* Current Time Indicator Pointer in Header */}
-          {currentTimeOffsetPx !== null && (
-            <div
-              style={{ left: `${currentTimeOffsetPx}px` }}
-              className="absolute top-0 bottom-0 z-50 flex -translate-x-1/2 flex-col items-center pointer-events-none"
-            >
-              <span className="rounded bg-rose-600 px-1.5 py-0.5 text-[10px] font-bold text-white shadow-xs">
-                {currentTimeLabel || 'Hiện tại'}
-              </span>
-              <div className="size-1.5 rotate-45 bg-rose-600 -mt-0.5" />
-            </div>
-          )}
-        </div>
-      </div>
+      <CourtStatusTimelineHeader
+        courtColumnWidth={courtColumnWidth}
+        timelineWidth={timelineWidth}
+        gridWidth={gridWidth}
+        boundaries={timelineHours.map((hour, index) => ({
+          key: hour,
+          offsetPx: index * hourWidth,
+          isMajor: true,
+        }))}
+        labels={timelineHours.map((hour, index) => ({
+          key: hour,
+          offsetPx: index * hourWidth,
+          label: hour,
+        }))}
+        closeTime={closeTime}
+        currentTimeOffsetPx={currentTimeOffsetPx}
+        currentTimeLabel={currentTimeLabel || 'Hiện tại'}
+        cornerContent={
+          <>
+            <span className="text-xs font-bold text-slate-800">Sân</span>
+            <span className="rounded-full bg-white/60 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
+              {courtCount}
+            </span>
+          </>
+        }
+      />
     );
   },
 );

@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import type { CourtItem } from '../types/court';
 import { SCHEDULER_CONFIG } from '../constants/scheduler';
+import { CourtStatusCourtNameCell } from '@/features/court-status/shared/components/CourtStatusCourtNameCell';
 
 interface CourtColumnProps {
   courts: CourtItem[];
@@ -14,7 +15,7 @@ export const CourtColumn: React.FC<CourtColumnProps> = memo(
     return (
       <div
         style={{ width: `${SCHEDULER_CONFIG.TOTAL_LEFT_COLUMN_WIDTH}px` }}
-        className="sticky left-0 z-20 flex shrink-0 select-none border-r border-[#c8ded2] bg-[#f4faf6]"
+        className="sticky left-0 z-20 flex shrink-0 border-r border-[#c8ded2] bg-[#f4faf6] select-none"
       >
         {/* Far Left Date Indicator: e.g. "Thứ 7 15/08" spanning vertical height */}
         <div
@@ -22,7 +23,7 @@ export const CourtColumn: React.FC<CourtColumnProps> = memo(
           className="sticky top-[42px] flex shrink-0 flex-col items-center justify-center border-r border-[#c8ded2] bg-[#e4f3eb] p-1 text-center text-xs font-semibold text-slate-700"
         >
           <span className="leading-tight">{dateLabel.dayOfWeek}</span>
-          <span className="text-[11px] text-slate-500 font-medium">{dateLabel.formattedDate}</span>
+          <span className="text-[11px] font-medium text-slate-500">{dateLabel.formattedDate}</span>
         </div>
 
         {/* Court Names column (virtualized items) */}
@@ -39,9 +40,8 @@ export const CourtColumn: React.FC<CourtColumnProps> = memo(
             if (!court) return null;
 
             return (
-              <div
+              <CourtStatusCourtNameCell
                 key={court.id}
-                role="rowheader"
                 style={{
                   position: 'absolute',
                   top: 0,
@@ -50,10 +50,10 @@ export const CourtColumn: React.FC<CourtColumnProps> = memo(
                   height: `${virtualRow.size}px`,
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
-                className="flex items-center justify-center border-b border-[#d7e9df] px-2 text-xs font-semibold text-slate-800 transition-colors hover:bg-[#e4f3eb]"
+                className="border-b border-[#d7e9df] transition-colors hover:bg-[#e4f3eb]"
               >
                 <span className="truncate">{court.name}</span>
-              </div>
+              </CourtStatusCourtNameCell>
             );
           })}
         </div>

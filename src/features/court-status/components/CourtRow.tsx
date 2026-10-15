@@ -2,9 +2,11 @@ import React, { memo, useMemo } from 'react';
 import type { CourtStatusCourtDto, CourtScheduleItemDto } from '../types/court-status.types';
 import { getCourtStatusInfo } from '../types/court-status.types';
 import { isPastSlot, isBookedSlot } from '../utils/time-selection.utils';
-import { BookingCard } from './BookingCard';
 import { TimeSlotCell } from './TimeSlotCell';
 import { cn } from '@/lib/utils';
+import { CourtStatusCourtNameCell } from '@/features/court-status/shared/components/CourtStatusCourtNameCell';
+import { CourtStatusBookingFrame } from '@/features/court-status/shared/components/CourtStatusBookingFrame';
+import { calculateBookingDimensions } from '../utils/timeline.utils';
 
 export interface CourtRowProps {
   court: CourtStatusCourtDto;
@@ -15,7 +17,6 @@ export interface CourtRowProps {
   rowHeight?: number;
   courtColumnWidth: number;
   selectedDate: string;
-  onSelectBooking?: (bookingId: string, item: CourtScheduleItemDto) => void;
   onMouseDown?: (court: CourtStatusCourtDto, hour: string, e: React.MouseEvent) => void;
   onMouseEnter?: (court: CourtStatusCourtDto, hour: string) => void;
   onMouseUp?: () => void;
@@ -34,7 +35,6 @@ export const CourtRow: React.FC<CourtRowProps> = memo(
     rowHeight = 48,
     courtColumnWidth,
     selectedDate,
-    onSelectBooking,
     onMouseDown,
     onMouseEnter,
     onMouseUp,
@@ -55,8 +55,7 @@ export const CourtRow: React.FC<CourtRowProps> = memo(
         className="group/row relative flex border-b border-slate-200/90 bg-white transition-colors select-none hover:bg-slate-50/50"
       >
         {/* Left Sticky Court Cell */}
-        <div
-          role="rowheader"
+        <CourtStatusCourtNameCell
           style={{ width: `${courtColumnWidth}px` }}
           className={cn(
             'sticky left-0 z-20 flex shrink-0 items-center justify-between border-r border-slate-200 bg-[#f7faf8] px-3 py-2 text-xs shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)] backdrop-blur-xs select-none',
@@ -78,7 +77,7 @@ export const CourtRow: React.FC<CourtRowProps> = memo(
             className={cn('size-2 shrink-0 rounded-full shadow-2xs', statusInfo.dotClass)}
             title={`${court.courtName}: ${statusInfo.label}`}
           />
-        </div>
+        </CourtStatusCourtNameCell>
 
         {/* Timeline Grid Cells Container with Bookings Layer */}
         <div
@@ -111,17 +110,38 @@ export const CourtRow: React.FC<CourtRowProps> = memo(
 
           {/* Render Booking Cards Layer */}
           <div className="pointer-events-none absolute inset-0 z-10">
-            {bookings.map((booking) => (
-              <div key={booking.bookingId} className="pointer-events-auto">
-                <BookingCard
-                  item={booking}
-                  openTime={openTime}
-                  hourWidth={hourWidth}
-                  rowHeight={rowHeight}
-                  onClick={onSelectBooking}
-                />
-              </div>
-            ))}
+            {bookings.map((booking) => {
+              const { left, width } = calculateBookingDimensions(
+                booking.startTime,
+                booking.endTime,
+                openTime,
+                hourWidth,
+              );
+              const normalizedType = (booking.bookingType || '').toLowerCase();
+              const label = normalizedType.includes('maintenance')
+                ? 'Bảo trì'
+                : normalizedType.includes('event')
+                  ? 'Sự kiện'
+                  : 'Đã đặt';
+              const color =
+                label === 'Bảo trì' ? '#f59e0b' : label === 'Sự kiện' ? '#0d9488' : '#64748b';
+
+              return (
+                <CourtStatusBookingFrame
+                  key={booking.bookingId}
+                  left={left + 2}
+                  width={Math.max(32, width - 4)}
+                  height={rowHeight - 6}
+                  backgroundColor={color}
+                  color="#ffffff"
+                  role="gridcell"
+                  ariaLabel={`${court.courtName}, ${booking.startTime} đến ${booking.endTime}, ${label}`}
+                  className="pointer-events-auto cursor-default rounded-md border border-black/10 px-1.5 text-[11px] hover:brightness-95 sm:text-xs"
+                >
+                  <span className="truncate">{label}</span>
+                </CourtStatusBookingFrame>
+              );
+            })}
           </div>
         </div>
       </div>

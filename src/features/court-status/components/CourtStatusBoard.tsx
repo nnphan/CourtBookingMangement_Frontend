@@ -3,6 +3,7 @@ import type { CourtStatusCourtDto, CourtScheduleItemDto } from '../types/court-s
 import { generateTimelineHours, calculateCurrentTimeIndicator } from '../utils/timeline.utils';
 import type { CourtSelection } from '../utils/time-selection.utils';
 import { useCourtSelectionStore } from '../store/court-selection.store';
+import { useSchedulerDimensions } from '@/features/customer-court-status/hooks/useSchedulerDimensions';
 import { CourtTimeline } from './CourtTimeline';
 import { CourtRow } from './CourtRow';
 import { CourtSelectionBar } from './CourtSelectionBar';
@@ -26,7 +27,6 @@ export interface CourtStatusBoardProps {
   selectedBranchId?: string;
   zoomLevel?: number;
   onZoomChange?: (zoom: number) => void;
-  onSelectBooking?: (bookingId: string, item: CourtScheduleItemDto) => void;
   onConfirmSelection?: (selection: CourtSelection) => void;
 }
 
@@ -37,8 +37,7 @@ interface SelectionInteraction {
   didDrag: boolean;
 }
 
-const BASE_HOUR_WIDTH = 100;
-const COURT_COLUMN_WIDTH = 110;
+const COURT_COLUMN_WIDTH = 140;
 const ROW_HEIGHT = 48;
 
 export const CourtStatusBoard: React.FC<CourtStatusBoardProps> = memo(
@@ -51,11 +50,23 @@ export const CourtStatusBoard: React.FC<CourtStatusBoardProps> = memo(
     selectedBranchId,
     zoomLevel = 1.0,
     onZoomChange,
-    onSelectBooking,
     onConfirmSelection,
   }) => {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [tick, setTick] = useState<number>(() => Date.now());
+    const {
+      slotWidth: hourWidth,
+      timelineWidth,
+      openTime: normalizedOpenTime,
+      closeTime: normalizedCloseTime,
+    } = useSchedulerDimensions({
+      containerRef: scrollContainerRef,
+      openTime,
+      closeTime,
+      slotInterval: 60,
+      courtColumnWidth: COURT_COLUMN_WIDTH,
+      zoomLevel,
+    });
 
     // Zustand Court Selection Store
     const selection = useCourtSelectionStore((s) => s.selection);
@@ -105,19 +116,8 @@ export const CourtStatusBoard: React.FC<CourtStatusBoardProps> = memo(
 
     // 1. Dynamic Timeline Generation from openTime and closeTime
     const timelineHours = useMemo(
-      () => generateTimelineHours(openTime, closeTime),
-      [openTime, closeTime],
-    );
-
-    // 2. Scaled hour width derived from zoom level
-    const hourWidth = useMemo(
-      () => Math.max(70, Math.round(BASE_HOUR_WIDTH * zoomLevel)),
-      [zoomLevel],
-    );
-
-    const totalTimelineWidth = useMemo(
-      () => timelineHours.length * hourWidth,
-      [timelineHours.length, hourWidth],
+      () => generateTimelineHours(normalizedOpenTime, normalizedCloseTime),
+      [normalizedOpenTime, normalizedCloseTime],
     );
 
     // 3. Group scheduleItems by courtId for O(1) row access
@@ -158,8 +158,13 @@ export const CourtStatusBoard: React.FC<CourtStatusBoardProps> = memo(
     // 4. Current Time Vertical Red Indicator Line
     const { offsetPx: currentTimeOffsetPx, label: currentTimeLabel } = useMemo(() => {
       void tick;
-      return calculateCurrentTimeIndicator(openTime, closeTime, hourWidth, selectedDate);
-    }, [openTime, closeTime, hourWidth, selectedDate, tick]);
+      return calculateCurrentTimeIndicator(
+        normalizedOpenTime,
+        normalizedCloseTime,
+        hourWidth,
+        selectedDate,
+      );
+    }, [normalizedOpenTime, normalizedCloseTime, hourWidth, selectedDate, tick]);
 
     // Global mouseup & touchend & keydown (Escape) listener
     useEffect(() => {
@@ -354,7 +359,7 @@ export const CourtStatusBoard: React.FC<CourtStatusBoardProps> = memo(
         >
           <div
             style={{
-              width: `${COURT_COLUMN_WIDTH + totalTimelineWidth}px`,
+              width: `${COURT_COLUMN_WIDTH + timelineWidth}px`,
               minWidth: '100%',
             }}
           >
@@ -364,6 +369,8 @@ export const CourtStatusBoard: React.FC<CourtStatusBoardProps> = memo(
               hourWidth={hourWidth}
               courtColumnWidth={COURT_COLUMN_WIDTH}
               courtCount={courts.length}
+              closeTime={normalizedCloseTime}
+              timelineWidth={timelineWidth}
               currentTimeOffsetPx={currentTimeOffsetPx}
               currentTimeLabel={currentTimeLabel}
             />
@@ -376,12 +383,11 @@ export const CourtStatusBoard: React.FC<CourtStatusBoardProps> = memo(
                   court={court}
                   bookings={bookingsByCourtId.get(court.courtId) ?? []}
                   timelineHours={timelineHours}
-                  openTime={openTime}
+                  openTime={normalizedOpenTime}
                   hourWidth={hourWidth}
                   rowHeight={ROW_HEIGHT}
                   courtColumnWidth={COURT_COLUMN_WIDTH}
                   selectedDate={selectedDate}
-                  onSelectBooking={onSelectBooking}
                   onMouseDown={handleCellMouseDown}
                   onMouseEnter={handleCellMouseEnter}
                   onMouseUp={handleCellMouseUp}
