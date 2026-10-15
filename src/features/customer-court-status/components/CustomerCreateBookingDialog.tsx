@@ -79,8 +79,14 @@ export const CustomerCreateBookingDialog: React.FC<CustomerCreateBookingDialogPr
       branchId: selectedBranchId,
       courtId: activeSelection.courtId,
       bookingDate: selectedDate,
-      startTime: activeSelection.startTime,
-      endTime: activeSelection.endTime,
+      startTime:
+        activeSelection.startTime.length === 5
+          ? `${activeSelection.startTime}:00`
+          : activeSelection.startTime,
+      endTime:
+        activeSelection.endTime.length === 5
+          ? `${activeSelection.endTime}:00`
+          : activeSelection.endTime,
       customerName: values.customerName.trim(),
       phoneNumber: values.phoneNumber.trim(),
       note: values.note?.trim() || '',

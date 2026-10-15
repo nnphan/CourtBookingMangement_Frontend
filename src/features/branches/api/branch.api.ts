@@ -21,27 +21,27 @@ export const getBranches = async (
   params: BranchSearchRequest,
 ): Promise<BranchSearchResponse> => {
   const pageNumber = params.pageNumber ?? 1;
-  const pageSize = params.pageSize ?? 12;
+  const pageSize = params.pageSize ?? 9;
 
   const queryParams: Record<string, unknown> = {
-    PageNumber: pageNumber,
-    PageSize: pageSize,
+    pageNumber,
+    pageSize,
   };
 
   if (params.keyword?.trim()) {
-    queryParams.Keyword = params.keyword.trim();
+    queryParams.keyword = params.keyword.trim();
   }
   if (params.city && params.city !== 'all') {
-    queryParams.City = params.city.trim();
+    queryParams.city = params.city.trim();
   }
   if (params.district && params.district !== 'all') {
-    queryParams.District = params.district.trim();
+    queryParams.district = params.district.trim();
   }
   if (params.isActive !== undefined) {
-    queryParams.IsActive = params.isActive;
+    queryParams.isActive = params.isActive;
   } else {
     // Branch Status Protection: Display only active branches
-    queryParams.IsActive = true;
+    queryParams.isActive = true;
   }
 
   const response = await http.get<ApiResponseWrapper<BranchListItemDto[]> | BranchListItemDto[]>(

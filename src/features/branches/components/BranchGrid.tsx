@@ -4,6 +4,8 @@ import type { BranchListItemDto } from '../types/branch.types';
 import { HomeBranchCard } from './HomeBranchCard';
 import { HomeBranchCardSkeleton } from './HomeBranchCardSkeleton';
 
+export { HomeBranchCardSkeleton as BranchCardSkeleton } from './HomeBranchCardSkeleton';
+
 export interface BranchGridProps {
   branches: BranchListItemDto[];
   isLoading: boolean;
@@ -11,6 +13,7 @@ export interface BranchGridProps {
   errorMessage?: string;
   onRetry?: () => void;
   onClearFilters?: () => void;
+  onQuickView?: (branchId: string) => void;
 }
 
 export const BranchGrid: React.FC<BranchGridProps> = ({
@@ -20,12 +23,13 @@ export const BranchGrid: React.FC<BranchGridProps> = ({
   errorMessage,
   onRetry,
   onClearFilters,
+  onQuickView,
 }) => {
-  // Loading State: 12 Skeleton Cards
+  // Loading State: 9 Skeleton Cards (3 rows of 3 columns)
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        {Array.from({ length: 12 }).map((_, idx) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {Array.from({ length: 9 }).map((_, idx) => (
           <HomeBranchCardSkeleton key={idx} />
         ))}
       </div>
@@ -84,11 +88,15 @@ export const BranchGrid: React.FC<BranchGridProps> = ({
     );
   }
 
-  // Standard 4-Column Responsive Grid: Desktop 4, Tablet 3, Mobile 1
+  // Responsive Grid: Desktop 3 cols (xl:grid-cols-3), Tablet 2 cols (md:grid-cols-2), Mobile 1 col (grid-cols-1)
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
       {branches.map((branch) => (
-        <HomeBranchCard key={branch.id} branch={branch} />
+        <HomeBranchCard
+          key={branch.id}
+          branch={branch}
+          onQuickView={onQuickView}
+        />
       ))}
     </div>
   );

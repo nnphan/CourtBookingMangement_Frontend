@@ -78,12 +78,41 @@ export function formatCurrencyVND(amount?: number | null): string {
 /**
  * Extracts branch thumbnail image with fallback
  */
-export function getBranchThumbnail(images?: BranchImageDto[] | null): string {
+export function getBranchThumbnail(images?: (BranchImageDto | string)[] | null): string {
   if (!images || !Array.isArray(images) || images.length === 0) {
     return DEFAULT_BRANCH_IMAGE;
   }
-  const sorted = [...images].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  const first = images[0];
+  if (typeof first === 'string') {
+    return first || DEFAULT_BRANCH_IMAGE;
+  }
+  const sorted = [...(images as BranchImageDto[])].sort(
+    (a, b) => (a?.sortOrder ?? 0) - (b?.sortOrder ?? 0),
+  );
   return sorted[0]?.imageUrl || DEFAULT_BRANCH_IMAGE;
+}
+
+/**
+ * Returns a human-friendly emoji or symbol for common badminton center amenities
+ */
+export function getAmenityEmoji(name?: string, icon?: string): string {
+  if (icon && icon.trim().length <= 4) {
+    return icon.trim();
+  }
+  const lower = (name || '').toLowerCase();
+  if (lower.includes('camera')) return '📷';
+  if (lower.includes('vợt')) return '🏸';
+  if (lower.includes('giày')) return '👟';
+  if (lower.includes('căng tin') || lower.includes('nước') || lower.includes('uống') || lower.includes('cafe'))
+    return '☕';
+  if (lower.includes('huấn luyện') || lower.includes('hlv') || lower.includes('thầy')) return '🧑‍🏫';
+  if (lower.includes('dụng cụ') || lower.includes('shop') || lower.includes('cửa hàng')) return '🛍️';
+  if (lower.includes('xe') || lower.includes('bãi đỗ')) return '🅿️';
+  if (lower.includes('wifi') || lower.includes('mạng')) return '📶';
+  if (lower.includes('tắm') || lower.includes('vòi sen')) return '🚿';
+  if (lower.includes('điều hòa') || lower.includes('máy lạnh')) return '❄️';
+  if (lower.includes('ghế') || lower.includes('khán đài')) return '🪑';
+  return '✓';
 }
 
 /**

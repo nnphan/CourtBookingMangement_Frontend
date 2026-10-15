@@ -3,10 +3,9 @@ import { useNavigate } from 'react-router';
 import {
   Clock,
   MapPin,
-  Phone,
   Zap,
-  CheckCircle2,
   ChevronRight,
+  Eye,
   ShieldCheck,
 } from 'lucide-react';
 import type { BranchListItemDto } from '../types/branch.types';
@@ -15,14 +14,20 @@ import {
   formatCourtCount,
   formatLowestPriceDisplay,
   formatOperatingHours,
+  getAmenityEmoji,
   getBranchThumbnail,
 } from '../utils/branch.mapper';
+import { paths } from '@/app/router/paths';
 
 export interface HomeBranchCardProps {
   branch: BranchListItemDto;
+  onQuickView?: (branchId: string) => void;
 }
 
-export const HomeBranchCard: React.FC<HomeBranchCardProps> = ({ branch }) => {
+export const HomeBranchCard: React.FC<HomeBranchCardProps> = ({
+  branch,
+  onQuickView,
+}) => {
   const navigate = useNavigate();
 
   const thumbnail = getBranchThumbnail(branch.images);
@@ -37,7 +42,19 @@ export const HomeBranchCard: React.FC<HomeBranchCardProps> = ({ branch }) => {
   const remainingAmenitiesCount = Math.max(0, amenities.length - 4);
 
   const handleCardClick = () => {
-    navigate(`/branches/${branch.id}`);
+    navigate(paths.branchDetail(branch.id));
+  };
+
+  const handleQuickViewClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onQuickView) {
+      onQuickView(branch.id);
+    }
+  };
+
+  const handleViewDetailClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(paths.branchDetail(branch.id));
   };
 
   return (
@@ -57,7 +74,7 @@ export const HomeBranchCard: React.FC<HomeBranchCardProps> = ({ branch }) => {
         {/* Ambient Gradient Overlay */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
 
-        {/* Top Badges (Instant Booking) */}
+        {/* Top Badges (Instant Booking: bg-green-500) */}
         <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2">
           {branch.supportsInstantBooking ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-green-500 px-3 py-1 text-xs font-bold text-white shadow-md backdrop-blur-xs">
@@ -112,32 +129,27 @@ export const HomeBranchCard: React.FC<HomeBranchCardProps> = ({ branch }) => {
               {[branch.district, branch.city].filter(Boolean).join(', ')}
             </span>
           </div>
-
-          {/* Phone: 0971899081 */}
-          {branch.phoneNumber && (
-            <div className="flex items-center gap-2">
-              <Phone className="size-3.5 text-brand-600 shrink-0" />
-              <span className="font-medium">{branch.phoneNumber}</span>
-            </div>
-          )}
         </div>
 
-        {/* Amenities section */}
+        {/* Amenities section (Maximum 4, e.g. 📷 Camera, 🏸 Cho thuê vợt, 👟 Cho thuê giày, ☕ Căng tin, +2) */}
         <div className="mt-4">
           <span className="block text-[11px] font-bold uppercase tracking-wider text-content-secondary mb-1.5">
             Tiện ích:
           </span>
           {displayedAmenities.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
-              {displayedAmenities.map((amenity) => (
-                <span
-                  key={amenity.id || amenity.code || amenity.name}
-                  className="inline-flex items-center gap-1 rounded-md bg-surface-muted px-2 py-0.5 text-[11px] font-medium text-content-secondary"
-                >
-                  <CheckCircle2 className="size-3 text-brand-600 shrink-0" />
-                  <span className="truncate max-w-[120px]">{amenity.name}</span>
-                </span>
-              ))}
+              {displayedAmenities.map((amenity) => {
+                const icon = getAmenityEmoji(amenity.name, amenity.icon);
+                return (
+                  <span
+                    key={amenity.id || amenity.code || amenity.name}
+                    className="inline-flex items-center gap-1 rounded-md bg-surface-muted px-2 py-0.5 text-[11px] font-medium text-content-secondary"
+                  >
+                    <span className="text-xs shrink-0 leading-none">{icon}</span>
+                    <span className="truncate max-w-[120px]">{amenity.name}</span>
+                  </span>
+                );
+              })}
               {remainingAmenitiesCount > 0 && (
                 <span className="rounded-md bg-brand-50 px-1.5 py-0.5 text-[11px] font-bold text-brand-700">
                   +{remainingAmenitiesCount}
@@ -149,24 +161,35 @@ export const HomeBranchCard: React.FC<HomeBranchCardProps> = ({ branch }) => {
           )}
         </div>
 
-        {/* Card Footer: Price & CTA */}
-        <div className="mt-auto pt-4 border-t border-line flex items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <span className="text-[11px] font-medium text-content-secondary">Giá thuê sân</span>
-            <span className="text-sm sm:text-base font-extrabold text-brand-600">
-              {lowestPriceDisplay}
-            </span>
-          </div>
+        {/* Card Price */}
+        <div className="mt-4 pt-3 border-t border-line/60 flex flex-col">
+          <span className="text-[11px] font-medium text-content-secondary">Giá thuê sân</span>
+          <span className="text-sm sm:text-base font-extrabold text-brand-600">
+            {lowestPriceDisplay}
+          </span>
+        </div>
 
+        {/* Card Action Buttons: [Xem nhanh] & [Xem chi tiết] */}
+        <div className="mt-3 pt-3 border-t border-line flex items-center justify-between gap-2">
+          {/* Quick View Button */}
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/branches/${branch.id}`);
-            }}
-            className="inline-flex items-center gap-1 rounded-xl bg-brand-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition-all hover:bg-brand-700 active:scale-95 focus-visible:outline-2 focus-visible:outline-brand-600 cursor-pointer"
+            onClick={handleQuickViewClick}
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-2 text-xs font-bold text-content-primary shadow-2xs transition-all hover:bg-surface-muted hover:border-brand-500/40 active:scale-95 cursor-pointer"
+            aria-label={`Xem nhanh thông tin ${branch.name}`}
           >
-            <span>Xem chi tiết</span>
+            <Eye className="size-3.5 text-brand-600 shrink-0" />
+            <span>Xem nhanh</span>
+          </button>
+
+          {/* View Detail Button */}
+          <button
+            type="button"
+            onClick={handleViewDetailClick}
+            className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl bg-brand-600 px-3 py-2 text-xs font-bold text-white shadow-xs transition-all hover:bg-brand-700 active:scale-95 focus-visible:outline-2 focus-visible:outline-brand-600 cursor-pointer"
+            aria-label={`Xem chi tiết ${branch.name}`}
+          >
+            <span>Chi tiết</span>
             <ChevronRight className="size-3.5" />
           </button>
         </div>
@@ -174,3 +197,4 @@ export const HomeBranchCard: React.FC<HomeBranchCardProps> = ({ branch }) => {
     </article>
   );
 };
+

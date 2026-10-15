@@ -13,3 +13,5 @@ export * from './BranchGrid';
 export * from './SearchHeroBar';
 export * from './HomeHeroSection';
 export * from './HomeBranchList';
+export * from './BranchPagination';
+export * from './BranchQuickViewDialog';

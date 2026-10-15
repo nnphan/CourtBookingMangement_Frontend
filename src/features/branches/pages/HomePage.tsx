@@ -1,56 +1,83 @@
-import React, { useState, useTransition } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { Sparkles, Trophy, Users, ShieldCheck, HeartHandshake } from 'lucide-react';
 import { DiscoveryHeader } from '@/features/branch-discovery/components/DiscoveryHeader';
 import { QuickActionsSection } from '@/features/player-matching/components/QuickActionsSection';
 import { HomeHeroSection } from '../components/HomeHeroSection';
 import { HomeBranchList } from '../components/HomeBranchList';
+import { BranchQuickViewDialog } from '../components/BranchQuickViewDialog';
 import type { SearchHeroFilters } from '../components/SearchHeroBar';
 import { useBranches } from '../api/branch.query';
 import type { BranchSearchRequest } from '../types/branch.types';
 
 export const HomePage: React.FC = () => {
-  const [, startTransition] = useTransition();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [filters, setFilters] = useState<BranchSearchRequest>({
-    pageNumber: 1,
-    pageSize: 12,
-    keyword: '',
-    city: '',
-    district: '',
-    isActive: true,
-  });
+  // Quick View Modal state
+  const [quickViewBranchId, setQuickViewBranchId] = useState<string | null>(null);
+  const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
+
+  // Parse filters directly from URL Query Parameters for persistence & bookmarking
+  const pageNumber = Math.max(
+    1,
+    parseInt(searchParams.get('page') || searchParams.get('pageNumber') || '1', 10),
+  );
+  const pageSize = Math.max(1, parseInt(searchParams.get('pageSize') || '9', 10));
+  const keyword = searchParams.get('keyword') || '';
+  const city = searchParams.get('city') || '';
+  const district = searchParams.get('district') || '';
+
+  const filters: BranchSearchRequest = useMemo(
+    () => ({
+      pageNumber,
+      pageSize,
+      keyword,
+      city,
+      district,
+      isActive: true,
+    }),
+    [pageNumber, pageSize, keyword, city, district],
+  );
 
   const { data, isLoading, isError, error, refetch } = useBranches(filters);
 
   const branches = data?.branches ?? [];
   const metadata = data?.metadata ?? {
-    pageNumber: filters.pageNumber,
-    pageSize: filters.pageSize,
+    pageNumber: filters.pageNumber ?? 1,
+    pageSize: filters.pageSize ?? 9,
     totalCount: branches.length,
-    totalPages: Math.max(1, Math.ceil(branches.length / filters.pageSize)),
-    hasPreviousPage: filters.pageNumber > 1,
+    totalPages: Math.max(1, Math.ceil(branches.length / (filters.pageSize ?? 9))),
+    hasPreviousPage: (filters.pageNumber ?? 1) > 1,
     hasNextPage: false,
   };
 
   const handleSearch = (searchFilters: SearchHeroFilters) => {
-    startTransition(() => {
-      setFilters((prev) => ({
-        ...prev,
-        pageNumber: 1,
-        keyword: searchFilters.keyword,
-        city: searchFilters.city,
-        district: searchFilters.district,
-      }));
-    });
+    const nextParams = new URLSearchParams();
+    if (searchFilters.keyword.trim()) {
+      nextParams.set('keyword', searchFilters.keyword.trim());
+    }
+    if (searchFilters.city.trim() && searchFilters.city !== 'all') {
+      nextParams.set('city', searchFilters.city.trim());
+    }
+    if (searchFilters.district.trim() && searchFilters.district !== 'all') {
+      nextParams.set('district', searchFilters.district.trim());
+    }
+    if (pageSize !== 9) {
+      nextParams.set('pageSize', String(pageSize));
+    }
+    // Automatically resets to page 1 on search
+    setSearchParams(nextParams);
   };
 
   const handlePageChange = (newPage: number) => {
-    startTransition(() => {
-      setFilters((prev) => ({
-        ...prev,
-        pageNumber: newPage,
-      }));
-    });
+    const nextParams = new URLSearchParams(searchParams);
+    if (newPage > 1) {
+      nextParams.set('page', String(newPage));
+    } else {
+      nextParams.delete('page');
+      nextParams.delete('pageNumber');
+    }
+    setSearchParams(nextParams);
 
     // Smoothly scroll down to branch list
     const branchSection = document.getElementById('branches-section');
@@ -60,16 +87,16 @@ export const HomePage: React.FC = () => {
   };
 
   const handleClearFilters = () => {
-    startTransition(() => {
-      setFilters({
-        pageNumber: 1,
-        pageSize: 12,
-        keyword: '',
-        city: '',
-        district: '',
-        isActive: true,
-      });
-    });
+    setSearchParams(new URLSearchParams());
+  };
+
+  const handleOpenQuickView = (branchId: string) => {
+    setQuickViewBranchId(branchId);
+    setIsQuickViewOpen(true);
+  };
+
+  const handleCloseQuickView = () => {
+    setIsQuickViewOpen(false);
   };
 
   return (
@@ -104,8 +131,16 @@ export const HomePage: React.FC = () => {
             onPageChange={handlePageChange}
             onRetry={() => refetch()}
             onClearFilters={handleClearFilters}
+            onQuickView={handleOpenQuickView}
           />
         </div>
+
+        {/* Quick View Dialog */}
+        <BranchQuickViewDialog
+          branchId={quickViewBranchId}
+          isOpen={isQuickViewOpen}
+          onClose={handleCloseQuickView}
+        />
 
         {/* Quality Standards & Trust Badges */}
         <section className="mt-16 rounded-3xl border border-line bg-surface-muted/50 p-8 sm:p-12">

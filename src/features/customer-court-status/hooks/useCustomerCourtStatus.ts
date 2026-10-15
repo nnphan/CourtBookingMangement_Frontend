@@ -14,15 +14,15 @@ export const useCustomerCourtStatus = (branchIdOverride?: string, dateOverride?:
 
   // 1. Branches Query
   const branchesQuery = useQuery({
-    queryKey: ['customer-branches'],
+    queryKey: ['active-branches'],
     queryFn: () => customerCourtStatusApi.getBranches(),
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
 
-  // 2. Court Status Query
+  // 2. Court Status Query: GET /api/court-status?BranchId=...&Date=...
   const statusQuery = useQuery({
-    queryKey: ['customer-court-status', selectedBranchId, selectedDate],
-    queryFn: () => customerCourtStatusApi.getCourtStatus(selectedBranchId, selectedDate),
+    queryKey: ['court-status', selectedBranchId, selectedDate],
+    queryFn: () => customerCourtStatusApi.getCourtStatusRaw(selectedBranchId, selectedDate),
     enabled: Boolean(selectedBranchId && selectedDate),
     staleTime: 1000 * 30, // 30 seconds
   });
@@ -34,14 +34,14 @@ export const useCustomerCourtStatus = (branchIdOverride?: string, dateOverride?:
     onSuccess: (result) => {
       toast.success(
         'Đặt sân thành công!',
-        `Mã đơn: ${result.bookingNumber}. Nhân viên sẽ sớm liên hệ xác nhận.`,
+        `Mã đơn: ${result.bookingNumber || result.bookingId}. Nhân viên sẽ sớm liên hệ xác nhận.`,
       );
       // Clear any active slot selection in Zustand store
       useCustomerCourtStatusStore.getState().clearSelection();
 
-      // Invalidate status query to reflect new booking immediately
+      // Invalidate court-status query key to reflect new booking immediately
       queryClient.invalidateQueries({
-        queryKey: ['customer-court-status', selectedBranchId, selectedDate],
+        queryKey: ['court-status'],
       });
     },
     onError: (err: Error) => {
@@ -53,8 +53,13 @@ export const useCustomerCourtStatus = (branchIdOverride?: string, dateOverride?:
     branches: branchesQuery.data ?? [],
     statusData: statusQuery.data,
     courts: statusQuery.data?.courts ?? [],
-    slots: statusQuery.data?.slots ?? [],
+    scheduleItems: statusQuery.data?.scheduleItems ?? [],
+    openTime: statusQuery.data?.openTime || '05:00:00',
+    closeTime: statusQuery.data?.closeTime || '23:00:00',
+    branchName: statusQuery.data?.branchName || '',
     isLoading: branchesQuery.isLoading || statusQuery.isLoading,
+    isBranchesLoading: branchesQuery.isLoading,
+    isStatusLoading: statusQuery.isLoading,
     isError: statusQuery.isError,
     error: statusQuery.error,
     refetch: statusQuery.refetch,
@@ -62,3 +67,5 @@ export const useCustomerCourtStatus = (branchIdOverride?: string, dateOverride?:
     isCreating: createBookingMutation.isPending,
   };
 };
+
+export default useCustomerCourtStatus;

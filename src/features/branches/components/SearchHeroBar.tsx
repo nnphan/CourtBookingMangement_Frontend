@@ -43,6 +43,12 @@ export const SearchHeroBar: React.FC<SearchHeroBarProps> = ({
   const [city, setCity] = useState(initialFilters.city);
   const [district, setDistrict] = useState(initialFilters.district);
 
+  React.useEffect(() => {
+    setKeyword(initialFilters.keyword);
+    setCity(initialFilters.city);
+    setDistrict(initialFilters.district);
+  }, [initialFilters.keyword, initialFilters.city, initialFilters.district]);
+
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     onSearch({

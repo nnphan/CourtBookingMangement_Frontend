@@ -40,8 +40,8 @@ export interface BranchSearchRequest {
   city?: string;
   district?: string;
   isActive?: boolean;
-  pageNumber: number;
-  pageSize: number;
+  pageNumber?: number;
+  pageSize?: number;
 }
 
 export interface BranchSearchResponse {

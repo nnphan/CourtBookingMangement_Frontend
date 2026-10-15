@@ -70,12 +70,12 @@ export const CustomerCourtRow: React.FC<CustomerCourtRowProps> = memo(
     const selectionDim =
       isCurrentCourtSelected && activeSelection
         ? CustomerCourtStatusService.calculateBookingWidth(
-            activeSelection.startTime,
-            activeSelection.endTime,
-            slotWidth,
-            slotInterval,
-            openTime,
-          )
+          activeSelection.startTime,
+          activeSelection.endTime,
+          slotWidth,
+          slotInterval,
+          openTime,
+        )
         : null;
 
     return (

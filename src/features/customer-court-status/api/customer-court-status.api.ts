@@ -1,100 +1,81 @@
 import { request } from '@/lib/axios';
-import type { ApiSuccessResponse } from '@/types/api';
+import { courtStatusApi } from '@/features/court-status/api/court-status.api';
+import type { CourtStatusDto } from '@/features/court-status/types/court-status.types';
 import type { CustomerBranch } from '../types/customer-court';
 import type {
   CustomerCourtStatusData,
-  CustomerCourtAvailableSlotsData,
   CustomerCreateBookingPayload,
   CustomerCreateBookingResult,
 } from '../types/customer-slot';
-import {
-  MOCK_CUSTOMER_BRANCHES,
-  getMockCustomerCourtStatus,
-  getMockAvailableSlots,
-  createMockCustomerBooking,
-} from '../mocks/customer-court-status.mock';
+import { branchApi } from '@/features/branches/api/branch.api';
 
 export const customerCourtStatusApi = {
   /**
-   * Fetch all branches
+   * Fetch all active branches from GET /branches
    */
   async getBranches(): Promise<CustomerBranch[]> {
-    try {
-      const response = await request<ApiSuccessResponse<CustomerBranch[]>>({
-        url: '/api/branches',
-        method: 'GET',
-      });
-      if (response && response.success && response.data) {
-        return response.data;
-      }
-      return MOCK_CUSTOMER_BRANCHES;
-    } catch {
-      return MOCK_CUSTOMER_BRANCHES;
-    }
+    const res = await branchApi.getBranches({ pageSize: 50, isActive: true });
+    return (res.branches || []).map((b) => ({
+      id: b.id,
+      branchCode: b.district || '',
+      branchName: b.name,
+      address: b.address,
+      openTime: b.operatingHours?.[0]?.openTime || '05:00:00',
+      closeTime: b.operatingHours?.[0]?.closeTime || '23:00:00',
+      rating: 4.8,
+      isActive: b.isActive,
+    }));
   },
 
   /**
-   * Get customer court status matrix
+   * Get court status matrix from real GET /api/court-status
+   */
+  async getCourtStatusRaw(branchId: string, date: string): Promise<CourtStatusDto> {
+    return courtStatusApi.getCourtStatus({ branchId, date });
+  },
+
+  /**
+   * Legacy adapter for backward compatibility with existing customer components
    */
   async getCourtStatus(
     branchId: string,
     date: string,
   ): Promise<CustomerCourtStatusData> {
-    try {
-      const response = await request<ApiSuccessResponse<CustomerCourtStatusData>>({
-        url: '/api/customer/court-status',
-        method: 'GET',
-        params: { branchId, date },
-      });
-      if (response && response.success && response.data) {
-        return response.data;
-      }
-      return getMockCustomerCourtStatus(branchId, date).data;
-    } catch {
-      return getMockCustomerCourtStatus(branchId, date).data;
-    }
+    const data = await courtStatusApi.getCourtStatus({ branchId, date });
+    return {
+      branchId: data.branchId,
+      branchName: data.branchName,
+      bookingDate: data.date,
+      courts: (data.courts || []).map((c) => ({
+        courtId: c.courtId,
+        courtName: c.courtName,
+      })),
+      slots: [],
+    };
   },
 
   /**
-   * Get available slots for a specific court
-   */
-  async getAvailableSlots(
-    courtId: string,
-    date: string,
-  ): Promise<CustomerCourtAvailableSlotsData> {
-    try {
-      const response = await request<ApiSuccessResponse<CustomerCourtAvailableSlotsData>>({
-        url: '/api/customer/available-slots',
-        method: 'GET',
-        params: { courtId, date },
-      });
-      if (response && response.success && response.data) {
-        return response.data;
-      }
-      return getMockAvailableSlots(courtId, date).data;
-    } catch {
-      return getMockAvailableSlots(courtId, date).data;
-    }
-  },
-
-  /**
-   * Create a customer court booking
+   * Create a customer court booking via POST /api/bookings
    */
   async createBooking(
     payload: CustomerCreateBookingPayload,
   ): Promise<CustomerCreateBookingResult> {
-    try {
-      const response = await request<ApiSuccessResponse<CustomerCreateBookingResult>>({
-        url: '/api/customer/bookings',
-        method: 'POST',
-        data: payload,
-      });
-      if (response && response.success && response.data) {
-        return response.data;
-      }
-      return createMockCustomerBooking(payload).data;
-    } catch {
-      return createMockCustomerBooking(payload).data;
-    }
+    const res = await request<CustomerCreateBookingResult>({
+      url: '/api/bookings',
+      method: 'POST',
+      data: {
+        branchId: payload.branchId,
+        courtId: payload.courtId,
+        bookingDate: payload.bookingDate,
+        startTime: payload.startTime,
+        endTime: payload.endTime,
+        customerName: payload.customerName,
+        phoneNumber: payload.phoneNumber,
+        note: payload.note || '',
+        paymentMethod: 'CASH',
+        bookingType: 'FLEXIBLE',
+      },
+    });
+    return res;
   },
 };

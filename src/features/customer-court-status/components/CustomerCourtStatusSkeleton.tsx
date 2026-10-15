@@ -1,9 +1,21 @@
 import React from 'react';
+import { Loader2 } from 'lucide-react';
 import { COURT_COLUMN_WIDTH } from '../constants/customer-scheduler.config';
 
 export const CustomerCourtStatusSkeleton: React.FC = () => {
   return (
-    <div className="w-full flex-1 flex flex-col bg-white animate-pulse overflow-hidden">
+    <div
+      role="status"
+      aria-busy="true"
+      aria-label="Loading Timeline"
+      className="w-full flex-1 flex flex-col bg-white animate-pulse overflow-hidden"
+    >
+      {/* Loading Timeline Banner */}
+      <div className="flex items-center justify-center gap-2 bg-emerald-50/80 border-b border-emerald-100 py-2.5 px-4 text-xs font-semibold text-emerald-800">
+        <Loader2 className="size-4 animate-spin text-emerald-600" />
+        <span>Loading Timeline... (Đang tải lịch trạng thái sân)</span>
+      </div>
+
       {/* Timeline header skeleton */}
       <div className="flex h-11 border-b border-slate-200 bg-emerald-50/50">
         <div
@@ -43,3 +55,4 @@ export const CustomerCourtStatusSkeleton: React.FC = () => {
   );
 };
 
+export default CustomerCourtStatusSkeleton;

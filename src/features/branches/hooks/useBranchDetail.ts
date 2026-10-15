@@ -4,7 +4,7 @@ import { BRANCH_DETAIL_QUERY_KEYS } from '../api/branch-detail.query';
 import type { BranchDetailDto } from '../types/branch-detail.types';
 
 export const useBranchDetail = (
-  branchId?: string,
+  branchId?: string | null,
 ): UseQueryResult<BranchDetailDto, Error> => {
   return useQuery({
     queryKey: BRANCH_DETAIL_QUERY_KEYS.detail(branchId ?? ''),
