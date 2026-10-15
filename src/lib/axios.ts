@@ -7,8 +7,16 @@ import axios, {
 import { env } from '@/lib/env';
 import { tokenStorage } from '@/lib/token-storage';
 import type { ApiErrorShape } from '@/types/api';
+import type { ValidationError } from '@/types/api';
 
 type RetriableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
+type ApiErrorResponseBody = {
+  message?: string;
+  code?: string;
+  errorCode?: string;
+  errors?: Record<string, string>;
+  validationErrors?: ValidationError[] | null;
+};
 
 export const http: AxiosInstance = axios.create({
   baseURL: env.apiBaseUrl,
@@ -57,7 +65,7 @@ const refreshAccessToken = async (): Promise<string | null> => {
 /* --------------------------------------------------------------- response */
 http.interceptors.response.use(
   (response) => response,
-  async (error: AxiosError<{ message?: string; code?: string; errors?: Record<string, string> }>) => {
+  async (error: AxiosError<ApiErrorResponseBody>) => {
     const original = error.config as RetriableConfig | undefined;
 
     if (error.response?.status === 401 && original && !original._retry) {
@@ -73,11 +81,19 @@ http.interceptors.response.use(
       window.dispatchEvent(new CustomEvent('alobo:session-expired'));
     }
 
+    const validationFields = error.response?.data?.validationErrors?.reduce<Record<string, string>>(
+      (fields, validationError) => {
+        fields[validationError.field] = validationError.message;
+        return fields;
+      },
+      {},
+    );
     const shaped: ApiErrorShape = {
       status: error.response?.status ?? 0,
-      code: error.response?.data?.code ?? error.code ?? 'UNKNOWN',
+      code:
+        error.response?.data?.code ?? error.response?.data?.errorCode ?? error.code ?? 'UNKNOWN',
       message: error.response?.data?.message ?? 'error.network',
-      fields: error.response?.data?.errors,
+      fields: error.response?.data?.errors ?? validationFields,
     };
     return Promise.reject(shaped);
   },

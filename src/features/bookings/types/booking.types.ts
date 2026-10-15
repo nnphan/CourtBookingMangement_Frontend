@@ -1,4 +1,16 @@
 export type BookingTypeApi = 'FLEXIBLE' | 'FIXED';
+export type BookingDialogMode = 'ADMIN' | 'CUSTOMER';
+
+export interface BookingSelection {
+  branchId: string;
+  branchName?: string;
+  courtId: string;
+  courtName: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  durationMinutes: number;
+}
 
 export interface CreateBookingRequest {
   branchId: string;
@@ -31,7 +43,6 @@ export interface CalculateBookingPriceResponse {
   paidAmount: number;
   totalAmount: number;
 }
-
 
 export interface CreateBookingResponse {
   id?: string;

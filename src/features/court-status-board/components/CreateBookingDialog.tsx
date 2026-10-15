@@ -2,8 +2,14 @@ import React, { memo, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Clock, Loader2, MapPin } from 'lucide-react';
 import { toast } from '@/lib/toast';
+import { useAuthStore } from '@/features/auth/store/auth.store';
+import type {
+  BookingDialogMode,
+  BookingSelection,
+  CreateBookingResponse,
+} from '@/features/bookings/types/booking.types';
 import type { Customer } from '@/features/customer-management/types/customer';
 import { customerApi } from '@/features/customer-management/api/customer.api';
 import {
@@ -32,9 +38,9 @@ import {
   toCreateBookingPayload,
   formatTimeToApi,
   formatBookingDateToApi,
+  formatBookingTime,
 } from '@/features/bookings/utils/booking.mapper';
 import { BookingForm } from './BookingForm';
-
 
 export interface CreateBookingDialogProps {
   isOpen: boolean;
@@ -53,6 +59,10 @@ export interface CreateBookingDialogProps {
   editingBooking?: BookingItem | null;
   onSubmitBooking?: (data: Partial<BookingItem>) => Promise<unknown>;
   isLoading?: boolean;
+  mode?: BookingDialogMode;
+  initialSelection?: BookingSelection | null;
+  onBookingCreated?: (result: CreateBookingResponse) => void;
+  onBookingConflict?: () => void;
 }
 
 export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
@@ -65,8 +75,13 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
     editingBooking,
     onSubmitBooking,
     isLoading = false,
+    mode = 'ADMIN',
+    initialSelection,
+    onBookingCreated,
+    onBookingConflict,
   }) => {
     const { t } = useTranslation();
+    const authUser = useAuthStore((s) => s.user);
     const storeSelectedDate = useCourtStatusStore((s) => s.selectedDate);
     const storeSelectedBranch = useCourtStatusStore((s) => s.selectedBranch);
 
@@ -82,6 +97,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
       reset,
       watch,
       setValue,
+      setError,
       formState: { errors, isSubmitting },
     } = useForm<CreateBookingSchemaType>({
       resolver: zodResolver(createBookingSchema),
@@ -117,7 +133,13 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
         courts[0]?.branchId ||
         ''
       );
-    }, [propBranchId, defaultValues?.branchId, selectedCourt?.branchId, storeSelectedBranch, courts]);
+    }, [
+      propBranchId,
+      defaultValues?.branchId,
+      selectedCourt?.branchId,
+      storeSelectedBranch,
+      courts,
+    ]);
 
     const isPastDate = useMemo(() => {
       if (editingBooking) return false;
@@ -167,8 +189,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
       },
       {
         enabled:
-          isOpen &&
-          Boolean(effectiveBranchId && apiBookingDate && apiStartTime && apiEndTime),
+          isOpen && Boolean(effectiveBranchId && apiBookingDate && apiStartTime && apiEndTime),
       },
     );
 
@@ -187,11 +208,22 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
       return durationInfo?.displayText;
     }, [pricingData?.durationHours, durationInfo?.displayText]);
 
-
     useEffect(() => {
       if (isOpen) {
         setSelectedCustomer(null);
-        if (editingBooking) {
+        if (mode === 'CUSTOMER' && initialSelection) {
+          reset({
+            customerId: authUser?.id ?? null,
+            customerName: authUser?.fullName ?? '',
+            phoneNumber: authUser?.phone ?? '',
+            courtId: initialSelection.courtId,
+            bookingDate: formatBookingDateToApi(initialSelection.bookingDate),
+            startTime: formatBookingTime(initialSelection.startTime),
+            endTime: formatBookingTime(initialSelection.endTime),
+            bookingType: 'FLEXIBLE',
+            note: '',
+          });
+        } else if (editingBooking) {
           reset({
             customerId: null,
             customerName: editingBooking.customerName,
@@ -204,8 +236,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
             note: editingBooking.notes ?? '',
           });
         } else if (defaultValues) {
-          const targetDate =
-            defaultValues.bookingDate ?? defaultValues.date ?? storeSelectedDate;
+          const targetDate = defaultValues.bookingDate ?? defaultValues.date ?? storeSelectedDate;
           const targetCourtId = defaultValues.courtId ?? courts[0]?.id ?? 'court-1';
           const targetCourt = courts.find((c) => c.id === targetCourtId);
           const targetStart = defaultValues.startTime ?? '13:00';
@@ -243,6 +274,11 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
       }
     }, [
       isOpen,
+      mode,
+      initialSelection,
+      authUser?.id,
+      authUser?.fullName,
+      authUser?.phone,
       defaultValues,
       editingBooking,
       courts,
@@ -337,13 +373,17 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
           bookingDate: values.bookingDate,
           startTime: values.startTime,
           endTime: values.endTime,
-          customerId: selectedCustomer?.id ?? values.customerId ?? null,
+          customerId:
+            mode === 'CUSTOMER'
+              ? (authUser?.id ?? null)
+              : (selectedCustomer?.id ?? values.customerId ?? null),
           paymentMethod: 'CASH',
         },
       );
 
       try {
-        await createBookingMutation(payload);
+        const result = await createBookingMutation(payload);
+        onBookingCreated?.(result);
         // Also call onSubmitBooking callback if provided by parent for local sync
         if (onSubmitBooking) {
           await onSubmitBooking({
@@ -359,21 +399,81 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
           });
         }
         onClose();
-      } catch {
-        // Error is automatically toasted by useCreateBooking
+      } catch (error: unknown) {
+        if (!error || typeof error !== 'object') return;
+        const apiError = error as { code?: unknown; fields?: unknown };
+        if (apiError.fields && typeof apiError.fields === 'object') {
+          const formFields = new Set<keyof CreateBookingSchemaType>([
+            'customerName',
+            'phoneNumber',
+            'courtId',
+            'bookingDate',
+            'startTime',
+            'endTime',
+            'bookingType',
+            'note',
+          ]);
+          for (const [field, message] of Object.entries(apiError.fields)) {
+            if (
+              formFields.has(field as keyof CreateBookingSchemaType) &&
+              typeof message === 'string'
+            ) {
+              setError(field as keyof CreateBookingSchemaType, {
+                type: 'server',
+                message,
+              });
+            }
+          }
+        }
+        if (mode === 'CUSTOMER' && apiError.code === 'BOOKING_CONFLICT') {
+          onBookingConflict?.();
+        }
       }
     };
 
     const isProcessing = isCreatingBooking || isSubmitting || isLoading;
+    const isCustomerPricingPending =
+      mode === 'CUSTOMER' && (isPricingLoading || (isPricingFetching && !pricingData));
+    const customerIdentity =
+      mode === 'CUSTOMER' && authUser
+        ? { fullName: authUser.fullName, phoneNumber: authUser.phone }
+        : null;
+
+    useEffect(() => {
+      if (!isOpen && mode === 'CUSTOMER') {
+        reset({
+          customerId: null,
+          customerName: '',
+          phoneNumber: '',
+          courtId: '',
+          bookingDate: '',
+          startTime: '13:00',
+          endTime: '15:00',
+          bookingType: 'FLEXIBLE',
+          note: '',
+        });
+        setSelectedCustomer(null);
+      }
+    }, [isOpen, mode, reset]);
+
+    if (mode === 'CUSTOMER' && !initialSelection) return null;
 
     return (
       <Dialog open={isOpen} onOpenChange={(open) => !open && !isProcessing && onClose()}>
-        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent
+          className={
+            mode === 'CUSTOMER'
+              ? 'h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] overflow-y-auto p-4 sm:h-auto sm:max-h-[90vh] sm:max-w-md sm:p-6'
+              : 'max-h-[90vh] overflow-y-auto sm:max-w-md'
+          }
+        >
           <DialogHeader>
             <DialogTitle>
               {editingBooking
                 ? t('courtStatus.dialog.editTitle', 'Chỉnh sửa lịch đặt sân')
-                : t('courtStatus.dialog.createTitle', 'Đặt sân mới')}
+                : mode === 'CUSTOMER'
+                  ? 'Xác nhận đặt sân'
+                  : t('courtStatus.dialog.createTitle', 'Đặt sân mới')}
             </DialogTitle>
             <DialogDescription>
               {t(
@@ -382,6 +482,33 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
               )}
             </DialogDescription>
           </DialogHeader>
+
+          {mode === 'CUSTOMER' && initialSelection && (
+            <section
+              aria-label="Thông tin đặt sân đã chọn"
+              className="space-y-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-950"
+            >
+              <h3 className="font-semibold">Thông tin đặt sân</h3>
+              <div className="flex items-start gap-2">
+                <MapPin className="mt-0.5 size-4 shrink-0 text-emerald-700" />
+                <span>
+                  {initialSelection.branchName || 'Chi nhánh'} · {initialSelection.courtName}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CalendarDays className="size-4 shrink-0 text-emerald-700" />
+                <span>{dayjs(initialSelection.bookingDate).format('DD-MM-YYYY')}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="size-4 shrink-0 text-emerald-700" />
+                <span>
+                  {formatBookingTime(initialSelection.startTime)} -{' '}
+                  {formatBookingTime(initialSelection.endTime)} ·{' '}
+                  {initialSelection.durationMinutes / 60} giờ
+                </span>
+              </div>
+            </section>
+          )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Past Date / Past Slot Protection Alert */}
@@ -405,6 +532,8 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
               control={control}
               errors={errors}
               courts={courts}
+              mode={mode}
+              customerIdentity={customerIdentity}
               selectedCustomer={selectedCustomer}
               onSelectCustomer={handleSelectCustomer}
               onDeselectCustomer={handleDeselectCustomer}
@@ -418,13 +547,18 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
               onRetryPricing={refetchPricing}
             />
 
-            <DialogFooter className="pt-2">
+            <DialogFooter
+              className={
+                mode === 'CUSTOMER' ? 'bg-background/95 sticky bottom-0 mt-4 border-t py-3' : 'pt-2'
+              }
+            >
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={onClose}
                 disabled={isProcessing}
+                className={mode === 'CUSTOMER' ? 'h-11' : undefined}
               >
                 {t('common.cancel', 'Hủy')}
               </Button>
@@ -432,13 +566,26 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                 type="submit"
                 variant="primary"
                 size="sm"
-                disabled={isProcessing || (!editingBooking && (isPastDate || isPastSlot))}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                disabled={
+                  isProcessing ||
+                  isCustomerPricingPending ||
+                  (!editingBooking && (isPastDate || isPastSlot))
+                }
+                className={
+                  mode === 'CUSTOMER'
+                    ? 'h-11 cursor-pointer bg-emerald-600 text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50'
+                    : 'cursor-pointer bg-emerald-600 text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50'
+                }
+                aria-busy={isProcessing || isCustomerPricingPending}
               >
                 {isProcessing ? (
                   <>
                     <Loader2 className="mr-2 size-4 animate-spin" />
-                    {editingBooking ? 'Đang lưu...' : 'Đang xử lý...'}
+                    {editingBooking
+                      ? 'Đang lưu...'
+                      : mode === 'CUSTOMER'
+                        ? 'Đang đặt sân...'
+                        : 'Đang xử lý...'}
                   </>
                 ) : editingBooking ? (
                   t('courtStatus.actions.save', 'Cập nhật')
@@ -447,7 +594,6 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                 )}
               </Button>
             </DialogFooter>
-
           </form>
         </DialogContent>
       </Dialog>

@@ -1,12 +1,7 @@
-import { request } from '@/lib/axios';
 import { courtStatusApi } from '@/features/court-status/api/court-status.api';
 import type { CourtStatusDto } from '@/features/court-status/types/court-status.types';
 import type { CustomerBranch } from '../types/customer-court';
-import type {
-  CustomerCourtStatusData,
-  CustomerCreateBookingPayload,
-  CustomerCreateBookingResult,
-} from '../types/customer-slot';
+import type { CustomerCourtStatusData } from '../types/customer-slot';
 import { branchApi } from '@/features/branches/api/branch.api';
 
 export const customerCourtStatusApi = {
@@ -37,10 +32,7 @@ export const customerCourtStatusApi = {
   /**
    * Legacy adapter for backward compatibility with existing customer components
    */
-  async getCourtStatus(
-    branchId: string,
-    date: string,
-  ): Promise<CustomerCourtStatusData> {
+  async getCourtStatus(branchId: string, date: string): Promise<CustomerCourtStatusData> {
     const data = await courtStatusApi.getCourtStatus({ branchId, date });
     return {
       branchId: data.branchId,
@@ -52,30 +44,5 @@ export const customerCourtStatusApi = {
       })),
       slots: [],
     };
-  },
-
-  /**
-   * Create a customer court booking via POST /api/bookings
-   */
-  async createBooking(
-    payload: CustomerCreateBookingPayload,
-  ): Promise<CustomerCreateBookingResult> {
-    const res = await request<CustomerCreateBookingResult>({
-      url: '/api/bookings',
-      method: 'POST',
-      data: {
-        branchId: payload.branchId,
-        courtId: payload.courtId,
-        bookingDate: payload.bookingDate,
-        startTime: payload.startTime,
-        endTime: payload.endTime,
-        customerName: payload.customerName,
-        phoneNumber: payload.phoneNumber,
-        note: payload.note || '',
-        paymentMethod: 'CASH',
-        bookingType: 'FLEXIBLE',
-      },
-    });
-    return res;
   },
 };
