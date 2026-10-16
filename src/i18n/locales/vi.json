@@ -18,6 +18,10 @@
     "logout": "Đăng xuất",
     "loggingOut": "Đang đăng xuất...",
     "retryProfile": "Thử tải lại thông tin tài khoản",
+    "loginRequired": "Vui lòng đăng nhập để đặt sân.",
+    "profileLoadError": "Không thể tải thông tin khách hàng.",
+    "missingFullName": "Tài khoản chưa có họ và tên. Vui lòng nhập họ tên để tiếp tục đặt sân.",
+    "missingPhone": "Tài khoản chưa có số điện thoại hợp lệ. Vui lòng nhập số điện thoại để tiếp tục đặt sân.",
     "roles": {
       "customer": "Khách hàng",
       "staff": "Nhân viên",

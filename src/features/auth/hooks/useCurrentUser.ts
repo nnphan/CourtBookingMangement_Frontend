@@ -15,15 +15,20 @@ export const useCurrentUser = () => {
     enabled: isAuthenticated,
     staleTime: 5 * 60 * 1000,
   });
+  const queryHasFullName =
+    typeof query.data?.fullName === 'string' && query.data.fullName.trim().length > 0;
+  const shouldUseQueryUser = Boolean(
+    query.data && (queryHasFullName || !storedUser?.fullName?.trim()),
+  );
 
   useEffect(() => {
-    if (query.data && query.data !== storedUser) {
+    if (query.data && shouldUseQueryUser && query.data !== storedUser) {
       setUser(query.data);
     }
-  }, [query.data, setUser, storedUser]);
+  }, [query.data, setUser, shouldUseQueryUser, storedUser]);
 
   return {
     ...query,
-    user: storedUser,
+    user: shouldUseQueryUser ? (query.data ?? storedUser) : storedUser,
   };
 };

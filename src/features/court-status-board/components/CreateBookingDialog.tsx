@@ -1,10 +1,13 @@
-import React, { memo, useEffect, useMemo, useState } from 'react';
+import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, CalendarDays, Clock, Loader2, MapPin } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { useAuthStore } from '@/features/auth/store/auth.store';
+import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
+import { paths } from '@/app/router/paths';
 import type {
   BookingDialogMode,
   BookingSelection,
@@ -81,7 +84,20 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
     onBookingConflict,
   }) => {
     const { t } = useTranslation();
-    const authUser = useAuthStore((s) => s.user);
+    const location = useLocation();
+    const navigate = useNavigate();
+    const isAuthenticated = useAuthStore((s) => s.isAuthenticated());
+    const {
+      user: authUser,
+      isLoading: isCurrentUserLoading,
+      isError: isCurrentUserError,
+      refetch: refetchCurrentUser,
+    } = useCurrentUser();
+    const authUserRef = useRef(authUser);
+    authUserRef.current = authUser;
+
+    console.log(authUser);
+
     const storeSelectedDate = useCourtStatusStore((s) => s.selectedDate);
     const storeSelectedBranch = useCourtStatusStore((s) => s.selectedBranch);
 
@@ -209,82 +225,106 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
     }, [pricingData?.durationHours, durationInfo?.displayText]);
 
     useEffect(() => {
-      if (isOpen) {
-        setSelectedCustomer(null);
-        if (mode === 'CUSTOMER' && initialSelection) {
-          reset({
-            customerId: authUser?.id ?? null,
-            customerName: authUser?.fullName ?? '',
-            phoneNumber: authUser?.phone ?? '',
-            courtId: initialSelection.courtId,
-            bookingDate: formatBookingDateToApi(initialSelection.bookingDate),
-            startTime: formatBookingTime(initialSelection.startTime),
-            endTime: formatBookingTime(initialSelection.endTime),
-            bookingType: 'FLEXIBLE',
-            note: '',
-          });
-        } else if (editingBooking) {
-          reset({
-            customerId: null,
-            customerName: editingBooking.customerName,
-            phoneNumber: editingBooking.phoneNumber,
-            courtId: editingBooking.courtId,
-            bookingDate: editingBooking.date,
-            startTime: editingBooking.startTime,
-            endTime: editingBooking.endTime,
-            bookingType: editingBooking.bookingType === 'FIXED' ? 'FIXED' : 'FLEXIBLE',
-            note: editingBooking.notes ?? '',
-          });
-        } else if (defaultValues) {
-          const targetDate = defaultValues.bookingDate ?? defaultValues.date ?? storeSelectedDate;
-          const targetCourtId = defaultValues.courtId ?? courts[0]?.id ?? 'court-1';
-          const targetCourt = courts.find((c) => c.id === targetCourtId);
-          const targetStart = defaultValues.startTime ?? '13:00';
+      if (!isOpen || mode !== 'CUSTOMER' || !initialSelection) return;
 
-          let calculatedEndTime = defaultValues.endTime;
-          if (!calculatedEndTime && defaultValues.startTime) {
-            const startMin = SchedulerService.parseTimeToMinutes(defaultValues.startTime);
-            calculatedEndTime = SchedulerService.minutesToTime(Math.min(24 * 60, startMin + 120));
-          }
+      setSelectedCustomer(null);
+      const currentUser = authUserRef.current;
+      reset({
+        customerId: currentUser?.id ?? null,
+        customerName: currentUser?.fullName ?? '',
+        phoneNumber: currentUser?.phoneNumber ?? '',
+        courtId: initialSelection.courtId,
+        bookingDate: formatBookingDateToApi(initialSelection.bookingDate),
+        startTime: formatBookingTime(initialSelection.startTime),
+        endTime: formatBookingTime(initialSelection.endTime),
+        bookingType: 'FLEXIBLE',
+        note: '',
+      });
+    }, [isOpen, mode, initialSelection, reset]);
 
-          const targetEnd = calculatedEndTime ?? '15:00';
+    useEffect(() => {
+      if (!isOpen || mode === 'CUSTOMER') return;
 
-          // Synchronize selection store
-          schedulerSelectionStore.getState().setSelection({
-            branchId: effectiveBranchId,
-            courtId: targetCourtId,
-            courtName: targetCourt?.name ?? defaultValues.courtName,
-            bookingDate: targetDate,
-            startTime: targetStart,
-            endTime: targetEnd,
-          });
+      setSelectedCustomer(null);
+      if (editingBooking) {
+        reset({
+          customerId: null,
+          customerName: editingBooking.customerName,
+          phoneNumber: editingBooking.phoneNumber,
+          courtId: editingBooking.courtId,
+          bookingDate: editingBooking.date,
+          startTime: editingBooking.startTime,
+          endTime: editingBooking.endTime,
+          bookingType: editingBooking.bookingType === 'FIXED' ? 'FIXED' : 'FLEXIBLE',
+          note: editingBooking.notes ?? '',
+        });
+      } else if (defaultValues) {
+        const targetDate = defaultValues.bookingDate ?? defaultValues.date ?? storeSelectedDate;
+        const targetCourtId = defaultValues.courtId ?? courts[0]?.id ?? 'court-1';
+        const targetCourt = courts.find((court) => court.id === targetCourtId);
+        const targetStart = defaultValues.startTime ?? '13:00';
 
-          reset({
-            customerId: null,
-            customerName: '',
-            phoneNumber: '',
-            courtId: targetCourtId,
-            bookingDate: targetDate,
-            startTime: targetStart,
-            endTime: targetEnd,
-            bookingType: 'FLEXIBLE',
-            note: '',
-          });
+        let calculatedEndTime = defaultValues.endTime;
+        if (!calculatedEndTime && defaultValues.startTime) {
+          const startMin = SchedulerService.parseTimeToMinutes(defaultValues.startTime);
+          calculatedEndTime = SchedulerService.minutesToTime(Math.min(24 * 60, startMin + 120));
         }
+
+        const targetEnd = calculatedEndTime ?? '15:00';
+
+        schedulerSelectionStore.getState().setSelection({
+          branchId: effectiveBranchId,
+          courtId: targetCourtId,
+          courtName: targetCourt?.name ?? defaultValues.courtName,
+          bookingDate: targetDate,
+          startTime: targetStart,
+          endTime: targetEnd,
+        });
+
+        reset({
+          customerId: null,
+          customerName: '',
+          phoneNumber: '',
+          courtId: targetCourtId,
+          bookingDate: targetDate,
+          startTime: targetStart,
+          endTime: targetEnd,
+          bookingType: 'FLEXIBLE',
+          note: '',
+        });
       }
     }, [
       isOpen,
       mode,
-      initialSelection,
-      authUser?.id,
-      authUser?.fullName,
-      authUser?.phone,
       defaultValues,
       editingBooking,
       courts,
       storeSelectedDate,
       effectiveBranchId,
       reset,
+    ]);
+
+    useEffect(() => {
+      if (!isOpen || mode !== 'CUSTOMER' || !initialSelection) return;
+
+      setValue('customerId', isAuthenticated ? (authUser?.id ?? null) : null, {
+        shouldValidate: true,
+      });
+      setValue('customerName', isAuthenticated ? (authUser?.fullName ?? '') : '', {
+        shouldValidate: true,
+      });
+      setValue('phoneNumber', isAuthenticated ? (authUser?.phoneNumber ?? '') : '', {
+        shouldValidate: true,
+      });
+    }, [
+      isOpen,
+      mode,
+      initialSelection,
+      isAuthenticated,
+      authUser?.id,
+      authUser?.fullName,
+      authUser?.phoneNumber,
+      setValue,
     ]);
 
     const handleSelectCustomer = (customer: Customer) => {
@@ -315,6 +355,8 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
     };
 
     const onSubmit = async (values: CreateBookingSchemaType) => {
+      if (mode === 'CUSTOMER' && (!isAuthenticated || !authUser)) return;
+
       // Validate past date / time slot before submitting
       if (!editingBooking) {
         if (SchedulerService.isPastDate(values.bookingDate)) {
@@ -432,12 +474,16 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
     };
 
     const isProcessing = isCreatingBooking || isSubmitting || isLoading;
+    const isCustomerMode = mode === 'CUSTOMER';
+    const isCustomerIdentityBlocked = isCustomerMode && (!isAuthenticated || !authUser);
     const isCustomerPricingPending =
-      mode === 'CUSTOMER' && (isPricingLoading || (isPricingFetching && !pricingData));
+      isCustomerMode && (isPricingLoading || (isPricingFetching && !pricingData));
     const customerIdentity =
-      mode === 'CUSTOMER' && authUser
-        ? { fullName: authUser.fullName, phoneNumber: authUser.phone }
+      isCustomerMode && authUser
+        ? { fullName: authUser.fullName ?? '', phoneNumber: authUser.phoneNumber ?? null }
         : null;
+
+    //console.log(customerIdentity);
 
     useEffect(() => {
       if (!isOpen && mode === 'CUSTOMER') {
@@ -526,26 +572,70 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
               </div>
             )}
 
-            {/* Booking Form Inputs */}
-            <BookingForm
-              register={register}
-              control={control}
-              errors={errors}
-              courts={courts}
-              mode={mode}
-              customerIdentity={customerIdentity}
-              selectedCustomer={selectedCustomer}
-              onSelectCustomer={handleSelectCustomer}
-              onDeselectCustomer={handleDeselectCustomer}
-              onConvertGuest={handleConvertGuest}
-              isEditing={Boolean(editingBooking)}
-              formattedDisplayDate={formattedDisplayDate}
-              durationDisplayText={effectiveDurationText}
-              pricingData={pricingData}
-              isPricingLoading={isPricingLoading || (isPricingFetching && !pricingData)}
-              isPricingError={isPricingError}
-              onRetryPricing={refetchPricing}
-            />
+            {isCustomerMode && !isAuthenticated ? (
+              <section
+                role="alert"
+                className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950"
+              >
+                <p>{t('account.loginRequired', 'Vui lòng đăng nhập để đặt sân.')}</p>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    onClose();
+                    navigate(paths.login, {
+                      state: { from: `${location.pathname}${location.search}` },
+                    });
+                  }}
+                >
+                  {t('auth.login.title', 'Đăng nhập')}
+                </Button>
+              </section>
+            ) : isCustomerMode && !authUser ? (
+              <section
+                role={isCurrentUserLoading ? 'status' : 'alert'}
+                aria-busy={isCurrentUserLoading}
+                className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-950"
+              >
+                <p>
+                  {isCurrentUserLoading
+                    ? t('account.loading', 'Đang tải thông tin khách hàng...')
+                    : isCurrentUserError
+                      ? t('account.profileLoadError', 'Không thể tải thông tin khách hàng.')
+                      : t('account.loginRequired', 'Vui lòng đăng nhập để đặt sân.')}
+                </p>
+                {isCurrentUserError && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void refetchCurrentUser()}
+                  >
+                    {t('account.retryProfile', 'Thử tải lại thông tin tài khoản')}
+                  </Button>
+                )}
+              </section>
+            ) : (
+              <BookingForm
+                register={register}
+                control={control}
+                errors={errors}
+                courts={courts}
+                mode={mode}
+                customerIdentity={customerIdentity}
+                selectedCustomer={selectedCustomer}
+                onSelectCustomer={handleSelectCustomer}
+                onDeselectCustomer={handleDeselectCustomer}
+                onConvertGuest={handleConvertGuest}
+                isEditing={Boolean(editingBooking)}
+                formattedDisplayDate={formattedDisplayDate}
+                durationDisplayText={effectiveDurationText}
+                pricingData={pricingData}
+                isPricingLoading={isPricingLoading || (isPricingFetching && !pricingData)}
+                isPricingError={isPricingError}
+                onRetryPricing={refetchPricing}
+              />
+            )}
 
             <DialogFooter
               className={
@@ -568,6 +658,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                 size="sm"
                 disabled={
                   isProcessing ||
+                  isCustomerIdentityBlocked ||
                   isCustomerPricingPending ||
                   (!editingBooking && (isPastDate || isPastSlot))
                 }

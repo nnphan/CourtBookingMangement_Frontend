@@ -13,7 +13,10 @@ import {
 } from '@/components/ui/select';
 import type { CourtItem } from '../types/court';
 import { BOOKING_TYPE_OPTIONS } from '../constants/booking.constants';
-import type { CreateBookingSchemaType } from '@/features/bookings/schemas/create-booking.schema';
+import {
+  VIETNAM_PHONE_REGEX,
+  type CreateBookingSchemaType,
+} from '@/features/bookings/schemas/create-booking.schema';
 import type { BookingDialogMode } from '@/features/bookings/types/booking.types';
 import type { CalculateBookingPriceResponse } from '@/features/bookings/types/booking.types';
 import { BookingPriceSummary } from './BookingPriceSummary';
@@ -59,7 +62,12 @@ export const BookingForm: React.FC<BookingFormProps> = memo(
     onRetryPricing,
   }) => {
     const { t } = useTranslation();
+    const hasCustomerName = Boolean(customerIdentity?.fullName.trim());
+    const customerPhone = customerIdentity?.phoneNumber?.trim() ?? '';
+    const hasValidCustomerPhone = VIETNAM_PHONE_REGEX.test(customerPhone);
 
+    console.log(hasCustomerName);
+    console.log(customerPhone);
     return (
       <div className="space-y-4 py-2">
         {/* Customer Search & Selection */}
@@ -133,9 +141,18 @@ export const BookingForm: React.FC<BookingFormProps> = memo(
             type="text"
             placeholder="Ví dụ: Coach Hiếu, Nguyễn Văn A..."
             {...register('customerName')}
-            readOnly={mode === 'CUSTOMER' && Boolean(customerIdentity?.fullName)}
+            readOnly={mode === 'CUSTOMER' && hasCustomerName}
+            aria-readonly={mode === 'CUSTOMER' && hasCustomerName}
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none"
           />
+          {mode === 'CUSTOMER' && !hasCustomerName && (
+            <p className="text-[11px] text-amber-700">
+              {t(
+                'account.missingFullName',
+                'Tài khoản chưa có họ và tên. Vui lòng nhập họ tên để tiếp tục đặt sân.',
+              )}
+            </p>
+          )}
           {errors.customerName && (
             <p className="text-[11px] text-red-500">{errors.customerName.message}</p>
           )}
@@ -150,9 +167,18 @@ export const BookingForm: React.FC<BookingFormProps> = memo(
             type="tel"
             placeholder="0903xxxxxx"
             {...register('phoneNumber')}
-            readOnly={mode === 'CUSTOMER' && Boolean(customerIdentity?.phoneNumber)}
+            readOnly={mode === 'CUSTOMER' && hasValidCustomerPhone}
+            aria-readonly={mode === 'CUSTOMER' && hasValidCustomerPhone}
             className="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm focus:border-emerald-600 focus:outline-none"
           />
+          {mode === 'CUSTOMER' && !hasValidCustomerPhone && (
+            <p className="text-[11px] text-amber-700">
+              {t(
+                'account.missingPhone',
+                'Tài khoản chưa có số điện thoại hợp lệ. Vui lòng nhập số điện thoại để tiếp tục đặt sân.',
+              )}
+            </p>
+          )}
           {errors.phoneNumber && (
             <p className="text-[11px] text-red-500">{errors.phoneNumber.message}</p>
           )}

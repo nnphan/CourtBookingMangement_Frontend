@@ -3,7 +3,7 @@ export type UserRole = 'customer' | 'staff' | 'owner' | 'admin';
 export interface User {
   id: string;
   fullName: string;
-  phone: string | null;
+  phoneNumber: string | null;
   email: string | null;
   avatarUrl: string | null;
   role: UserRole;

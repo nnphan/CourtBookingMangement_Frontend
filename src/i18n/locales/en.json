@@ -18,6 +18,10 @@
     "logout": "Sign out",
     "loggingOut": "Signing out...",
     "retryProfile": "Retry loading account",
+    "loginRequired": "Please sign in to book a court.",
+    "profileLoadError": "Unable to load customer information.",
+    "missingFullName": "Your account has no full name. Enter your name to continue.",
+    "missingPhone": "Your account has no valid phone number. Enter a phone number to continue.",
     "roles": {
       "customer": "Customer",
       "staff": "Staff",

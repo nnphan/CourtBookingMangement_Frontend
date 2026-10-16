@@ -80,6 +80,7 @@ export const CourtStatusBoard: React.FC<CourtStatusBoardProps> = memo(
     const interactionRef = useRef<SelectionInteraction | null>(null);
     const suppressClickRef = useRef(false);
     const suppressClickTimeoutRef = useRef<number | null>(null);
+    const selectionContextRef = useRef({ selectedDate, selectedBranchId });
 
     const suppressFollowingClick = useCallback(() => {
       suppressClickRef.current = true;
@@ -103,9 +104,16 @@ export const CourtStatusBoard: React.FC<CourtStatusBoardProps> = memo(
       }
     }, [completeSelection, suppressFollowingClick]);
 
-    // Edge Case 4 & 5: Clear selection when date or branch changes
+    // Preserve a selection across route remounts, but clear it when its context changes.
     useEffect(() => {
-      clearSelection();
+      const previousContext = selectionContextRef.current;
+      if (
+        previousContext.selectedDate !== selectedDate ||
+        previousContext.selectedBranchId !== selectedBranchId
+      ) {
+        clearSelection();
+      }
+      selectionContextRef.current = { selectedDate, selectedBranchId };
     }, [selectedDate, selectedBranchId, clearSelection]);
 
     // Update current time clock every 30 seconds
