@@ -8,6 +8,24 @@
     "required": "(*)",
     "language": "Language"
   },
+  "account": {
+    "user": "User",
+    "loading": "Loading account",
+    "openMenuFor": "Open account menu for {{name}}",
+    "dashboard": "Dashboard",
+    "bookings": "Bookings",
+    "myBookings": "My bookings",
+    "logout": "Sign out",
+    "loggingOut": "Signing out...",
+    "retryProfile": "Retry loading account",
+    "roles": {
+      "customer": "Customer",
+      "staff": "Staff",
+      "branchManager": "Branch manager",
+      "admin": "Administrator",
+      "user": "User"
+    }
+  },
   "management": {
     "pagination": {
       "showing": "Showing <bold>{{from}}-{{to}}</bold> of <bold>{{total}}</bold> {{items}}",
@@ -76,7 +94,12 @@
       "network": "Lost connection to the server. Try again in a moment."
     }
   },
-  "nav": { "dashboard": "Overview", "courts": "Courts", "bookings": "Bookings", "logout": "Sign out" },
+  "nav": {
+    "dashboard": "Overview",
+    "courts": "Courts",
+    "bookings": "Bookings",
+    "logout": "Sign out"
+  },
   "courtStatus": {
     "description": "Track bookings and court availability in real time",
     "title": "Court Status Board",

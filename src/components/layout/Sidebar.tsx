@@ -19,7 +19,7 @@ import {
   ChevronRight,
   Building2,
 } from 'lucide-react';
-import { useAuthStore } from '@/features/auth/store/auth.store';
+import { useLogout } from '@/features/auth/hooks/useLogout';
 import { cn } from '@/lib/utils';
 
 import { paths } from '@/app/router/paths';
@@ -48,9 +48,9 @@ const menuItems = [
   { icon: RefreshCw, label: 'Chuyển tài khoản' },
 ];
 
-  export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
+export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const { t } = useTranslation();
-  const { logout } = useAuthStore();
+  const { logout, isLoggingOut } = useLogout();
   const navigate = useNavigate();
   const sidebarRef = useRef<HTMLDivElement>(null);
 
@@ -87,18 +87,18 @@ const menuItems = [
         ref={sidebarRef}
         tabIndex={-1}
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-full max-w-[350px] transform bg-brand-600 text-content-onbrand shadow-[var(--shadow-drawer)] transition-transform duration-300 ease-[var(--ease-standard)] outline-none',
-          isOpen ? 'translate-x-0' : '-translate-x-full'
+          'bg-brand-600 text-content-onbrand fixed inset-y-0 left-0 z-50 w-full max-w-[350px] transform shadow-[var(--shadow-drawer)] transition-transform duration-300 ease-[var(--ease-standard)] outline-none',
+          isOpen ? 'translate-x-0' : '-translate-x-full',
         )}
         role="dialog"
         aria-modal="true"
         aria-label="Menu"
       >
-        <div className="flex h-14 items-center justify-between border-b border-white/10 px-4 sm:h-16 pt-[env(safe-area-inset-top,0px)]">
+        <div className="flex h-14 items-center justify-between border-b border-white/10 px-4 pt-[env(safe-area-inset-top,0px)] sm:h-16">
           <button
             type="button"
             onClick={onClose}
-            className="grid size-11 place-items-center rounded-full text-content-onbrand transition-colors hover:bg-white/10"
+            className="text-content-onbrand grid size-11 place-items-center rounded-full transition-colors hover:bg-white/10"
             aria-label="Close menu"
           >
             <X aria-hidden className="size-6" strokeWidth={2.5} />
@@ -119,7 +119,7 @@ const menuItems = [
                     onClose();
                   }
                 }}
-                className="group flex w-full items-center gap-3 border-b border-white/5 px-4 py-3.5 text-left transition-colors hover:bg-white/10 focus-visible:bg-white/10 cursor-pointer"
+                className="group flex w-full cursor-pointer items-center gap-3 border-b border-white/5 px-4 py-3.5 text-left transition-colors hover:bg-white/10 focus-visible:bg-white/10"
               >
                 <item.icon aria-hidden className="size-5 shrink-0 opacity-80" />
                 <span className="flex-1 text-[15px] font-medium">{item.label}</span>
@@ -129,7 +129,8 @@ const menuItems = [
             <button
               type="button"
               onClick={logout}
-              className="group flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-white/10 focus-visible:bg-white/10"
+              disabled={isLoggingOut}
+              className="group flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-white/10 focus-visible:bg-white/10 disabled:opacity-60"
             >
               <LogOut aria-hidden className="size-5 shrink-0 opacity-80" />
               <span className="flex-1 text-[15px] font-medium">{t('nav.logout')}</span>

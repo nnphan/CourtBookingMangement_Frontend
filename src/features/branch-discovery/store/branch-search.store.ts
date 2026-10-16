@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import dayjs from '@/lib/dayjs';
+import { getCurrentBookingDate, normalizeBookingDate } from '@/shared/utils/booking-date';
 import type {
   BadmintonBranch,
   BranchAmenityId,
@@ -51,23 +51,13 @@ interface BranchSearchState {
   resetFilters: () => void;
 }
 
-const getTodayDateString = () => {
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, '0');
-  const dd = String(today.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-};
-
 const getInitialSearchDate = (): string => {
   if (typeof window !== 'undefined') {
     const params = new URLSearchParams(window.location.search);
-    const urlDate = params.get('date');
-    if (urlDate && dayjs(urlDate, 'YYYY-MM-DD', true).isValid()) {
-      return urlDate;
-    }
+    const urlDate = normalizeBookingDate(params.get('date'));
+    if (urlDate) return urlDate;
   }
-  return getTodayDateString();
+  return getCurrentBookingDate();
 };
 
 export const useBranchSearchStore = create<BranchSearchState>((set) => ({
@@ -92,8 +82,8 @@ export const useBranchSearchStore = create<BranchSearchState>((set) => ({
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setSelectedDistrict: (selectedDistrict) => set({ selectedDistrict }),
   setSelectedDate: (selectedDate) =>
-    set({ selectedDate: selectedDate || getTodayDateString() }),
-  resetSelectedDate: () => set({ selectedDate: getTodayDateString() }),
+    set({ selectedDate: normalizeBookingDate(selectedDate) ?? getCurrentBookingDate() }),
+  resetSelectedDate: () => set({ selectedDate: getCurrentBookingDate() }),
   setSelectedTimeSlot: (selectedTimeSlot) => set({ selectedTimeSlot }),
   toggleAmenity: (amenity) =>
     set((state) => {
@@ -121,7 +111,7 @@ export const useBranchSearchStore = create<BranchSearchState>((set) => ({
     set({
       searchQuery: '',
       selectedDistrict: 'all',
-      selectedDate: getTodayDateString(),
+      selectedDate: getCurrentBookingDate(),
       selectedTimeSlot: 'all',
       selectedAmenities: [],
       selectedCourtSurface: 'all',

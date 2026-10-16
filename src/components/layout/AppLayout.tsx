@@ -4,14 +4,15 @@ import { Menu, Lightbulb } from 'lucide-react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
+import { CurrentUserMenu } from '@/shared/components/current-user';
 
 export const AppLayout = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="dashboard-canvas flex min-h-dvh flex-col bg-surface">
+    <div className="dashboard-canvas bg-surface flex min-h-dvh flex-col">
       <Sidebar isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} />
-      
+
       {/* Top Header */}
       <header className="sticky top-[env(safe-area-inset-top,0px)] z-20">
         <div className="mx-auto flex h-14 items-center justify-between px-4 sm:h-16">
@@ -26,24 +27,25 @@ export const AppLayout = () => {
             </button>
             <div className="flex h-10 items-center gap-2 rounded-full bg-white px-2 pr-4 shadow-[var(--shadow-card)]">
               <div className="grid size-8 place-items-center rounded-full bg-[#dcfce7]">
-                <span className="text-[10px] font-black text-brand-600">ALO</span>
+                <span className="text-brand-600 text-[10px] font-black">ALO</span>
               </div>
-              <span className="text-sm font-black tracking-tight text-brand-900">ALOBO</span>
+              <span className="text-brand-900 text-sm font-black tracking-tight">ALOBO</span>
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <LanguageSwitcher variant="contrast" />
             <button
               type="button"
-              className="flex items-center gap-1.5 rounded-full bg-accent-gold px-3 py-1.5 text-sm font-bold text-white shadow-sm hover:bg-accent-gold/90"
+              className="bg-accent-gold hover:bg-accent-gold/90 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-bold text-white shadow-sm"
             >
               <Lightbulb className="size-4" />
               <span className="hidden sm:inline">Hướng dẫn</span>
             </button>
+            <CurrentUserMenu />
           </div>
         </div>
       </header>
-      
+
       {/* Main Content Area */}
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-[calc(5rem+env(safe-area-inset-bottom,0px))]">
         <Outlet />

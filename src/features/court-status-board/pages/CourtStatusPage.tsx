@@ -19,6 +19,7 @@ import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
 import type { BookingItem } from '../types/booking';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
+import { CurrentUserMenu } from '@/shared/components/current-user';
 import { ManagementNavigation } from '@/components/navigation';
 
 export const CourtStatusPage: React.FC = () => {
@@ -196,9 +197,9 @@ export const CourtStatusPage: React.FC = () => {
   );
 
   return (
-    <div className="flex flex-col min-h-screen w-full bg-[#0d6838] text-white">
+    <div className="flex min-h-screen w-full flex-col bg-[#0d6838] text-white">
       {/* Top Header Bar */}
-      <header className="sticky top-0 z-40 flex h-14 items-center justify-between px-4 bg-[#0d6838] border-b border-white/10 shadow-xs">
+      <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-white/10 bg-[#0d6838] px-4 shadow-xs">
         {/* Left: Back Button */}
         <button
           type="button"
@@ -209,15 +210,13 @@ export const CourtStatusPage: React.FC = () => {
           <ArrowLeft className="size-5 stroke-[2.5]" />
         </button>
 
-
-
         <ManagementNavigation />
 
         {/* Right: Language Switcher, Search and Filter Icons */}
         <div className="flex items-center gap-1 sm:gap-2">
           <LanguageSwitcher variant="contrast" className="mr-1" />
+          <CurrentUserMenu />
 
-          {/* Avatar here */}
           <button
             type="button"
             aria-label={t('courtStatus.header.filter', 'Bộ lọc')}
@@ -229,7 +228,7 @@ export const CourtStatusPage: React.FC = () => {
       </header>
 
       {/* Filter Section */}
-      <section aria-label="Bộ lọc trạng thái sân" className="bg-[#0d6838] border-b border-white/10">
+      <section aria-label="Bộ lọc trạng thái sân" className="border-b border-white/10 bg-[#0d6838]">
         <CourtStatusFilters
           branches={myBranches}
           groups={groups}
@@ -250,12 +249,15 @@ export const CourtStatusPage: React.FC = () => {
       </section>
 
       {/* Legend Section */}
-      <section aria-label="Chú thích màu trạng thái" className="bg-[#0b5129]/90 border-b border-white/10">
+      <section
+        aria-label="Chú thích màu trạng thái"
+        className="border-b border-white/10 bg-[#0b5129]/90"
+      >
         <LegendBar />
       </section>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col w-full h-full bg-white overflow-hidden">
+      <main className="flex h-full w-full flex-1 flex-col overflow-hidden bg-white">
         {isBranchesLoading || (isLoading && Boolean(selectedBranch)) ? (
           <CourtStatusBoardSkeleton />
         ) : isBranchesError ? (
@@ -292,11 +294,13 @@ export const CourtStatusPage: React.FC = () => {
           <div className="p-6">
             <EmptyState
               date={selectedDate}
-              onCreateBooking={isPastDate ? undefined : () => handleOpenCreateBooking({ date: selectedDate })}
+              onCreateBooking={
+                isPastDate ? undefined : () => handleOpenCreateBooking({ date: selectedDate })
+              }
             />
           </div>
         ) : (
-          <div className="flex flex-1 flex-col w-full h-full overflow-hidden">
+          <div className="flex h-full w-full flex-1 flex-col overflow-hidden">
             <CourtScheduler
               courts={courts}
               bookings={bookings}

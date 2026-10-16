@@ -8,13 +8,10 @@ import {
   Building2,
   ChevronDown,
 } from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
+import { CurrentUserMenu } from '@/shared/components/current-user';
+import { useAuthStore } from '@/features/auth/store/auth.store';
 
 export interface BranchOption {
   id: string;
@@ -47,6 +44,7 @@ export const CourtStatusHeader: React.FC<CourtStatusHeaderProps> = memo(
     onOpenDatePicker,
     onBack,
   }) => {
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated());
     const formattedDisplayDate = useMemo(() => {
       return dayjs(selectedDate).format('DD/MM/YYYY');
     }, [selectedDate]);
@@ -63,14 +61,14 @@ export const CourtStatusHeader: React.FC<CourtStatusHeaderProps> = memo(
     return (
       <div className="w-full">
         {/* Top Navigation Bar */}
-        <header className="sticky top-0 z-40 flex h-14 items-center justify-between px-3 sm:px-6 bg-[#0d6838] border-b border-white/10 shadow-xs">
+        <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-white/10 bg-[#0d6838] px-3 shadow-xs sm:px-6">
           {/* Left: Back Button */}
           {onBack && (
             <button
               type="button"
               onClick={onBack}
               aria-label="Quay lại"
-              className="grid size-9 place-items-center rounded-full text-white/90 transition-colors hover:bg-white/15 active:scale-95 cursor-pointer"
+              className="grid size-9 cursor-pointer place-items-center rounded-full text-white/90 transition-colors hover:bg-white/15 active:scale-95"
             >
               <ArrowLeft className="size-5 stroke-[2.5]" />
             </button>
@@ -78,10 +76,10 @@ export const CourtStatusHeader: React.FC<CourtStatusHeaderProps> = memo(
 
           {/* Center Title */}
           <div className="flex flex-col items-center px-2">
-            <h1 className="text-sm sm:text-base md:text-lg font-black tracking-tight text-white drop-shadow-xs uppercase text-center truncate">
+            <h1 className="truncate text-center text-sm font-black tracking-tight text-white uppercase drop-shadow-xs sm:text-base md:text-lg">
               {branchName || activeBranch.branchName || 'TMT BADMINTON CENTER'}
             </h1>
-            <span className="text-[11px] text-emerald-200/90 font-semibold tracking-wide">
+            <span className="text-[11px] font-semibold tracking-wide text-emerald-200/90">
               {formattedDisplayDate}
             </span>
           </div>
@@ -89,6 +87,7 @@ export const CourtStatusHeader: React.FC<CourtStatusHeaderProps> = memo(
           {/* Right Controls: Branch Dropdown & Date Navigation */}
           <div className="flex items-center gap-1.5 sm:gap-2">
             <LanguageSwitcher variant="contrast" className="hidden sm:inline-flex" />
+            {isAuthenticated && <CurrentUserMenu />}
 
             {/* Branch Selector (if multiple branches exist) */}
             {branches.length > 1 && onBranchChange && (
@@ -96,15 +95,18 @@ export const CourtStatusHeader: React.FC<CourtStatusHeaderProps> = memo(
                 <SelectTrigger
                   hideChevron
                   aria-label="Chọn chi nhánh"
-                  className="h-8 px-2.5 rounded-lg border border-white/25 bg-white/12 hover:bg-white/20 active:bg-white/25 text-white font-semibold text-xs shadow-xs transition-all duration-150 flex items-center gap-1.5 cursor-pointer focus:ring-2 focus:ring-emerald-300"
+                  className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-white/25 bg-white/12 px-2.5 text-xs font-semibold text-white shadow-xs transition-all duration-150 hover:bg-white/20 focus:ring-2 focus:ring-emerald-300 active:bg-white/25"
                 >
-                  <Building2 className="size-3.5 text-emerald-200 shrink-0" />
-                  <span className="truncate max-w-[120px] sm:max-w-[180px]">
+                  <Building2 className="size-3.5 shrink-0 text-emerald-200" />
+                  <span className="max-w-[120px] truncate sm:max-w-[180px]">
                     {activeBranch.branchName}
                   </span>
-                  <ChevronDown className="size-3.5 text-white/80 shrink-0 ml-0.5" />
+                  <ChevronDown className="ml-0.5 size-3.5 shrink-0 text-white/80" />
                 </SelectTrigger>
-                <SelectContent align="end" className="w-64 bg-slate-900 border-slate-700 text-white">
+                <SelectContent
+                  align="end"
+                  className="w-64 border-slate-700 bg-slate-900 text-white"
+                >
                   {branches.map((b) => (
                     <SelectItem
                       key={b.id}
@@ -114,9 +116,7 @@ export const CourtStatusHeader: React.FC<CourtStatusHeaderProps> = memo(
                       <div className="flex flex-col">
                         <span className="font-bold">{b.branchName}</span>
                         {b.address && (
-                          <span className="text-[10px] text-slate-300 truncate">
-                            {b.address}
-                          </span>
+                          <span className="truncate text-[10px] text-slate-300">{b.address}</span>
                         )}
                       </div>
                     </SelectItem>
@@ -132,7 +132,7 @@ export const CourtStatusHeader: React.FC<CourtStatusHeaderProps> = memo(
                 onClick={onPrevDay}
                 title="Ngày trước"
                 aria-label="Ngày trước"
-                className="p-1 rounded-md text-white/80 hover:text-white hover:bg-white/15 transition-colors cursor-pointer hidden sm:grid place-items-center"
+                className="hidden cursor-pointer place-items-center rounded-md p-1 text-white/80 transition-colors hover:bg-white/15 hover:text-white sm:grid"
               >
                 <ChevronLeft className="size-3.5" />
               </button>
@@ -141,7 +141,7 @@ export const CourtStatusHeader: React.FC<CourtStatusHeaderProps> = memo(
                 type="button"
                 onClick={onOpenDatePicker}
                 aria-label="Chọn ngày xem lịch trạng thái sân"
-                className="flex items-center gap-2 bg-white/15 hover:bg-white/25 active:bg-white/30 border border-white/30 rounded-lg px-3 py-1.5 text-xs font-bold text-white shadow-xs transition-all duration-150 cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-emerald-300"
+                className="flex cursor-pointer items-center gap-2 rounded-lg border border-white/30 bg-white/15 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition-all duration-150 hover:bg-white/25 focus:ring-2 focus:ring-emerald-300 focus:outline-hidden active:bg-white/30"
               >
                 <span>{formattedDisplayDate}</span>
                 <Calendar className="size-3.5 text-white/95" />
@@ -152,7 +152,7 @@ export const CourtStatusHeader: React.FC<CourtStatusHeaderProps> = memo(
                 onClick={onNextDay}
                 title="Ngày sau"
                 aria-label="Ngày sau"
-                className="p-1 rounded-md text-white/80 hover:text-white hover:bg-white/15 transition-colors cursor-pointer hidden sm:grid place-items-center"
+                className="hidden cursor-pointer place-items-center rounded-md p-1 text-white/80 transition-colors hover:bg-white/15 hover:text-white sm:grid"
               >
                 <ChevronRight className="size-3.5" />
               </button>

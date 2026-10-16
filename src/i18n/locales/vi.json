@@ -8,6 +8,24 @@
     "required": "(*)",
     "language": "Ngôn ngữ"
   },
+  "account": {
+    "user": "Người dùng",
+    "loading": "Đang tải tài khoản",
+    "openMenuFor": "Mở menu tài khoản của {{name}}",
+    "dashboard": "Trang quản lý",
+    "bookings": "Lịch đặt",
+    "myBookings": "Lịch đặt sân của tôi",
+    "logout": "Đăng xuất",
+    "loggingOut": "Đang đăng xuất...",
+    "retryProfile": "Thử tải lại thông tin tài khoản",
+    "roles": {
+      "customer": "Khách hàng",
+      "staff": "Nhân viên",
+      "branchManager": "Quản lý chi nhánh",
+      "admin": "Quản trị viên",
+      "user": "Người dùng"
+    }
+  },
   "management": {
     "pagination": {
       "showing": "Hiển thị <bold>{{from}}-{{to}}</bold> trên <bold>{{total}}</bold> {{items}}",
@@ -76,7 +94,12 @@
       "network": "Mất kết nối máy chủ. Thử lại sau giây lát."
     }
   },
-  "nav": { "dashboard": "Tổng quan", "courts": "Sân", "bookings": "Lịch đặt", "logout": "Đăng xuất" },
+  "nav": {
+    "dashboard": "Tổng quan",
+    "courts": "Sân",
+    "bookings": "Lịch đặt",
+    "logout": "Đăng xuất"
+  },
   "courtStatus": {
     "description": "Theo dõi lịch đặt và tình trạng các sân theo thời gian thực",
     "title": "Trạng thái sân",
