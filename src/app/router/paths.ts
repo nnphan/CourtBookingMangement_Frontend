@@ -7,6 +7,7 @@ export const paths = {
   courts: '/courts',
   courtStatus: '/court-status',
   bookings: '/bookings',
+  myBooking: '/my-booking',
   customers: '/customers',
   customerDetail: (id: string = ':id') => `/customers/${id}`,
   customerCreate: '/customers/new',
@@ -25,5 +26,3 @@ export const paths = {
   adminBranchEdit: (id: string = ':id') => `/admin/branches/${id}/edit`,
   notFound: '*',
 } as const;
-
-

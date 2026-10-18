@@ -20,7 +20,7 @@ type ApiErrorResponseBody = {
 
 export const http: AxiosInstance = axios.create({
   baseURL: env.apiBaseUrl,
-  timeout: 20_000,
+  timeout: env.apiTimeoutMs,
   headers: { 'Content-Type': 'application/json' },
 });
 

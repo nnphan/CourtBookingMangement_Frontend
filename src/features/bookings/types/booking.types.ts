@@ -105,3 +105,19 @@ export interface BookingDetailDto {
   remainingAmount: number;
   notes: string | null;
 }
+
+export interface MyBookingListItemDto {
+  bookingId: string;
+  bookingCode: string;
+  branchId: string;
+  branchName: string;
+  courtId: string;
+  courtName: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  bookingType: string;
+  status: string;
+  paymentMethod: string;
+  totalAmount: number;
+}

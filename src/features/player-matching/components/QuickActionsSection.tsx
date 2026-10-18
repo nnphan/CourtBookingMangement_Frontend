@@ -8,10 +8,7 @@ export const QuickActionsSection = () => {
   const openMatchesCount = statsResponse?.data?.openMatches ?? 15;
 
   return (
-    <section
-      aria-label="Quick Actions"
-      className="w-full"
-    >
+    <section aria-label="Quick Actions" className="w-full">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {/* Action 1: Book Court */}
         <QuickActionCard
@@ -43,7 +40,7 @@ export const QuickActionsSection = () => {
           description="Quản lý lịch đặt sân, theo dõi thanh toán và xem thông tin trận đấu của bạn."
           badge="Lịch & Vé"
           actionText="Xem lịch đặt →"
-          route={paths.bookings ?? '/bookings'}
+          route={paths.myBooking}
         />
       </div>
     </section>

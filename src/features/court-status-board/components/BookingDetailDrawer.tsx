@@ -13,14 +13,7 @@ import { BookingDetails } from './BookingDetails';
 import { BookingDetailSkeleton } from './BookingDetailSkeleton';
 import { BookingStatusBadge } from './BookingStatusBadge';
 import { Button } from '@/components/ui/button';
-import {
-  AlertTriangle,
-  AlertCircle,
-  RotateCcw,
-  Edit,
-  LogIn,
-  Trash2,
-} from 'lucide-react';
+import { AlertTriangle, AlertCircle, RotateCcw, Edit, LogIn, Trash2 } from 'lucide-react';
 import { toBookingTypeEnum } from '../utils/booking.utils';
 
 export interface BookingDetailDrawerProps {
@@ -31,10 +24,11 @@ export interface BookingDetailDrawerProps {
   onEdit?: (booking: BookingItem) => void;
   onCheckIn?: (booking: BookingItem) => void;
   onCancel?: (booking: BookingItem) => void;
+  mode?: 'ADMIN' | 'CUSTOMER';
 }
 
 export const BookingDetailDrawer: React.FC<BookingDetailDrawerProps> = memo(
-  ({ bookingId, booking, isOpen, onClose, onEdit, onCheckIn, onCancel }) => {
+  ({ bookingId, booking, isOpen, onClose, onEdit, onCheckIn, onCancel, mode = 'ADMIN' }) => {
     const { t } = useTranslation();
 
     // Priority: Explicit bookingId prop, fallback to booking?.id
@@ -76,20 +70,26 @@ export const BookingDetailDrawer: React.FC<BookingDetailDrawerProps> = memo(
 
     return (
       <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto flex flex-col justify-between">
+        <SheetContent
+          side="right"
+          className="flex w-full flex-col justify-between overflow-y-auto sm:max-w-md"
+        >
           <div>
-            <SheetHeader className="pb-4 border-b border-slate-200">
+            <SheetHeader className="border-b border-slate-200 pb-4">
               <div className="flex items-start justify-between gap-3 pr-6">
                 <div>
                   <SheetTitle className="text-xl font-bold text-slate-900">
                     {t('courtStatus.detail.title', 'Chi tiết đặt sân')}
                   </SheetTitle>
-                  <SheetDescription className="text-xs text-slate-500 mt-0.5">
-                    {t('courtStatus.detail.subtitle', 'Thông tin lịch đặt sân và trạng thái thanh toán')}
+                  <SheetDescription className="mt-0.5 text-xs text-slate-500">
+                    {t(
+                      'courtStatus.detail.subtitle',
+                      'Thông tin lịch đặt sân và trạng thái thanh toán',
+                    )}
                   </SheetDescription>
                 </div>
                 {bookingDetail && (
-                  <div className="pt-0.5 shrink-0">
+                  <div className="shrink-0 pt-0.5">
                     <BookingStatusBadge status={bookingDetail.bookingStatus} size="sm" />
                   </div>
                 )}
@@ -102,17 +102,20 @@ export const BookingDetailDrawer: React.FC<BookingDetailDrawerProps> = memo(
               ) : isError ? (
                 <div
                   role="alert"
-                  className="flex flex-col items-center justify-center py-12 px-4 text-center space-y-3"
+                  className="flex flex-col items-center justify-center space-y-3 px-4 py-12 text-center"
                 >
-                  <div className="size-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center">
+                  <div className="flex size-12 items-center justify-center rounded-full bg-rose-50 text-rose-600">
                     <AlertTriangle className="size-6" />
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">
                       {t('courtStatus.detail.loadError', 'Không thể tải chi tiết đặt sân.')}
                     </h3>
-                    <p className="text-xs text-slate-500 mt-1 max-w-xs">
-                      {error?.message || t('common.somethingWentWrong', 'Đã xảy ra lỗi vui lòng thử lại sau.')}
+                    <p className="mt-1 max-w-xs text-xs text-slate-500">
+                      {mode === 'CUSTOMER'
+                        ? 'Không thể tải chi tiết đặt sân. Vui lòng thử lại.'
+                        : error?.message ||
+                          t('common.somethingWentWrong', 'Đã xảy ra lỗi vui lòng thử lại sau.')}
                     </p>
                   </div>
                   <Button
@@ -120,7 +123,7 @@ export const BookingDetailDrawer: React.FC<BookingDetailDrawerProps> = memo(
                     variant="outline"
                     size="sm"
                     onClick={() => void refetch()}
-                    className="gap-1.5 text-xs font-semibold cursor-pointer"
+                    className="cursor-pointer gap-1.5 text-xs font-semibold"
                   >
                     <RotateCcw className="size-3.5" />
                     {t('common.retry', 'Thử lại')}
@@ -129,42 +132,45 @@ export const BookingDetailDrawer: React.FC<BookingDetailDrawerProps> = memo(
               ) : !bookingDetail ? (
                 <div
                   role="status"
-                  className="flex flex-col items-center justify-center py-12 px-4 text-center space-y-3"
+                  className="flex flex-col items-center justify-center space-y-3 px-4 py-12 text-center"
                 >
-                  <div className="size-12 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center">
+                  <div className="flex size-12 items-center justify-center rounded-full bg-slate-100 text-slate-500">
                     <AlertCircle className="size-6" />
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-slate-800">
                       {t('courtStatus.detail.notFound', 'Không tìm thấy thông tin đặt sân.')}
                     </h3>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      {t('courtStatus.detail.notFoundDesc', 'Lịch đặt có thể đã bị xóa hoặc không tồn tại.')}
+                    <p className="mt-0.5 text-xs text-slate-400">
+                      {t(
+                        'courtStatus.detail.notFoundDesc',
+                        'Lịch đặt có thể đã bị xóa hoặc không tồn tại.',
+                      )}
                     </p>
                   </div>
                 </div>
               ) : (
-                <BookingDetails booking={bookingDetail} />
+                <BookingDetails booking={bookingDetail} showNotes={mode !== 'CUSTOMER'} />
               )}
             </div>
           </div>
 
           {/* Action buttons (only displayed when booking detail is loaded) */}
           {bookingDetail && (
-            <div className="flex flex-col gap-2 pt-3 pb-2 border-t border-slate-200 mt-4 sticky bottom-0 bg-white">
+            <div className="sticky bottom-0 mt-4 flex flex-col gap-2 border-t border-slate-200 bg-white pt-3 pb-2">
               <div className="flex gap-2">
                 {onEdit && (
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="flex-1 text-xs font-semibold cursor-pointer"
+                    className="flex-1 cursor-pointer text-xs font-semibold"
                     onClick={() => {
                       const eff = getEffectiveBooking();
                       if (eff) onEdit(eff);
                     }}
                   >
-                    <Edit className="size-3.5 mr-1 text-blue-600" />
+                    <Edit className="mr-1 size-3.5 text-blue-600" />
                     {t('common.edit', 'Chỉnh sửa')}
                   </Button>
                 )}
@@ -174,15 +180,17 @@ export const BookingDetailDrawer: React.FC<BookingDetailDrawerProps> = memo(
                     type="button"
                     variant="primary"
                     size="sm"
-                    className="flex-1 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                    className="flex-1 cursor-pointer bg-emerald-600 text-xs font-semibold text-white hover:bg-emerald-700"
                     onClick={() => {
                       const eff = getEffectiveBooking();
                       if (eff) onCheckIn(eff);
                     }}
                     disabled={booking?.checkedIn}
                   >
-                    <LogIn className="size-3.5 mr-1" />
-                    {booking?.checkedIn ? t('courtStatus.detail.checkedIn', 'Đã Check-in') : t('courtStatus.detail.checkIn', 'Check-in')}
+                    <LogIn className="mr-1 size-3.5" />
+                    {booking?.checkedIn
+                      ? t('courtStatus.detail.checkedIn', 'Đã Check-in')
+                      : t('courtStatus.detail.checkIn', 'Check-in')}
                   </Button>
                 )}
               </div>
@@ -192,13 +200,13 @@ export const BookingDetailDrawer: React.FC<BookingDetailDrawerProps> = memo(
                   type="button"
                   variant="danger"
                   size="sm"
-                  className="w-full text-xs font-semibold cursor-pointer"
+                  className="w-full cursor-pointer text-xs font-semibold"
                   onClick={() => {
                     const eff = getEffectiveBooking();
                     if (eff) onCancel(eff);
                   }}
                 >
-                  <Trash2 className="size-3.5 mr-1" />
+                  <Trash2 className="mr-1 size-3.5" />
                   {t('courtStatus.detail.cancelBooking', 'Hủy lịch đặt sân')}
                 </Button>
               )}

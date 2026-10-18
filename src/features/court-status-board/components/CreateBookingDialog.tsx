@@ -84,6 +84,9 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
     onBookingConflict,
   }) => {
     const { t } = useTranslation();
+    const [dialogDebugId] = useState(() => crypto.randomUUID());
+    const activeRequestDebugIdRef = useRef<string | null>(null);
+    const createBookingInFlightRef = useRef(false);
     const location = useLocation();
     const navigate = useNavigate();
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated());
@@ -95,8 +98,6 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
     } = useCurrentUser();
     const authUserRef = useRef(authUser);
     authUserRef.current = authUser;
-
-    console.log(authUser);
 
     const storeSelectedDate = useCourtStatusStore((s) => s.selectedDate);
     const storeSelectedBranch = useCourtStatusStore((s) => s.selectedBranch);
@@ -423,8 +424,20 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
         },
       );
 
+      if (createBookingInFlightRef.current) return;
+      createBookingInFlightRef.current = true;
+
       try {
-        const result = await createBookingMutation(payload);
+        const requestDebugId = crypto.randomUUID();
+        activeRequestDebugIdRef.current = requestDebugId;
+        if (import.meta.env.DEV) {
+          console.debug('[CreateBookingDialog] submit accepted', {
+            dialogDebugId,
+            requestDebugId,
+            mode,
+          });
+        }
+        const result = await createBookingMutation({ payload, requestDebugId });
         onBookingCreated?.(result);
         // Also call onSubmitBooking callback if provided by parent for local sync
         if (onSubmitBooking) {
@@ -470,10 +483,29 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
         if (mode === 'CUSTOMER' && apiError.code === 'BOOKING_CONFLICT') {
           onBookingConflict?.();
         }
+      } finally {
+        createBookingInFlightRef.current = false;
+        activeRequestDebugIdRef.current = null;
       }
     };
 
     const isProcessing = isCreatingBooking || isSubmitting || isLoading;
+    useEffect(() => {
+      if (!import.meta.env.DEV) return;
+      console.debug('[CreateBookingDialog] mounted', { dialogDebugId });
+      return () => console.debug('[CreateBookingDialog] unmounted', { dialogDebugId });
+    }, [dialogDebugId]);
+
+    useEffect(() => {
+      if (!import.meta.env.DEV) return;
+      console.debug('[CreateBookingDialog] state', {
+        dialogDebugId,
+        requestDebugId: activeRequestDebugIdRef.current,
+        open: isOpen,
+        isPending: isProcessing,
+      });
+    }, [dialogDebugId, isOpen, isProcessing]);
+
     const isCustomerMode = mode === 'CUSTOMER';
     const isCustomerIdentityBlocked = isCustomerMode && (!isAuthenticated || !authUser);
     const isCustomerPricingPending =

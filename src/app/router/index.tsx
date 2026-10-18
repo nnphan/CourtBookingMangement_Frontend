@@ -14,16 +14,25 @@ const CourtsPage = lazy(() => import('@/features/courts/pages/CourtsPage'));
 const BookingsPage = lazy(() => import('@/features/booking/pages/BookingsPage'));
 const CourtStatusPage = lazy(() => import('@/features/court-status-board/pages/CourtStatusPage'));
 const CustomerLayout = lazy(() => import('@/features/customer-management/layouts/CustomerLayout'));
-const CustomerListPage = lazy(() => import('@/features/customer-management/pages/CustomerListPage'));
-const CustomerDetailPage = lazy(() => import('@/features/customer-management/pages/CustomerDetailPage'));
-const CustomerCreatePage = lazy(() => import('@/features/customer-management/pages/CustomerCreatePage'));
-const CustomerEditPage = lazy(() => import('@/features/customer-management/pages/CustomerEditPage'));
+const CustomerListPage = lazy(
+  () => import('@/features/customer-management/pages/CustomerListPage'),
+);
+const CustomerDetailPage = lazy(
+  () => import('@/features/customer-management/pages/CustomerDetailPage'),
+);
+const CustomerCreatePage = lazy(
+  () => import('@/features/customer-management/pages/CustomerCreatePage'),
+);
+const CustomerEditPage = lazy(
+  () => import('@/features/customer-management/pages/CustomerEditPage'),
+);
 const BranchDiscoveryPage = lazy(
   () => import('@/features/branch-discovery/pages/BranchDiscoveryPage'),
 );
 const CustomerCourtStatusPage = lazy(
   () => import('@/features/customer-court-status/pages/CustomerCourtStatusPage'),
 );
+const MyBookingPage = lazy(() => import('@/features/bookings/pages/MyBookingPage'));
 const DiscoverMatchesPage = lazy(
   () => import('@/features/player-matching/pages/DiscoverMatchesPage'),
 );
@@ -89,6 +98,7 @@ export const router = createBrowserRouter([
         ],
       },
       { path: paths.courtStatus, element: withSuspense(<CourtStatusPage />) },
+      { path: paths.myBooking, element: withSuspense(<MyBookingPage />) },
       {
         element: withSuspense(<CustomerLayout />),
         children: [

@@ -7,6 +7,7 @@ export * from './api/booking-detail.query';
 export * from './api/booking-pricing.api';
 export * from './api/booking-pricing.query';
 export * from './hooks/useCreateBooking';
+export * from './hooks/useMyBookings';
 export * from './hooks/useBookingDetail';
 export * from './hooks/useCalculateBookingPrice';
 export * from './services/booking.service';

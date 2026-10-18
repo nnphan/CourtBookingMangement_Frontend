@@ -1,5 +1,5 @@
 import { CalendarDays, LayoutDashboard, LogOut } from 'lucide-react';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { paths } from '@/app/router/paths';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
@@ -24,6 +24,7 @@ interface CurrentUserMenuProps {
 
 export const CurrentUserMenu = ({ variant = 'contrast' }: CurrentUserMenuProps) => {
   const { t } = useTranslation();
+  const location = useLocation();
   const { user, isLoading, isError, refetch } = useCurrentUser();
   const { logout, isLoggingOut } = useLogout();
 
@@ -98,7 +99,10 @@ export const CurrentUserMenu = ({ variant = 'contrast' }: CurrentUserMenuProps) 
           </DropdownMenuItem>
         )}
         <DropdownMenuItem asChild>
-          <Link to={paths.bookings}>
+          <Link
+            to={isCustomer ? paths.myBooking : paths.bookings}
+            aria-current={isCustomer && location.pathname === paths.myBooking ? 'page' : undefined}
+          >
             <CalendarDays aria-hidden="true" className="size-4" />
             {t(isCustomer ? 'account.myBookings' : 'account.bookings')}
           </Link>

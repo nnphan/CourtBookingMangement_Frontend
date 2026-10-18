@@ -17,7 +17,7 @@ export const mapBookingTypeToLabel = (type: string): string => {
   if (normalized === 'FLEXIBLE') {
     return 'Vãng lai';
   }
-  return type || '-';
+  return '-';
 };
 
 /**
@@ -27,9 +27,7 @@ export const mapBookingTypeToLabel = (type: string): string => {
  * CONFIRMED -> Đã xác nhận
  * CANCELLED -> Đã hủy
  */
-export const mapBookingStatus = (
-  status?: string | null,
-): { label: string; badgeClass: string } => {
+export const mapBookingStatus = (status?: string | null): { label: string; badgeClass: string } => {
   const upper = (status || '').trim().toUpperCase();
   switch (upper) {
     case 'FIXED':
@@ -76,7 +74,7 @@ export const mapPaymentMethod = (method?: string | null): string => {
     case 'BANK_TRANSFER':
       return 'Chuyển khoản';
     default:
-      return method || '-';
+      return 'Không xác định';
   }
 };
 
@@ -86,9 +84,7 @@ export const mapPaymentMethod = (method?: string | null): string => {
  * PAID -> Đã thanh toán (Green)
  * PARTIAL_PAID / PARTIALLY_PAID -> Thanh toán một phần (Orange)
  */
-export const mapPaymentStatus = (
-  status?: string | null,
-): { label: string; badgeClass: string } => {
+export const mapPaymentStatus = (status?: string | null): { label: string; badgeClass: string } => {
   const upper = (status || '').trim().toUpperCase();
   switch (upper) {
     case 'UNPAID':
@@ -197,7 +193,6 @@ export const formatBookingDateToApi = (date?: string | null): string => {
   const parsed = dayjs(date);
   return parsed.isValid() ? parsed.format('YYYY-MM-DD') : date;
 };
-
 
 export const toCreateBookingPayload = (
   values: {
