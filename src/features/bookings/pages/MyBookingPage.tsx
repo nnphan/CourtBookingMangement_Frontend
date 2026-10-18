@@ -9,6 +9,7 @@ import { useMyBookings } from '../hooks/useMyBookings';
 import type { MyBookingListItemDto } from '../types/booking.types';
 import { normalizeBookingStatus } from '../utils/booking-status.utils';
 import { MyBookingCard } from '../components/MyBookingCard';
+import { CreatePlayerMatchDialog } from '@/features/player-matching/components/CreatePlayerMatchDialog';
 import {
   MyBookingEmptyState,
   MyBookingErrorState,
@@ -62,6 +63,7 @@ export const MyBookingPage = () => {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
+  const [bookingForMatch, setBookingForMatch] = useState<MyBookingListItemDto | null>(null);
   const [now, setNow] = useState(() => dayjs().tz(TIME_ZONE));
 
   useEffect(() => {
@@ -381,6 +383,12 @@ export const MyBookingPage = () => {
                   key={booking.bookingId}
                   booking={booking}
                   onViewDetails={setSelectedBookingId}
+                  onCreatePlayerMatch={
+                    normalizeBookingStatus(booking.status) === 'CONFIRMED' &&
+                    isUpcoming(booking, nowTimestamp)
+                      ? setBookingForMatch
+                      : undefined
+                  }
                   isUpcoming={isUpcoming(booking, nowTimestamp)}
                   isNearestUpcoming={booking.bookingId === nearestUpcomingBookingId}
                 />
@@ -395,6 +403,13 @@ export const MyBookingPage = () => {
         isOpen={Boolean(selectedBookingId)}
         onClose={() => setSelectedBookingId(null)}
         mode="CUSTOMER"
+      />
+      <CreatePlayerMatchDialog
+        booking={bookingForMatch}
+        open={bookingForMatch !== null}
+        onOpenChange={(open) => {
+          if (!open) setBookingForMatch(null);
+        }}
       />
     </div>
   );

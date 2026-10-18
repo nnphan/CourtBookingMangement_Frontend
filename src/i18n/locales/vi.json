@@ -8,6 +8,55 @@
     "required": "(*)",
     "language": "Ngôn ngữ"
   },
+  "playerMatch": {
+    "create": {
+      "action": "Tạo ghép sân",
+      "title": "Tạo ghép sân",
+      "description": "Chia sẻ lịch đặt sân đã xác nhận để tìm thêm người chơi.",
+      "bookingInfo": "Thông tin đặt sân",
+      "branch": "Chi nhánh",
+      "court": "Sân",
+      "date": "Ngày",
+      "time": "Thời gian",
+      "matchInfo": "Thông tin ghép sân",
+      "titleLabel": "Tiêu đề",
+      "titlePlaceholder": "Ví dụ: Tìm thêm người đánh đôi",
+      "descriptionLabel": "Mô tả",
+      "skillLevel": "Trình độ",
+      "genderPreference": "Giới tính mong muốn",
+      "maxPlayers": "Số người chơi tối đa",
+      "feePerPlayer": "Phí mỗi người chơi",
+      "submit": "Tạo ghép sân",
+      "submitting": "Đang tạo...",
+      "cancel": "Hủy",
+      "success": "Tạo ghép sân thành công.",
+      "validation": {
+        "titleRequired": "Vui lòng nhập tiêu đề.",
+        "playersInvalid": "Số người chơi phải là số nguyên từ 1 trở lên.",
+        "feeInvalid": "Phí phải bằng hoặc lớn hơn 0."
+      },
+      "errors": {
+        "bookingPast": "Lịch đặt này đã kết thúc và không thể tạo ghép sân.",
+        "conflict": "Lịch đặt đã có ghép sân hoặc không còn đủ điều kiện.",
+        "unauthorized": "Vui lòng đăng nhập để tạo ghép sân.",
+        "forbidden": "Bạn không có quyền tạo ghép sân cho lịch đặt này.",
+        "bookingChanged": "Không tìm thấy lịch đặt. Vui lòng tải lại danh sách và thử lại.",
+        "network": "Không thể kết nối máy chủ. Vui lòng kiểm tra mạng trước khi thử lại.",
+        "generic": "Không thể tạo ghép sân. Vui lòng kiểm tra thông tin và thử lại."
+      },
+      "skills": {
+        "beginner": "Người mới",
+        "intermediate": "Trung cấp",
+        "advanced": "Nâng cao",
+        "professional": "Chuyên nghiệp"
+      },
+      "genders": {
+        "male": "Nam",
+        "female": "Nữ",
+        "both": "Cả hai"
+      }
+    }
+  },
   "account": {
     "user": "Người dùng",
     "loading": "Đang tải tài khoản",

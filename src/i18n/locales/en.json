@@ -8,6 +8,55 @@
     "required": "(*)",
     "language": "Language"
   },
+  "playerMatch": {
+    "create": {
+      "action": "Create Player Match",
+      "title": "Create Player Match",
+      "description": "Share this confirmed booking with players looking to join.",
+      "bookingInfo": "Booking information",
+      "branch": "Branch",
+      "court": "Court",
+      "date": "Date",
+      "time": "Time",
+      "matchInfo": "Player match information",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Example: Looking for doubles players",
+      "descriptionLabel": "Description",
+      "skillLevel": "Skill level",
+      "genderPreference": "Gender preference",
+      "maxPlayers": "Maximum players",
+      "feePerPlayer": "Fee per player",
+      "submit": "Create Player Match",
+      "submitting": "Creating...",
+      "cancel": "Cancel",
+      "success": "Player match created successfully.",
+      "validation": {
+        "titleRequired": "Enter a title.",
+        "playersInvalid": "Enter a whole number of at least one player.",
+        "feeInvalid": "Fee must be zero or greater."
+      },
+      "errors": {
+        "bookingPast": "This booking has already ended and cannot be shared.",
+        "conflict": "A player match already exists or this booking is no longer eligible.",
+        "unauthorized": "Sign in to create a player match.",
+        "forbidden": "You are not allowed to create a match for this booking.",
+        "bookingChanged": "This booking could not be found. Refresh your bookings and try again.",
+        "network": "Could not reach the server. Check your connection before trying again.",
+        "generic": "Could not create the player match. Please review the form and try again."
+      },
+      "skills": {
+        "beginner": "Beginner",
+        "intermediate": "Intermediate",
+        "advanced": "Advanced",
+        "professional": "Professional"
+      },
+      "genders": {
+        "male": "Men",
+        "female": "Women",
+        "both": "Any gender"
+      }
+    }
+  },
   "account": {
     "user": "User",
     "loading": "Loading account",

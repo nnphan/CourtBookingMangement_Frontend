@@ -1,6 +1,10 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { playerMatchingApi } from '../api/player-matching.api';
-import type { PlayerMatchingFilterParams } from '../types/player-matching.types';
+import type {
+  CreatePlayerMatchRequest,
+  PlayerMatchingFilterParams,
+} from '../types/player-matching.types';
+import { BOOKING_QUERY_KEYS } from '@/features/bookings/api/booking.query';
 
 export const playerMatchingKeys = {
   all: ['player-matching'] as const,
@@ -75,6 +79,26 @@ export const useJoinMatch = () => {
     onSuccess: () => {
       // Invalidate match queries to refresh player count
       queryClient.invalidateQueries({ queryKey: playerMatchingKeys.all });
+    },
+  });
+};
+
+export const useCreatePlayerMatch = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: CreatePlayerMatchRequest) => playerMatchingApi.createPlayerMatch(payload),
+    retry: false,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: playerMatchingKeys.all }),
+        queryClient.invalidateQueries({ queryKey: BOOKING_QUERY_KEYS.myBookings() }),
+      ]);
+    },
+    onError: async (error: { status?: number }) => {
+      if (error.status === 404 || error.status === 409) {
+        await queryClient.invalidateQueries({ queryKey: BOOKING_QUERY_KEYS.myBookings() });
+      }
     },
   });
 };

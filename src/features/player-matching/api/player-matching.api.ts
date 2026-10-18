@@ -1,5 +1,6 @@
 import { http } from '@/lib/axios';
 import type {
+  CreatePlayerMatchRequest,
   PlayerMatchingFilterParams,
   PlayerMatchingResponse,
   PlayerMatchingStatsResponse,
@@ -7,6 +8,10 @@ import type {
 import { MOCK_MATCHES } from './player-matching.mock';
 
 export const playerMatchingApi = {
+  createPlayerMatch: async (payload: CreatePlayerMatchRequest): Promise<void> => {
+    await http.post('/api/player-matches', payload);
+  },
+
   /**
    * Get open match stats for badge counter and promotion
    * Endpoint: GET /api/player-matching/stats

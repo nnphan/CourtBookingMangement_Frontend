@@ -1,4 +1,5 @@
-import { CalendarDays, Clock3, CreditCard, MapPin, ScanEye } from 'lucide-react';
+import { CalendarDays, Clock3, CreditCard, MapPin, ScanEye, UsersRound } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { BookingStatusBadge } from '@/features/court-status-board/components/BookingStatusBadge';
 import { getBookingStatusConfig } from '../utils/booking-status.utils';
@@ -15,6 +16,7 @@ import dayjs from '@/lib/dayjs';
 interface MyBookingCardProps {
   booking: MyBookingListItemDto;
   onViewDetails: (bookingId: string) => void;
+  onCreatePlayerMatch?: (booking: MyBookingListItemDto) => void;
   isUpcoming?: boolean;
   isNearestUpcoming?: boolean;
 }
@@ -22,9 +24,11 @@ interface MyBookingCardProps {
 export const MyBookingCard = ({
   booking,
   onViewDetails,
+  onCreatePlayerMatch,
   isUpcoming = false,
   isNearestUpcoming = false,
 }: MyBookingCardProps) => {
+  const { t } = useTranslation();
   const statusConfig = getBookingStatusConfig(booking.status);
   const date = dayjs.tz(booking.bookingDate, 'YYYY-MM-DD', 'Asia/Ho_Chi_Minh');
   const formattedDate = date.isValid()
@@ -107,16 +111,29 @@ export const MyBookingCard = ({
               {formatCurrency(booking.totalAmount)}
             </p>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            className="border-brand-200 text-brand-700 hover:bg-brand-50 hover:text-brand-800 min-h-11 w-full gap-2 min-[420px]:w-auto"
-            aria-label={`Xem chi tiết đặt sân ${booking.bookingCode || booking.bookingId}`}
-            onClick={() => onViewDetails(booking.bookingId)}
-          >
-            <ScanEye aria-hidden="true" className="size-4" />
-            Xem chi tiết
-          </Button>
+          <div className="flex flex-col gap-2 min-[420px]:flex-row">
+            {onCreatePlayerMatch && (
+              <Button
+                type="button"
+                variant="outline"
+                className="border-brand-200 text-brand-700 hover:bg-brand-50 hover:text-brand-800 min-h-11 w-full gap-2 min-[420px]:w-auto"
+                onClick={() => onCreatePlayerMatch(booking)}
+              >
+                <UsersRound aria-hidden="true" className="size-4" />
+                {t('playerMatch.create.action')}
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              className="border-brand-200 text-brand-700 hover:bg-brand-50 hover:text-brand-800 min-h-11 w-full gap-2 min-[420px]:w-auto"
+              aria-label={`Xem chi tiết đặt sân ${booking.bookingCode || booking.bookingId}`}
+              onClick={() => onViewDetails(booking.bookingId)}
+            >
+              <ScanEye aria-hidden="true" className="size-4" />
+              Xem chi tiết
+            </Button>
+          </div>
         </div>
       </div>
     </article>
