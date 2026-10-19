@@ -1,212 +1,286 @@
 import { useState, useEffect, useId } from 'react';
-import { Search, Calendar, MapPin, Award, Users, RotateCcw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import {
+  Search,
+  Calendar,
+  Clock3,
+  MapPin,
+  Award,
+  Users,
+  ArrowDownWideNarrow,
+  RotateCcw,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePlayerMatchingFilterStore } from '../store/player-matching-filter.store';
-import { useBranches } from '@/features/branch-discovery/hooks/useBranches';
-import type { SkillLevel, MatchGender } from '../types/player-matching.types';
-
-const SKILL_LEVELS: SkillLevel[] = [
-  'All',
-  'Beginner',
-  'Beginner+',
-  'Intermediate',
-  'Advanced',
-  'Professional',
-];
-
-const GENDER_OPTIONS: MatchGender[] = ['All', 'Male', 'Female', 'Mixed', 'Any'];
-
-const SLOT_OPTIONS = [
-  { label: 'Tất cả số chỗ', value: 0 },
-  { label: '1+ chỗ trống', value: 1 },
-  { label: '2+ chỗ trống', value: 2 },
-  { label: '3+ chỗ trống', value: 3 },
-];
+import type {
+  PlayerMatchGenderPreference,
+  PlayerMatchSkillLevel,
+} from '../types/player-matching.types';
 
 export const MatchFilters = () => {
   const {
-    search,
-    date,
-    branchId,
+    keyword,
+    matchDate,
+    startTime,
+    endTime,
     skillLevel,
-    gender,
-    availableSlots,
-    setSearch,
-    setDate,
-    setBranch,
+    genderPreference,
+    city,
+    district,
+    sortBy,
+    setKeyword,
+    setMatchDate,
+    setStartTime,
+    setEndTime,
     setSkillLevel,
-    setGender,
-    setAvailableSlots,
+    setGenderPreference,
+    setCity,
+    setDistrict,
+    setSortBy,
     resetFilters,
   } = usePlayerMatchingFilterStore();
 
-  const [localSearch, setLocalSearch] = useState(search);
+  const { t } = useTranslation();
+  const [localSearch, setLocalSearch] = useState(keyword);
   const searchId = useId();
   const dateId = useId();
-  const branchIdInput = useId();
+  const startTimeId = useId();
+  const endTimeId = useId();
   const skillId = useId();
   const genderId = useId();
-  const slotId = useId();
+  const cityId = useId();
+  const districtId = useId();
+  const sortId = useId();
 
-  // 500ms debounce for search query
   useEffect(() => {
     const timer = setTimeout(() => {
-      setSearch(localSearch);
+      setKeyword(localSearch);
     }, 500);
-
     return () => clearTimeout(timer);
-  }, [localSearch, setSearch]);
+  }, [localSearch, setKeyword]);
 
-  // Keep localSearch in sync if store is reset
   useEffect(() => {
-    setLocalSearch(search);
-  }, [search]);
-
-  // Fetch branches for branch dropdown
-  const { data: branchesResponse } = useBranches();
-  const branches = branchesResponse?.data ?? [];
+    setLocalSearch(keyword);
+  }, [keyword]);
 
   const hasActiveFilters =
-    Boolean(search) ||
-    Boolean(date) ||
-    (Boolean(branchId) && branchId !== 'all') ||
-    (Boolean(skillLevel) && skillLevel !== 'All') ||
-    (Boolean(gender) && gender !== 'All') ||
-    Boolean(availableSlots && availableSlots > 0);
+    Boolean(
+      keyword ||
+      matchDate ||
+      startTime ||
+      endTime ||
+      skillLevel ||
+      genderPreference ||
+      city ||
+      district,
+    ) || sortBy !== 'latest';
+  const hasInvalidTimeRange = Boolean(startTime && endTime && startTime >= endTime);
+
+  const skillOptions: { value: PlayerMatchSkillLevel; label: string }[] = [
+    { value: 'BEGINNER', label: t('playerMatch.skill.beginner') },
+    { value: 'INTERMEDIATE', label: t('playerMatch.skill.intermediate') },
+    { value: 'ADVANCED', label: t('playerMatch.skill.advanced') },
+    { value: 'PROFESSIONAL', label: t('playerMatch.skill.professional') },
+  ];
+  const genderOptions: { value: PlayerMatchGenderPreference; label: string }[] = [
+    { value: 'MALE', label: t('playerMatch.gender.male') },
+    { value: 'FEMALE', label: t('playerMatch.gender.female') },
+    { value: 'BOTH', label: t('playerMatch.gender.both') },
+  ];
 
   return (
-    <div className="w-full rounded-2xl border border-line bg-surface p-4 sm:p-6 shadow-xs space-y-4">
-      {/* Search Input */}
+    <div className="border-line bg-surface w-full space-y-4 rounded-2xl border p-4 shadow-xs sm:p-6">
       <div className="relative">
         <label htmlFor={searchId} className="sr-only">
-          Tìm kiếm trận đấu theo chi nhánh, sân, chủ trận
+          {t('playerMatch.filters.keyword')}
         </label>
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-content-tertiary" />
+        <Search className="text-content-tertiary absolute top-1/2 left-3.5 size-4 -translate-y-1/2" />
         <input
           id={searchId}
           type="text"
           value={localSearch}
           onChange={(e) => setLocalSearch(e.target.value)}
-          placeholder="Search by branch, court, host..."
-          className="w-full rounded-xl border border-line bg-surface-muted/40 pl-10 pr-4 py-2.5 text-sm text-content-primary placeholder:text-content-tertiary focus:bg-surface focus:outline-hidden focus:ring-2 focus:ring-brand-500 transition-all"
+          placeholder={t('playerMatch.filters.keywordPlaceholder')}
+          className="border-line bg-surface-muted/40 text-content-primary placeholder:text-content-tertiary focus:bg-surface focus:ring-brand-500 w-full rounded-xl border py-2.5 pr-4 pl-10 text-sm transition-all focus:ring-2 focus:outline-hidden"
         />
       </div>
 
-      {/* Filter Row */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        {/* Date Filter */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="space-y-1">
-          <label htmlFor={dateId} className="flex items-center gap-1.5 text-xs font-bold text-content-secondary">
-            <Calendar className="size-3 text-brand-600" />
-            <span>Ngày đấu</span>
+          <label
+            htmlFor={dateId}
+            className="text-content-secondary flex items-center gap-1.5 text-xs font-bold"
+          >
+            <Calendar className="text-brand-600 size-3" />
+            <span>{t('playerMatch.filters.matchDate')}</span>
           </label>
           <input
             id={dateId}
             type="date"
-            value={date ?? ''}
-            onChange={(e) => setDate(e.target.value || undefined)}
-            className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-xs font-medium text-content-primary focus:outline-hidden focus:ring-2 focus:ring-brand-500"
+            value={matchDate ?? ''}
+            onChange={(e) => setMatchDate(e.target.value || undefined)}
+            className="border-line bg-surface text-content-primary focus:ring-brand-500 w-full rounded-xl border px-3 py-2 text-xs font-medium focus:ring-2 focus:outline-hidden"
           />
         </div>
 
-        {/* Branch Filter */}
         <div className="space-y-1">
-          <label htmlFor={branchIdInput} className="flex items-center gap-1.5 text-xs font-bold text-content-secondary">
-            <MapPin className="size-3 text-brand-600" />
-            <span>Chi nhánh</span>
-          </label>
-          <select
-            id={branchIdInput}
-            value={branchId ?? 'all'}
-            onChange={(e) => setBranch(e.target.value === 'all' ? undefined : e.target.value)}
-            className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-xs font-medium text-content-primary focus:outline-hidden focus:ring-2 focus:ring-brand-500"
+          <label
+            htmlFor={startTimeId}
+            className="text-content-secondary flex items-center gap-1.5 text-xs font-bold"
           >
-            <option value="all">Tất cả chi nhánh</option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
+            <Clock3 className="text-brand-600 size-3" />
+            <span>{t('playerMatch.filters.startTime')}</span>
+          </label>
+          <input
+            id={startTimeId}
+            type="time"
+            value={startTime ?? ''}
+            onChange={(e) => setStartTime(e.target.value || undefined)}
+            className="border-line bg-surface text-content-primary focus:ring-brand-500 w-full rounded-xl border px-3 py-2 text-xs font-medium focus:ring-2 focus:outline-hidden"
+          />
         </div>
 
-        {/* Skill Level Filter */}
         <div className="space-y-1">
-          <label htmlFor={skillId} className="flex items-center gap-1.5 text-xs font-bold text-content-secondary">
-            <Award className="size-3 text-amber-600" />
-            <span>Trình độ</span>
-          </label>
-          <select
-            id={skillId}
-            value={skillLevel ?? 'All'}
-            onChange={(e) => setSkillLevel(e.target.value)}
-            className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-xs font-medium text-content-primary focus:outline-hidden focus:ring-2 focus:ring-brand-500"
+          <label
+            htmlFor={endTimeId}
+            className="text-content-secondary flex items-center gap-1.5 text-xs font-bold"
           >
-            {SKILL_LEVELS.map((level) => (
-              <option key={level} value={level}>
-                {level === 'All' ? 'Tất cả trình độ' : level}
-              </option>
-            ))}
-          </select>
+            <Clock3 className="text-brand-600 size-3" />
+            <span>{t('playerMatch.filters.endTime')}</span>
+          </label>
+          <input
+            id={endTimeId}
+            type="time"
+            value={endTime ?? ''}
+            onChange={(e) => setEndTime(e.target.value || undefined)}
+            className="border-line bg-surface text-content-primary focus:ring-brand-500 w-full rounded-xl border px-3 py-2 text-xs font-medium focus:ring-2 focus:outline-hidden"
+          />
         </div>
 
-        {/* Gender Filter */}
         <div className="space-y-1">
-          <label htmlFor={genderId} className="flex items-center gap-1.5 text-xs font-bold text-content-secondary">
+          <label
+            htmlFor={genderId}
+            className="text-content-secondary flex items-center gap-1.5 text-xs font-bold"
+          >
             <Users className="size-3 text-purple-600" />
-            <span>Giới tính</span>
+            <span>{t('playerMatch.filters.genderPreference')}</span>
           </label>
           <select
             id={genderId}
-            value={gender ?? 'All'}
-            onChange={(e) => setGender(e.target.value)}
-            className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-xs font-medium text-content-primary focus:outline-hidden focus:ring-2 focus:ring-brand-500"
+            value={genderPreference ?? ''}
+            onChange={(e) =>
+              setGenderPreference(
+                (e.target.value || undefined) as PlayerMatchGenderPreference | undefined,
+              )
+            }
+            className="border-line bg-surface text-content-primary focus:ring-brand-500 w-full rounded-xl border px-3 py-2 text-xs font-medium focus:ring-2 focus:outline-hidden"
           >
-            {GENDER_OPTIONS.map((g) => (
-              <option key={g} value={g}>
-                {g === 'All' ? 'Tất cả giới tính' : g}
+            <option value="">{t('playerMatch.filters.allGenders')}</option>
+            {genderOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </select>
         </div>
 
-        {/* Available Slots Filter */}
         <div className="space-y-1">
-          <label htmlFor={slotId} className="flex items-center gap-1.5 text-xs font-bold text-content-secondary">
-            <Users className="size-3 text-emerald-600" />
-            <span>Chỗ trống</span>
+          <label
+            htmlFor={skillId}
+            className="text-content-secondary flex items-center gap-1.5 text-xs font-bold"
+          >
+            <Award className="size-3 text-amber-600" />
+            <span>{t('playerMatch.filters.skillLevel')}</span>
           </label>
           <select
-            id={slotId}
-            value={availableSlots ?? 0}
-            onChange={(e) => {
-              const val = Number(e.target.value);
-              setAvailableSlots(val > 0 ? val : undefined);
-            }}
-            className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-xs font-medium text-content-primary focus:outline-hidden focus:ring-2 focus:ring-brand-500"
+            id={skillId}
+            value={skillLevel ?? ''}
+            onChange={(e) =>
+              setSkillLevel((e.target.value || undefined) as PlayerMatchSkillLevel | undefined)
+            }
+            className="border-line bg-surface text-content-primary focus:ring-brand-500 w-full rounded-xl border px-3 py-2 text-xs font-medium focus:ring-2 focus:outline-hidden"
           >
-            {SLOT_OPTIONS.map((slot) => (
-              <option key={slot.value} value={slot.value}>
-                {slot.label}
+            <option value="">{t('playerMatch.filters.allSkillLevels')}</option>
+            {skillOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
+          </select>
+        </div>
+
+        <div className="space-y-1">
+          <label
+            htmlFor={cityId}
+            className="text-content-secondary flex items-center gap-1.5 text-xs font-bold"
+          >
+            <MapPin className="text-brand-600 size-3" />
+            <span>{t('playerMatch.filters.city')}</span>
+          </label>
+          <input
+            id={cityId}
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            className="border-line bg-surface text-content-primary focus:ring-brand-500 w-full rounded-xl border px-3 py-2 text-xs font-medium focus:ring-2 focus:outline-hidden"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label
+            htmlFor={districtId}
+            className="text-content-secondary flex items-center gap-1.5 text-xs font-bold"
+          >
+            <MapPin className="text-brand-600 size-3" />
+            <span>{t('playerMatch.filters.district')}</span>
+          </label>
+          <input
+            id={districtId}
+            value={district}
+            onChange={(e) => setDistrict(e.target.value)}
+            className="border-line bg-surface text-content-primary focus:ring-brand-500 w-full rounded-xl border px-3 py-2 text-xs font-medium focus:ring-2 focus:outline-hidden"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label
+            htmlFor={sortId}
+            className="text-content-secondary flex items-center gap-1.5 text-xs font-bold"
+          >
+            <ArrowDownWideNarrow className="text-brand-600 size-3" />
+            <span>{t('playerMatch.filters.sort')}</span>
+          </label>
+          <select
+            id={sortId}
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+            className="border-line bg-surface text-content-primary focus:ring-brand-500 w-full rounded-xl border px-3 py-2 text-xs font-medium focus:ring-2 focus:outline-hidden"
+          >
+            <option value="latest">{t('playerMatch.filters.sortLatest')}</option>
+            <option value="oldest">{t('playerMatch.filters.sortOldest')}</option>
+            <option value="match_date_asc">{t('playerMatch.filters.sortDateAscending')}</option>
+            <option value="match_date_desc">{t('playerMatch.filters.sortDateDescending')}</option>
           </select>
         </div>
       </div>
 
-      {/* Clear Filters indicator */}
+      {hasInvalidTimeRange && (
+        <p role="alert" className="text-danger text-xs">
+          {t('playerMatch.filters.invalidTimeRange')}
+        </p>
+      )}
+
       {hasActiveFilters && (
-        <div className="flex items-center justify-between pt-2 border-t border-line text-xs">
-          <span className="text-content-secondary">Đang áp dụng bộ lọc tùy chỉnh</span>
+        <div className="border-line flex items-center justify-between border-t pt-2 text-xs">
+          <span className="text-content-secondary">{t('playerMatch.filters.active')}</span>
           <Button
             type="button"
             variant="ghost"
             size="sm"
             onClick={resetFilters}
-            className="h-8 rounded-lg text-xs font-semibold text-danger hover:bg-red-50 hover:text-danger flex items-center gap-1.5"
+            className="text-danger hover:text-danger flex h-8 items-center gap-1.5 rounded-lg text-xs font-semibold hover:bg-red-50"
           >
             <RotateCcw className="size-3" />
-            <span>Xóa bộ lọc</span>
+            <span>{t('playerMatch.filters.reset')}</span>
           </Button>
         </div>
       )}

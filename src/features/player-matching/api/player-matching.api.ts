@@ -1,13 +1,56 @@
 import { http } from '@/lib/axios';
 import type {
   CreatePlayerMatchRequest,
+  PlayerMatchDetail,
+  PlayerMatchListItem,
+  PlayerMatchSearchParams,
   PlayerMatchingFilterParams,
   PlayerMatchingResponse,
   PlayerMatchingStatsResponse,
 } from '../types/player-matching.types';
+import type { ApiResponse, ApiSuccessResponse } from '@/types/api';
+import { formatTimeToApi } from '@/features/bookings/utils/booking.mapper';
 import { MOCK_MATCHES } from './player-matching.mock';
 
+export const buildPlayerMatchSearchParams = (filters: PlayerMatchSearchParams) => ({
+  ...(filters.keyword?.trim() ? { keyword: filters.keyword.trim() } : {}),
+  ...(filters.matchDate ? { matchDate: filters.matchDate } : {}),
+  ...(filters.startTime ? { startTime: formatTimeToApi(filters.startTime) } : {}),
+  ...(filters.endTime ? { endTime: formatTimeToApi(filters.endTime) } : {}),
+  ...(filters.skillLevel ? { skillLevel: filters.skillLevel } : {}),
+  ...(filters.genderPreference ? { genderPreference: filters.genderPreference } : {}),
+  ...(filters.city?.trim() ? { city: filters.city.trim() } : {}),
+  ...(filters.district?.trim() ? { district: filters.district.trim() } : {}),
+  ...(filters.sortBy ? { sortBy: filters.sortBy } : {}),
+  page: filters.page,
+  pageSize: filters.pageSize,
+});
+
 export const playerMatchingApi = {
+  getPlayerMatches: async (
+    filters: PlayerMatchSearchParams,
+    signal?: AbortSignal,
+  ): Promise<ApiSuccessResponse<PlayerMatchListItem[]>> => {
+    const response = await http.get<ApiResponse<PlayerMatchListItem[]>>('/api/player-matches', {
+      params: buildPlayerMatchSearchParams(filters),
+      signal,
+    });
+    if (!response.data.success) throw new Error(response.data.message);
+    return response.data;
+  },
+
+  getPlayerMatchDetail: async (id: string, signal?: AbortSignal): Promise<PlayerMatchDetail> => {
+    const matchId = id.trim();
+    if (!matchId) throw new Error('A player match id is required.');
+
+    const response = await http.get<ApiResponse<PlayerMatchDetail>>(
+      `/api/player-matches/${encodeURIComponent(matchId)}`,
+      { signal },
+    );
+    if (!response.data.success) throw new Error(response.data.message);
+    return response.data.data;
+  },
+
   createPlayerMatch: async (payload: CreatePlayerMatchRequest): Promise<void> => {
     await http.post('/api/player-matches', payload);
   },

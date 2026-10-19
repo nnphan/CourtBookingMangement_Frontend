@@ -1,7 +1,14 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { playerMatchingApi } from '../api/player-matching.api';
 import type {
   CreatePlayerMatchRequest,
+  PlayerMatchSearchParams,
   PlayerMatchingFilterParams,
 } from '../types/player-matching.types';
 import { BOOKING_QUERY_KEYS } from '@/features/bookings/api/booking.query';
@@ -13,6 +20,30 @@ export const playerMatchingKeys = {
   list: (filters: Omit<PlayerMatchingFilterParams, 'pageNumber'>) =>
     [...playerMatchingKeys.all, 'list', filters] as const,
 };
+
+export const playerMatchKeys = {
+  all: ['player-matches'] as const,
+  lists: () => [...playerMatchKeys.all, 'list'] as const,
+  list: (params: PlayerMatchSearchParams) => [...playerMatchKeys.lists(), params] as const,
+  details: () => [...playerMatchKeys.all, 'detail'] as const,
+  detail: (id: string) => [...playerMatchKeys.details(), id] as const,
+};
+
+export const usePlayerMatches = (params: PlayerMatchSearchParams, enabled = true) =>
+  useQuery({
+    queryKey: playerMatchKeys.list(params),
+    queryFn: ({ signal }) => playerMatchingApi.getPlayerMatches(params, signal),
+    enabled,
+    placeholderData: keepPreviousData,
+    staleTime: 1000 * 60 * 2,
+  });
+
+export const usePlayerMatchDetail = (id?: string) =>
+  useQuery({
+    queryKey: playerMatchKeys.detail(id ?? ''),
+    queryFn: ({ signal }) => playerMatchingApi.getPlayerMatchDetail(id ?? '', signal),
+    enabled: Boolean(id?.trim()),
+  });
 
 /**
  * Hook to retrieve open match stats for badge counter
@@ -76,9 +107,11 @@ export const useJoinMatch = () => {
       matchId: string;
       payload: { note?: string; phone?: string; skillLevel?: string };
     }) => playerMatchingApi.requestJoinMatch(matchId, payload),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       // Invalidate match queries to refresh player count
       queryClient.invalidateQueries({ queryKey: playerMatchingKeys.all });
+      queryClient.invalidateQueries({ queryKey: playerMatchKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: playerMatchKeys.detail(variables.matchId) });
     },
   });
 };
@@ -92,6 +125,7 @@ export const useCreatePlayerMatch = () => {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: playerMatchingKeys.all }),
+        queryClient.invalidateQueries({ queryKey: playerMatchKeys.lists() }),
         queryClient.invalidateQueries({ queryKey: BOOKING_QUERY_KEYS.myBookings() }),
       ]);
     },

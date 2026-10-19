@@ -1,4 +1,4 @@
-import type { ApiResponse } from '@/types/api';
+import type { ApiResponse, ApiSuccessResponse } from '@/types/api';
 
 export type SkillLevel =
   'All' | 'Beginner' | 'Beginner+' | 'Intermediate' | 'Advanced' | 'Professional';
@@ -24,6 +24,83 @@ export interface CreatePlayerMatchRequest {
   maxPlayers: number;
   feePerPlayer: number;
 }
+
+export type PlayerMatchSort = 'latest' | 'oldest' | 'match_date_asc' | 'match_date_desc';
+
+export interface PlayerMatchSearchParams {
+  keyword?: string;
+  matchDate?: string;
+  startTime?: string;
+  endTime?: string;
+  skillLevel?: PlayerMatchSkillLevel;
+  genderPreference?: PlayerMatchGenderPreference;
+  city?: string;
+  district?: string;
+  sortBy?: PlayerMatchSort;
+  page: number;
+  pageSize: number;
+}
+
+export interface PlayerMatchListItem {
+  id: string;
+  title: string;
+  branchId: string;
+  bookingId: string | null;
+  branchName: string;
+  courtName: string;
+  matchDate: string;
+  startTime: string;
+  endTime: string;
+  skillLevel: string;
+  genderPreference: string;
+  maxPlayers: number;
+  currentPlayers: number;
+  remainingSlots: number;
+  feePerPlayer: number;
+  status: string;
+  createdBy: string;
+  createdByName: string;
+  createdAt: string;
+}
+
+export interface PlayerMatchParticipant {
+  userId: string;
+  fullName: string;
+  role: string;
+  status: string;
+  joinedAt: string;
+}
+
+export interface PlayerMatchDetail {
+  id: string;
+  title: string;
+  description: string | null;
+  branchId: string;
+  bookingId: string | null;
+  branchName: string;
+  city: string;
+  district: string;
+  courtName: string | null;
+  matchDate: string;
+  startTime: string;
+  endTime: string;
+  skillLevel: string;
+  genderPreference: string;
+  maxPlayers: number;
+  currentPlayers: number;
+  remainingSlots: number;
+  feePerPlayer: number;
+  status: string;
+  createdBy: string;
+  createdByName: string;
+  createdAt: string;
+  participantCount: number;
+  isFull: boolean;
+  canJoin: boolean;
+  participants: PlayerMatchParticipant[];
+}
+
+export type PlayerMatchListResponse = ApiSuccessResponse<PlayerMatchListItem[]>;
 
 export interface MatchHost {
   id: string;

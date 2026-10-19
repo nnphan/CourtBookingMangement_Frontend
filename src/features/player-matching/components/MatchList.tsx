@@ -1,84 +1,74 @@
-import { useEffect, useRef, useState } from 'react';
-import { MatchCard } from './MatchCard';
-import { MatchCardSkeleton } from './MatchCardSkeleton';
-import { JoinMatchDialog } from './JoinMatchDialog';
+import { Loader2, RotateCcw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { RotateCcw, Loader2 } from 'lucide-react';
-import type { MatchItem } from '../types/player-matching.types';
-import { useMatches } from '../hooks/usePlayerMatching';
+import { PlayerMatchCard } from './PlayerMatchCard';
+import { MatchCardSkeleton } from './MatchCardSkeleton';
+import { usePlayerMatches } from '../hooks/usePlayerMatching';
 import { usePlayerMatchingFilterStore } from '../store/player-matching-filter.store';
 
 export const MatchList = () => {
-  const { search, date, branchId, skillLevel, gender, availableSlots, resetFilters } =
-    usePlayerMatchingFilterStore();
-
-  const [selectedMatchForJoin, setSelectedMatchForJoin] = useState<MatchItem | null>(null);
-
+  const { t } = useTranslation();
   const {
-    data,
-    isLoading,
-    isError,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    refetch,
-  } = useMatches({
-    search: search.trim() || undefined,
-    matchDate: date,
-    branchId: branchId && branchId !== 'all' ? branchId : undefined,
-    skillLevel: skillLevel && skillLevel !== 'All' ? skillLevel : undefined,
-    gender: gender && gender !== 'All' ? gender : undefined,
-    availableSlots: availableSlots && availableSlots > 0 ? availableSlots : undefined,
-    pageSize: 6,
-  });
+    keyword,
+    matchDate,
+    startTime,
+    endTime,
+    skillLevel,
+    genderPreference,
+    city,
+    district,
+    sortBy,
+    page,
+    pageSize,
+    setPage,
+    resetFilters,
+  } = usePlayerMatchingFilterStore();
+  const hasInvalidTimeRange = Boolean(startTime && endTime && startTime >= endTime);
+  const query = usePlayerMatches(
+    {
+      keyword: keyword.trim() || undefined,
+      matchDate,
+      startTime,
+      endTime,
+      skillLevel,
+      genderPreference,
+      city: city.trim() || undefined,
+      district: district.trim() || undefined,
+      sortBy,
+      page,
+      pageSize,
+    },
+    !hasInvalidTimeRange,
+  );
 
-  // Flatten matches from all pages
-  const allMatches: MatchItem[] =
-    data?.pages.flatMap((page) => (page.success ? page.data : [])) ?? [];
+  if (hasInvalidTimeRange) return null;
 
-  const totalCount = data?.pages[0]?.metadata?.totalCount ?? allMatches.length;
+  const matches = query.data?.data ?? [];
+  const metadata = query.data?.metadata;
 
-  // Infinite scroll observer sentinel
-  const observerRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!observerRef.current || !hasNextPage || isFetchingNextPage) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
-      },
-      { threshold: 0.1, rootMargin: '100px' },
-    );
-
-    observer.observe(observerRef.current);
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="h-6 w-40 rounded-md bg-surface-muted animate-pulse" />
-        <MatchCardSkeleton count={6} />
-      </div>
-    );
+  if (query.isLoading && !query.data) {
+    return <MatchCardSkeleton count={pageSize} />;
   }
 
-  if (isError) {
+  if (query.isError) {
+    const status = (query.error as Error & { status?: number }).status;
+    const errorMessage =
+      status === 401
+        ? t('playerMatch.discovery.unauthorized')
+        : status === 403
+          ? t('playerMatch.discovery.forbidden')
+          : t('playerMatch.discovery.error');
     return (
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center space-y-3">
-        <p className="text-sm font-bold text-danger">
-          Không thể tải danh sách trận đấu. Vui lòng kiểm tra lại kết nối.
-        </p>
+      <div className="space-y-3 rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
+        <p className="text-danger text-sm font-bold">{errorMessage}</p>
         <Button
+          type="button"
           variant="outline"
           size="sm"
-          onClick={() => refetch()}
-          className="rounded-xl border-red-300 text-danger"
+          onClick={() => void query.refetch()}
+          className="text-danger border-red-300"
         >
-          Thử lại
+          {t('playerMatch.discovery.retry')}
         </Button>
       </div>
     );
@@ -86,76 +76,74 @@ export const MatchList = () => {
 
   return (
     <div className="space-y-6">
-      {/* Result Summary */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-base sm:text-lg font-black text-content-primary">
-          Showing {totalCount} {totalCount === 1 ? 'Match' : 'Matches'}
+      <div className="flex min-h-7 items-center justify-between gap-3">
+        <h2 className="text-content-primary text-base font-black sm:text-lg">
+          {t('playerMatch.discovery.resultCount', { count: metadata?.totalCount ?? 0 })}
         </h2>
-        <span className="text-xs text-content-secondary hidden sm:inline">
-          Cập nhật tình trạng ghép cặp theo thời gian thực
-        </span>
+        {query.isFetching && (
+          <span
+            role="status"
+            className="text-content-secondary inline-flex items-center gap-2 text-xs"
+          >
+            <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+            {t('playerMatch.discovery.updating')}
+          </span>
+        )}
       </div>
 
-      {/* Empty State */}
-      {allMatches.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-line bg-surface p-12 text-center">
-          <div className="grid size-16 place-items-center rounded-2xl bg-brand-50 text-3xl mb-4">
+      {matches.length === 0 ? (
+        <div className="border-line bg-surface flex flex-col items-center justify-center rounded-3xl border border-dashed p-12 text-center">
+          <div
+            aria-hidden="true"
+            className="bg-brand-50 mb-4 grid size-16 place-items-center rounded-2xl text-3xl"
+          >
             🏸
           </div>
-          <h3 className="text-lg font-black text-content-primary">No Matches Found</h3>
-          <p className="mt-1 text-sm text-content-secondary max-w-sm">
-            Try adjusting your filters.
+          <h3 className="text-content-primary text-lg font-black">
+            {t('playerMatch.discovery.emptyTitle')}
+          </h3>
+          <p className="text-content-secondary mt-1 max-w-sm text-sm">
+            {t('playerMatch.discovery.emptyDescription')}
           </p>
-          <Button
-            type="button"
-            onClick={resetFilters}
-            className="mt-5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold flex items-center gap-2"
-          >
-            <RotateCcw className="size-3.5" />
-            <span>Clear Filters</span>
+          <Button type="button" onClick={resetFilters} className="mt-5 gap-2 text-xs font-bold">
+            <RotateCcw aria-hidden="true" className="size-3.5" />
+            {t('playerMatch.filters.reset')}
           </Button>
         </div>
       ) : (
-        /* Match Grid */
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {allMatches.map((match) => (
-            <MatchCard
-              key={match.id}
-              match={match}
-              onJoinClick={setSelectedMatchForJoin}
-            />
+          {matches.map((match) => (
+            <PlayerMatchCard key={match.id} match={match} />
           ))}
         </div>
       )}
 
-      {/* Infinite Scroll Sentinel & Fallback Load More Button */}
-      {hasNextPage && (
-        <div className="flex flex-col items-center justify-center py-6 gap-3">
-          <div ref={observerRef} className="h-4 w-full" />
+      {metadata && metadata.totalPages > 1 && (
+        <nav
+          aria-label={t('playerMatch.discovery.pagination')}
+          className="flex items-center justify-center gap-3 pt-2"
+        >
           <Button
+            type="button"
             variant="outline"
-            disabled={isFetchingNextPage}
-            onClick={() => fetchNextPage()}
-            className="rounded-xl border-line font-bold text-xs hover:border-brand-500 hover:text-brand-600 px-6 py-2"
+            disabled={!metadata.hasPreviousPage || query.isFetching}
+            onClick={() => setPage(page - 1)}
           >
-            {isFetchingNextPage ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="size-4 animate-spin text-brand-600" />
-                <span>Đang tải thêm...</span>
-              </span>
-            ) : (
-              'Load More Matches'
-            )}
+            {t('playerMatch.discovery.previous')}
           </Button>
-        </div>
+          <span className="text-content-secondary text-sm tabular-nums">
+            {t('playerMatch.discovery.pageOf', { page, totalPages: metadata.totalPages })}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!metadata.hasNextPage || query.isFetching}
+            onClick={() => setPage(page + 1)}
+          >
+            {t('playerMatch.discovery.next')}
+          </Button>
+        </nav>
       )}
-
-      {/* Join Match Dialog */}
-      <JoinMatchDialog
-        match={selectedMatchForJoin}
-        isOpen={Boolean(selectedMatchForJoin)}
-        onClose={() => setSelectedMatchForJoin(null)}
-      />
     </div>
   );
 };
