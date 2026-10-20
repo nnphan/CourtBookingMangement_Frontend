@@ -5,8 +5,19 @@ import { PlayerMatchCard } from './PlayerMatchCard';
 import { MatchCardSkeleton } from './MatchCardSkeleton';
 import { usePlayerMatches } from '../hooks/usePlayerMatching';
 import { usePlayerMatchingFilterStore } from '../store/player-matching-filter.store';
+import type { PlayerMatchListItem } from '../types/player-matching.types';
 
-export const MatchList = () => {
+interface MatchListProps {
+  currentUserId?: string;
+  joinRequestStatuses: Readonly<Record<string, string>>;
+  onJoinMatch: (match: PlayerMatchListItem) => void;
+}
+
+export const MatchList = ({
+  currentUserId,
+  joinRequestStatuses,
+  onJoinMatch,
+}: MatchListProps) => {
   const { t } = useTranslation();
   const {
     keyword,
@@ -113,7 +124,13 @@ export const MatchList = () => {
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {matches.map((match) => (
-            <PlayerMatchCard key={match.id} match={match} />
+            <PlayerMatchCard
+              key={match.id}
+              currentUserId={currentUserId}
+              joinRequestStatus={joinRequestStatuses[match.id]}
+              match={match}
+              onJoinMatch={onJoinMatch}
+            />
           ))}
         </div>
       )}

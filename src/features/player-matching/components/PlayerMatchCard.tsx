@@ -7,9 +7,38 @@ import { useTranslation } from 'react-i18next';
 import type { PlayerMatchListItem } from '../types/player-matching.types';
 import dayjs from '@/lib/dayjs';
 
-export const PlayerMatchCard = ({ match }: { match: PlayerMatchListItem }) => {
+interface PlayerMatchCardProps {
+  currentUserId?: string;
+  joinRequestStatus?: string;
+  match: PlayerMatchListItem;
+  onJoinMatch: (match: PlayerMatchListItem) => void;
+}
+
+export const PlayerMatchCard = ({
+  currentUserId,
+  joinRequestStatus,
+  match,
+  onJoinMatch,
+}: PlayerMatchCardProps) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const isOwnMatch = currentUserId === match.createdBy;
+  const isFull = match.status.toUpperCase() === 'FULL' || match.remainingSlots <= 0;
+  const hasJoinRequest = Boolean(joinRequestStatus);
+  const isPending = joinRequestStatus === 'PENDING';
+  const canRequestToJoin =
+    !isOwnMatch && !isFull && !hasJoinRequest && match.status.toUpperCase() === 'OPEN';
+  const joinButtonLabel = isOwnMatch
+    ? t('playerMatch.join.ownMatch')
+    : isFull
+      ? t('playerMatch.join.full')
+      : isPending
+        ? t('playerMatch.join.pending')
+        : hasJoinRequest
+          ? t('playerMatch.join.submitted')
+          : canRequestToJoin
+            ? t('playerMatch.join.request')
+            : t('playerMatch.join.unavailable');
   const date = dayjs(match.matchDate);
   const skillLabel = t(`playerMatch.skill.${match.skillLevel.toLowerCase()}`, {
     defaultValue: match.skillLevel,
@@ -87,14 +116,24 @@ export const PlayerMatchCard = ({ match }: { match: PlayerMatchListItem }) => {
       </div>
 
       <div className="border-line mt-5 border-t pt-3">
-        <Button
-          type="button"
-          variant="outline"
-          className="border-line hover:bg-surface-muted hover:text-brand-600 w-full gap-2 text-xs font-bold"
-          onClick={() => navigate(paths.playerMatchingDetail(match.id))}
-        >
-          {t('playerMatch.card.viewDetails')}
-        </Button>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <Button
+            type="button"
+            disabled={!canRequestToJoin}
+            className="w-full gap-2 text-xs font-bold whitespace-normal"
+            onClick={() => onJoinMatch(match)}
+          >
+            {joinButtonLabel}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="border-line hover:bg-surface-muted hover:text-brand-600 w-full gap-2 text-xs font-bold"
+            onClick={() => navigate(paths.playerMatchingDetail(match.id))}
+          >
+            {t('playerMatch.card.viewDetails')}
+          </Button>
+        </div>
       </div>
     </article>
   );

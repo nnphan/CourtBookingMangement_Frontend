@@ -127,6 +127,25 @@
       "perPlayer": "mỗi người",
       "viewDetails": "Xem chi tiết"
     },
+    "join": {
+      "request": "Yêu cầu tham gia",
+      "requesting": "Đang gửi yêu cầu...",
+      "pending": "Đang chờ duyệt",
+      "submitted": "Đã gửi yêu cầu",
+      "ownMatch": "Trận của bạn",
+      "full": "Đã đủ người",
+      "unavailable": "Không nhận thêm người chơi",
+      "success": "Đã gửi yêu cầu tham gia.",
+      "successDescription": "Vui lòng chờ chủ trận xác nhận.",
+      "errorTitle": "Không thể gửi yêu cầu",
+      "failed": "Không thể gửi yêu cầu tham gia. Vui lòng thử lại.",
+      "confirmTitle": "Xác nhận tham gia ghép sân",
+      "confirmDescription": "Yêu cầu tham gia sẽ được gửi đến chủ trận để xác nhận.",
+      "confirmDescriptionSecondary": "Bạn chỉ trở thành người tham gia sau khi chủ trận chấp nhận yêu cầu.",
+      "cancel": "Hủy",
+      "confirm": "Gửi yêu cầu tham gia",
+      "sending": "Đang gửi yêu cầu..."
+    },
     "detail": {
       "title": "Chi tiết trận đấu",
       "loading": "Đang tải chi tiết trận đấu",

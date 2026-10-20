@@ -49,7 +49,7 @@ export const usePlayerMatchDetail = (id?: string) =>
 export const useJoinPlayerMatch = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<JoinPlayerMatchResponse, Error, string>({
+  return useMutation<JoinPlayerMatchResponse, unknown, string>({
     mutationFn: (matchId) => playerMatchingApi.joinPlayerMatch(matchId),
     retry: false,
     onSuccess: async (_result, matchId) => {

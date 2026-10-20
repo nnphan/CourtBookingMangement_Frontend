@@ -127,6 +127,25 @@
       "perPlayer": "per player",
       "viewDetails": "View Details"
     },
+    "join": {
+      "request": "Request to Join",
+      "requesting": "Sending request...",
+      "pending": "Request Pending",
+      "submitted": "Request submitted",
+      "ownMatch": "Your match",
+      "full": "Match full",
+      "unavailable": "Not accepting players",
+      "success": "Join request sent.",
+      "successDescription": "Please wait for the host to approve it.",
+      "errorTitle": "Unable to send request",
+      "failed": "Could not send your join request. Please try again.",
+      "confirmTitle": "Confirm Join Request",
+      "confirmDescription": "Your join request will be sent to the match host for approval.",
+      "confirmDescriptionSecondary": "You will become a participant only after the host approves your request.",
+      "cancel": "Cancel",
+      "confirm": "Send Join Request",
+      "sending": "Sending request..."
+    },
     "detail": {
       "title": "Match details",
       "loading": "Loading match details",
