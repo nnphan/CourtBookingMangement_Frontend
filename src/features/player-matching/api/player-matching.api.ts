@@ -1,6 +1,7 @@
 import { http } from '@/lib/axios';
 import type {
   CreatePlayerMatchRequest,
+  JoinPlayerMatchResponse,
   PlayerMatchDetail,
   PlayerMatchListItem,
   PlayerMatchSearchParams,
@@ -46,6 +47,17 @@ export const playerMatchingApi = {
     const response = await http.get<ApiResponse<PlayerMatchDetail>>(
       `/api/player-matches/${encodeURIComponent(matchId)}`,
       { signal },
+    );
+    if (!response.data.success) throw new Error(response.data.message);
+    return response.data.data;
+  },
+
+  joinPlayerMatch: async (id: string): Promise<JoinPlayerMatchResponse> => {
+    const matchId = id.trim();
+    if (!matchId) throw new Error('A player match id is required.');
+
+    const response = await http.post<ApiResponse<JoinPlayerMatchResponse>>(
+      `/api/player-matches/${encodeURIComponent(matchId)}/join`,
     );
     if (!response.data.success) throw new Error(response.data.message);
     return response.data.data;

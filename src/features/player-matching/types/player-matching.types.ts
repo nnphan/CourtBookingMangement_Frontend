@@ -22,6 +22,7 @@ export interface CreatePlayerMatchRequest {
   skillLevel: PlayerMatchSkillLevel;
   genderPreference: PlayerMatchGenderPreference;
   maxPlayers: number;
+  currentPlayers: number;
   feePerPlayer: number;
 }
 
@@ -61,6 +62,13 @@ export interface PlayerMatchListItem {
   createdBy: string;
   createdByName: string;
   createdAt: string;
+}
+
+export interface JoinPlayerMatchResponse {
+  matchId: string;
+  joinRequestId: string;
+  status: string;
+  message: string;
 }
 
 export interface PlayerMatchParticipant {

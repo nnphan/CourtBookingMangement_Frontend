@@ -25,6 +25,10 @@
       "skillLevel": "Skill level",
       "genderPreference": "Gender preference",
       "maxPlayers": "Maximum players",
+      "currentPlayers": "Current players",
+      "currentPlayersHelp": "Number of players already available before publishing the match.",
+      "remainingPlayers": "Need {{count}} more players",
+      "full": "Match is full",
       "feePerPlayer": "Fee per player",
       "submit": "Create Player Match",
       "submitting": "Creating...",
@@ -33,6 +37,10 @@
       "validation": {
         "titleRequired": "Enter a title.",
         "playersInvalid": "Enter a whole number of at least one player.",
+        "currentPlayersInvalid": "Enter a whole number of current players.",
+        "currentPlayersRequired": "At least one current player is required.",
+        "currentPlayersNegative": "Current players cannot be negative.",
+        "currentPlayersExceedsMax": "Current players cannot exceed maximum players.",
         "feeInvalid": "Fee must be zero or greater."
       },
       "errors": {

@@ -37,6 +37,7 @@ interface FormValues {
   skillLevel: PlayerMatchSkillLevel;
   genderPreference: PlayerMatchGenderPreference;
   maxPlayers: number;
+  currentPlayers: number;
   feePerPlayer: number;
 }
 
@@ -56,6 +57,7 @@ const createInitialValues = (): FormValues => ({
   skillLevel: 'INTERMEDIATE',
   genderPreference: 'BOTH',
   maxPlayers: 4,
+  currentPlayers: 1,
   feePerPlayer: 0,
 });
 
@@ -78,6 +80,7 @@ export const CreatePlayerMatchDialog = ({
   const skillId = useId();
   const genderId = useId();
   const playersId = useId();
+  const currentPlayersId = useId();
   const feeId = useId();
   const [values, setValues] = useState<FormValues>(createInitialValues);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -93,9 +96,35 @@ export const CreatePlayerMatchDialog = ({
 
   if (!booking) return null;
 
+  const validateCurrentPlayers = (currentPlayers: number, maxPlayers: number) => {
+    if (!Number.isInteger(currentPlayers)) {
+      return t('playerMatch.create.validation.currentPlayersInvalid');
+    }
+    if (currentPlayers < 0) {
+      return t('playerMatch.create.validation.currentPlayersNegative');
+    }
+    if (currentPlayers < 1) {
+      return t('playerMatch.create.validation.currentPlayersRequired');
+    }
+    if (currentPlayers > maxPlayers) {
+      return t('playerMatch.create.validation.currentPlayersExceedsMax');
+    }
+    return undefined;
+  };
+
   const updateField = <K extends FormField>(field: K, value: FormValues[K]) => {
-    setValues((current) => ({ ...current, [field]: value }));
-    setFieldErrors((current) => ({ ...current, [field]: undefined }));
+    const nextValues = { ...values, [field]: value };
+    setValues(nextValues);
+    setFieldErrors((current) => {
+      const nextErrors = { ...current, [field]: undefined };
+      if (field === 'maxPlayers' || field === 'currentPlayers') {
+        nextErrors.currentPlayers = validateCurrentPlayers(
+          nextValues.currentPlayers,
+          nextValues.maxPlayers,
+        );
+      }
+      return nextErrors;
+    });
     setFormError('');
   };
 
@@ -121,6 +150,8 @@ export const CreatePlayerMatchDialog = ({
     if (!Number.isInteger(values.maxPlayers) || values.maxPlayers < 1) {
       nextErrors.maxPlayers = t('playerMatch.create.validation.playersInvalid');
     }
+    const currentPlayersError = validateCurrentPlayers(values.currentPlayers, values.maxPlayers);
+    if (currentPlayersError) nextErrors.currentPlayers = currentPlayersError;
     if (!Number.isFinite(values.feePerPlayer) || values.feePerPlayer < 0) {
       nextErrors.feePerPlayer = t('playerMatch.create.validation.feeInvalid');
     }
@@ -129,7 +160,6 @@ export const CreatePlayerMatchDialog = ({
       submitLock.current = false;
       return;
     }
-
     if (!isBookingInFuture(booking)) {
       setFormError(t('playerMatch.create.errors.bookingPast'));
       submitLock.current = false;
@@ -148,6 +178,7 @@ export const CreatePlayerMatchDialog = ({
       skillLevel: values.skillLevel,
       genderPreference: values.genderPreference,
       maxPlayers: values.maxPlayers,
+      currentPlayers: Number(values.currentPlayers),
       feePerPlayer: values.feePerPlayer,
     };
 
@@ -165,9 +196,12 @@ export const CreatePlayerMatchDialog = ({
         'skillLevel',
         'genderPreference',
         'maxPlayers',
+        'currentPlayers',
         'feePerPlayer',
       ] as const) {
-        const message = apiError.fields?.[field];
+        const message =
+          apiError.fields?.[field] ??
+          (field === 'currentPlayers' ? apiError.fields?.CurrentPlayers : undefined);
         if (message) mappedErrors[field] = message;
       }
       setFieldErrors(mappedErrors);
@@ -199,6 +233,13 @@ export const CreatePlayerMatchDialog = ({
     : booking.bookingDate;
   const formattedStartTime = formatTimeToApi(booking.startTime).slice(0, 5);
   const formattedEndTime = formatTimeToApi(booking.endTime).slice(0, 5);
+  const remainingPlayers = Math.max(values.maxPlayers - values.currentPlayers, 0);
+  const canShowRemainingPlayers =
+    Number.isInteger(values.maxPlayers) &&
+    values.maxPlayers >= 1 &&
+    Number.isInteger(values.currentPlayers) &&
+    values.currentPlayers >= 1 &&
+    values.currentPlayers <= values.maxPlayers;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -376,6 +417,46 @@ export const CreatePlayerMatchDialog = ({
                 {fieldErrors.maxPlayers && (
                   <p id={`${playersId}-error`} role="alert" className="text-danger text-xs">
                     {fieldErrors.maxPlayers}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <label
+                  htmlFor={currentPlayersId}
+                  className="text-content-primary text-sm font-medium"
+                >
+                  {t('playerMatch.create.currentPlayers')}
+                </label>
+                <input
+                  id={currentPlayersId}
+                  type="number"
+                  min={1}
+                  max={values.maxPlayers}
+                  step={1}
+                  value={values.currentPlayers}
+                  onChange={(event) => updateField('currentPlayers', Number(event.target.value))}
+                  aria-invalid={Boolean(fieldErrors.currentPlayers)}
+                  aria-describedby={
+                    fieldErrors.currentPlayers
+                      ? `${currentPlayersId}-error ${currentPlayersId}-help`
+                      : `${currentPlayersId}-help`
+                  }
+                  className="border-line bg-surface text-content-primary focus-visible:outline-brand-600 min-h-11 w-full rounded-lg border px-3 text-sm focus-visible:outline-2"
+                />
+                {fieldErrors.currentPlayers && (
+                  <p id={`${currentPlayersId}-error`} role="alert" className="text-danger text-xs">
+                    {fieldErrors.currentPlayers}
+                  </p>
+                )}
+                <p id={`${currentPlayersId}-help`} className="text-content-secondary text-xs">
+                  {t('playerMatch.create.currentPlayersHelp')}
+                </p>
+                {canShowRemainingPlayers && (
+                  <p className="text-content-secondary text-xs" aria-live="off">
+                    {remainingPlayers === 0
+                      ? t('playerMatch.create.full')
+                      : t('playerMatch.create.remainingPlayers', { count: remainingPlayers })}
                   </p>
                 )}
               </div>

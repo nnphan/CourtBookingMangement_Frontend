@@ -8,6 +8,7 @@ import {
 import { playerMatchingApi } from '../api/player-matching.api';
 import type {
   CreatePlayerMatchRequest,
+  JoinPlayerMatchResponse,
   PlayerMatchSearchParams,
   PlayerMatchingFilterParams,
 } from '../types/player-matching.types';
@@ -44,6 +45,27 @@ export const usePlayerMatchDetail = (id?: string) =>
     queryFn: ({ signal }) => playerMatchingApi.getPlayerMatchDetail(id ?? '', signal),
     enabled: Boolean(id?.trim()),
   });
+
+export const useJoinPlayerMatch = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<JoinPlayerMatchResponse, Error, string>({
+    mutationFn: (matchId) => playerMatchingApi.joinPlayerMatch(matchId),
+    retry: false,
+    onSuccess: async (_result, matchId) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: playerMatchKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: playerMatchKeys.detail(matchId) }),
+      ]);
+    },
+    onError: async (_error, matchId) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: playerMatchKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: playerMatchKeys.detail(matchId) }),
+      ]);
+    },
+  });
+};
 
 /**
  * Hook to retrieve open match stats for badge counter

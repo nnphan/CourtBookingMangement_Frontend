@@ -25,6 +25,10 @@
       "skillLevel": "Trình độ",
       "genderPreference": "Giới tính mong muốn",
       "maxPlayers": "Số người chơi tối đa",
+      "currentPlayers": "Số người hiện có",
+      "currentPlayersHelp": "Số người đã có trong nhóm trước khi đăng ghép sân.",
+      "remainingPlayers": "Cần tìm thêm {{count}} người chơi",
+      "full": "Đã đủ người chơi",
       "feePerPlayer": "Phí mỗi người chơi",
       "submit": "Tạo ghép sân",
       "submitting": "Đang tạo...",
@@ -33,6 +37,10 @@
       "validation": {
         "titleRequired": "Vui lòng nhập tiêu đề.",
         "playersInvalid": "Số người chơi phải là số nguyên từ 1 trở lên.",
+        "currentPlayersInvalid": "Số người hiện có phải là số nguyên.",
+        "currentPlayersRequired": "Phải có ít nhất một người chơi hiện tại.",
+        "currentPlayersNegative": "Số người hiện có không được nhỏ hơn 0.",
+        "currentPlayersExceedsMax": "Số người hiện có không được vượt quá số người tối đa.",
         "feeInvalid": "Phí phải bằng hoặc lớn hơn 0."
       },
       "errors": {
