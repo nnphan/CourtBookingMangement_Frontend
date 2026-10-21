@@ -1,4 +1,4 @@
-import { CalendarDays, LayoutDashboard, LogOut } from 'lucide-react';
+import { CalendarDays, LayoutDashboard, LogOut, UsersRound } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { paths } from '@/app/router/paths';
@@ -105,6 +105,15 @@ export const CurrentUserMenu = ({ variant = 'contrast' }: CurrentUserMenuProps) 
           >
             <CalendarDays aria-hidden="true" className="size-4" />
             {t(isCustomer ? 'account.myBookings' : 'account.bookings')}
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link
+            to={paths.myPlayerMatches}
+            aria-current={location.pathname === paths.myPlayerMatches ? 'page' : undefined}
+          >
+            <UsersRound aria-hidden="true" className="size-4" />
+            {t('account.myMatches')}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-line" />

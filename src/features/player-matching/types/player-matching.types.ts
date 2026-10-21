@@ -71,6 +71,67 @@ export interface JoinPlayerMatchResponse {
   message: string;
 }
 
+export interface HostedPlayerMatch {
+  id: string;
+  title: string;
+  branchId: string;
+  branchName: string;
+  courtId: string | null;
+  courtName: string | null;
+  matchDate: string;
+  startTime: string;
+  endTime: string;
+  skillLevel: string;
+  genderPreference: string;
+  maxPlayers: number;
+  currentPlayers: number;
+  remainingSlots: number;
+  feePerPlayer: number | null;
+  status: string;
+  pendingRequestCount: number;
+  isFull: boolean;
+}
+
+export interface ParticipatingPlayerMatch {
+  matchId: string;
+  title: string;
+  branchId: string;
+  branchName: string;
+  courtId: string | null;
+  courtName: string | null;
+  matchDate: string;
+  startTime: string;
+  endTime: string;
+  skillLevel: string;
+  genderPreference: string;
+  maxPlayers: number;
+  currentPlayers: number;
+  remainingSlots: number;
+  feePerPlayer: number | null;
+  matchStatus: string;
+  participationStatus: string;
+  requestId: string | null;
+  requestedAt: string | null;
+  createdByName: string;
+  canCancelRequest: boolean;
+}
+
+export interface HostedPlayerMatchesParams {
+  status?: string;
+  keyword?: string;
+  matchDate?: string;
+  page: number;
+  pageSize: number;
+}
+
+export interface ParticipatingPlayerMatchesParams {
+  participationStatus?: string;
+  matchStatus?: string;
+  fromDate?: string;
+  page: number;
+  pageSize: number;
+}
+
 export interface PlayerMatchParticipant {
   userId: string;
   fullName: string;

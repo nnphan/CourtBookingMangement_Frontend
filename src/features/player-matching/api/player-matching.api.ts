@@ -1,10 +1,14 @@
 import { http } from '@/lib/axios';
 import type {
   CreatePlayerMatchRequest,
+  HostedPlayerMatch,
+  HostedPlayerMatchesParams,
   JoinPlayerMatchResponse,
   PlayerMatchDetail,
   PlayerMatchListItem,
   PlayerMatchSearchParams,
+  ParticipatingPlayerMatch,
+  ParticipatingPlayerMatchesParams,
   PlayerMatchingFilterParams,
   PlayerMatchingResponse,
   PlayerMatchingStatsResponse,
@@ -28,6 +32,48 @@ export const buildPlayerMatchSearchParams = (filters: PlayerMatchSearchParams) =
 });
 
 export const playerMatchingApi = {
+  getHostedPlayerMatches: async (
+    params: HostedPlayerMatchesParams,
+    signal?: AbortSignal,
+  ): Promise<ApiSuccessResponse<HostedPlayerMatch[]>> => {
+    const response = await http.get<ApiResponse<HostedPlayerMatch[]>>(
+      '/api/player-matches/hosted',
+      {
+        params: {
+          ...(params.status ? { status: params.status } : {}),
+          ...(params.keyword?.trim() ? { keyword: params.keyword.trim() } : {}),
+          ...(params.matchDate ? { matchDate: params.matchDate } : {}),
+          page: params.page,
+          pageSize: params.pageSize,
+        },
+        signal,
+      },
+    );
+    if (!response.data.success) throw new Error(response.data.message);
+    return response.data;
+  },
+
+  getParticipatingPlayerMatches: async (
+    params: ParticipatingPlayerMatchesParams,
+    signal?: AbortSignal,
+  ): Promise<ApiSuccessResponse<ParticipatingPlayerMatch[]>> => {
+    const response = await http.get<ApiResponse<ParticipatingPlayerMatch[]>>(
+      '/api/player-matches/participating',
+      {
+        params: {
+          ...(params.participationStatus ? { participationStatus: params.participationStatus } : {}),
+          ...(params.matchStatus ? { matchStatus: params.matchStatus } : {}),
+          ...(params.fromDate ? { fromDate: params.fromDate } : {}),
+          page: params.page,
+          pageSize: params.pageSize,
+        },
+        signal,
+      },
+    );
+    if (!response.data.success) throw new Error(response.data.message);
+    return response.data;
+  },
+
   getPlayerMatches: async (
     filters: PlayerMatchSearchParams,
     signal?: AbortSignal,

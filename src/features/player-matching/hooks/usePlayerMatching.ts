@@ -8,8 +8,10 @@ import {
 import { playerMatchingApi } from '../api/player-matching.api';
 import type {
   CreatePlayerMatchRequest,
+  HostedPlayerMatchesParams,
   JoinPlayerMatchResponse,
   PlayerMatchSearchParams,
+  ParticipatingPlayerMatchesParams,
   PlayerMatchingFilterParams,
 } from '../types/player-matching.types';
 import { BOOKING_QUERY_KEYS } from '@/features/bookings/api/booking.query';
@@ -28,6 +30,12 @@ export const playerMatchKeys = {
   list: (params: PlayerMatchSearchParams) => [...playerMatchKeys.lists(), params] as const,
   details: () => [...playerMatchKeys.all, 'detail'] as const,
   detail: (id: string) => [...playerMatchKeys.details(), id] as const,
+  hostedRoot: () => [...playerMatchKeys.all, 'hosted'] as const,
+  hosted: (params: HostedPlayerMatchesParams) =>
+    [...playerMatchKeys.hostedRoot(), params] as const,
+  participatingRoot: () => [...playerMatchKeys.all, 'participating'] as const,
+  participating: (params: ParticipatingPlayerMatchesParams) =>
+    [...playerMatchKeys.participatingRoot(), params] as const,
 };
 
 export const usePlayerMatches = (params: PlayerMatchSearchParams, enabled = true) =>
@@ -44,6 +52,28 @@ export const usePlayerMatchDetail = (id?: string) =>
     queryKey: playerMatchKeys.detail(id ?? ''),
     queryFn: ({ signal }) => playerMatchingApi.getPlayerMatchDetail(id ?? '', signal),
     enabled: Boolean(id?.trim()),
+  });
+
+export const useHostedPlayerMatches = (
+  params: HostedPlayerMatchesParams,
+  enabled = true,
+) =>
+  useQuery({
+    queryKey: playerMatchKeys.hosted(params),
+    queryFn: ({ signal }) => playerMatchingApi.getHostedPlayerMatches(params, signal),
+    enabled,
+    placeholderData: keepPreviousData,
+  });
+
+export const useParticipatingPlayerMatches = (
+  params: ParticipatingPlayerMatchesParams,
+  enabled = true,
+) =>
+  useQuery({
+    queryKey: playerMatchKeys.participating(params),
+    queryFn: ({ signal }) => playerMatchingApi.getParticipatingPlayerMatches(params, signal),
+    enabled,
+    placeholderData: keepPreviousData,
   });
 
 export const useJoinPlayerMatch = () => {
