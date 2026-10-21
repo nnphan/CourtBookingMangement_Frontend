@@ -54,14 +54,14 @@
       },
       "skills": {
         "beginner": "Người mới",
-        "intermediate": "Trung cấp",
+        "intermediate": "Trung bình",
         "advanced": "Nâng cao",
         "professional": "Chuyên nghiệp"
       },
       "genders": {
         "male": "Nam",
         "female": "Nữ",
-        "both": "Cả hai"
+        "both": "Nam và Nữ"
       }
     },
     "discovery": {
@@ -111,14 +111,14 @@
     },
     "skill": {
       "beginner": "Người mới",
-      "intermediate": "Trung cấp",
+      "intermediate": "Trung bình",
       "advanced": "Nâng cao",
       "professional": "Chuyên nghiệp"
     },
     "gender": {
       "male": "Nam",
       "female": "Nữ",
-      "both": "Cả hai"
+      "both": "Nam và Nữ"
     },
     "card": {
       "players": "người chơi",
@@ -209,9 +209,23 @@
       "retry": "Thử lại",
       "requestedAt": "Gửi yêu cầu {{date}}",
       "approve": "Chấp nhận",
+      "approving": "Đang chấp nhận...",
       "approveApplicant": "Chấp nhận yêu cầu của {{name}}",
+      "approveSuccess": "Đã chấp nhận yêu cầu",
+      "approveSuccessDescription": "{{fullName}} đã được thêm vào danh sách người chơi.",
       "reject": "Từ chối",
-      "rejectApplicant": "Từ chối yêu cầu của {{name}}"
+      "rejecting": "Đang từ chối...",
+      "rejectApplicant": "Từ chối yêu cầu của {{name}}",
+      "rejectConfirmTitle": "Từ chối yêu cầu tham gia?",
+      "rejectConfirmDescription": "{{fullName}} sẽ không được thêm vào trận này.",
+      "rejectSuccess": "Đã từ chối yêu cầu tham gia",
+      "rejectSuccessDescription": "Yêu cầu của {{fullName}} đã được từ chối.",
+      "cancel": "Hủy",
+      "noPending": "Không còn yêu cầu nào đang chờ.",
+      "forbidden": "Bạn không có quyền quản lý yêu cầu tham gia của trận này.",
+      "requestChanged": "Yêu cầu đã thay đổi hoặc được xử lý. Danh sách đã được làm mới.",
+      "processErrorTitle": "Không thể xử lý yêu cầu tham gia",
+      "processFailed": "Không thể xử lý yêu cầu tham gia. Vui lòng thử lại."
     },
     "detail": {
       "title": "Chi tiết trận đấu",

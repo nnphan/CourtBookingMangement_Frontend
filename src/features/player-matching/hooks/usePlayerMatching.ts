@@ -10,6 +10,7 @@ import type {
   CreatePlayerMatchRequest,
   HostedPlayerMatchesParams,
   JoinPlayerMatchResponse,
+  ProcessJoinRequestVariables,
   PlayerMatchSearchParams,
   ParticipatingPlayerMatchesParams,
   PlayerMatchingFilterParams,
@@ -20,6 +21,7 @@ export const playerMatchingKeys = {
   all: ['player-matching'] as const,
   stats: () => [...playerMatchingKeys.all, 'stats'] as const,
   featured: () => [...playerMatchingKeys.all, 'featured'] as const,
+  lists: () => [...playerMatchingKeys.all, 'list'] as const,
   list: (filters: Omit<PlayerMatchingFilterParams, 'pageNumber'>) =>
     [...playerMatchingKeys.all, 'list', filters] as const,
 };
@@ -78,6 +80,44 @@ export const usePlayerMatchJoinRequests = (
       playerMatchingApi.getPlayerMatchJoinRequests(matchId ?? '', status, signal),
     enabled: Boolean(matchId?.trim()) && enabled,
   });
+
+const invalidateJoinRequestQueries = (
+  queryClient: ReturnType<typeof useQueryClient>,
+  matchId: string,
+) =>
+  Promise.all([
+    queryClient.invalidateQueries({
+      queryKey: playerMatchKeys.joinRequests(matchId, 'PENDING'),
+    }),
+    queryClient.invalidateQueries({ queryKey: playerMatchKeys.hostedRoot() }),
+    queryClient.invalidateQueries({ queryKey: playerMatchKeys.detail(matchId) }),
+    queryClient.invalidateQueries({ queryKey: playerMatchKeys.participatingRoot() }),
+    queryClient.invalidateQueries({ queryKey: playerMatchKeys.lists() }),
+    queryClient.invalidateQueries({ queryKey: playerMatchingKeys.lists() }),
+    queryClient.invalidateQueries({ queryKey: playerMatchingKeys.featured() }),
+  ]);
+
+export const useApproveJoinRequest = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, unknown, ProcessJoinRequestVariables>({
+    mutationFn: (variables) => playerMatchingApi.approvePlayerMatchJoinRequest(variables),
+    retry: false,
+    onSuccess: (_result, { matchId }) => invalidateJoinRequestQueries(queryClient, matchId),
+    onError: (_error, { matchId }) => invalidateJoinRequestQueries(queryClient, matchId),
+  });
+};
+
+export const useRejectJoinRequest = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, unknown, ProcessJoinRequestVariables>({
+    mutationFn: (variables) => playerMatchingApi.rejectPlayerMatchJoinRequest(variables),
+    retry: false,
+    onSuccess: (_result, { matchId }) => invalidateJoinRequestQueries(queryClient, matchId),
+    onError: (_error, { matchId }) => invalidateJoinRequestQueries(queryClient, matchId),
+  });
+};
 
 export const useParticipatingPlayerMatches = (
   params: ParticipatingPlayerMatchesParams,

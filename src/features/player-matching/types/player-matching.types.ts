@@ -102,6 +102,12 @@ export interface PlayerMatchJoinRequest {
   requestedAt: string;
 }
 
+export interface ProcessJoinRequestVariables {
+  matchId: string;
+  requestId: string;
+  fullName: string;
+}
+
 export interface ParticipatingPlayerMatch {
   matchId: string;
   title: string;

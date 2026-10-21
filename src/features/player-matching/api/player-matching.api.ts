@@ -4,6 +4,7 @@ import type {
   HostedPlayerMatch,
   HostedPlayerMatchesParams,
   JoinPlayerMatchResponse,
+  ProcessJoinRequestVariables,
   PlayerMatchJoinRequest,
   PlayerMatchDetail,
   PlayerMatchListItem,
@@ -71,6 +72,32 @@ export const playerMatchingApi = {
     );
     if (!response.data.success) throw new Error(response.data.message);
     return response.data.data;
+  },
+
+  approvePlayerMatchJoinRequest: async ({
+    matchId,
+    requestId,
+  }: ProcessJoinRequestVariables): Promise<void> => {
+    const id = matchId.trim();
+    const request = requestId.trim();
+    if (!id || !request) throw new Error('A match id and join request id are required.');
+
+    await http.post<unknown>(
+      `/api/player-matches/${encodeURIComponent(id)}/join-requests/${encodeURIComponent(request)}/approve`,
+    );
+  },
+
+  rejectPlayerMatchJoinRequest: async ({
+    matchId,
+    requestId,
+  }: ProcessJoinRequestVariables): Promise<void> => {
+    const id = matchId.trim();
+    const request = requestId.trim();
+    if (!id || !request) throw new Error('A match id and join request id are required.');
+
+    await http.post<unknown>(
+      `/api/player-matches/${encodeURIComponent(id)}/join-requests/${encodeURIComponent(request)}/reject`,
+    );
   },
 
   getParticipatingPlayerMatches: async (
