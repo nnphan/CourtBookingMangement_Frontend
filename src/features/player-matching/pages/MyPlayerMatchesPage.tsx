@@ -14,6 +14,8 @@ import {
 } from '../components/MyPlayerMatchCards';
 import { useHostedPlayerMatches, useParticipatingPlayerMatches } from '../hooks/usePlayerMatching';
 import { PlayerMatchDetailDialog } from '../components/PlayerMatchDetailDialog';
+import { JoinRequestsDialog } from '../components/JoinRequestsDialog';
+import type { HostedPlayerMatch } from '../types/player-matching.types';
 
 const PAGE_SIZE = 10;
 
@@ -122,6 +124,8 @@ const MatchPagination = ({
 
 const HostedMatchesPanel = ({ onViewDetails }: { onViewDetails: (id: string) => void }) => {
   const { t } = useTranslation();
+  const [selectedMatchForRequests, setSelectedMatchForRequests] =
+    useState<HostedPlayerMatch | null>(null);
   const [status, setStatus] = useState('');
   const [matchDate, setMatchDate] = useState('');
   const [keywordDraft, setKeywordDraft] = useState('');
@@ -193,10 +197,6 @@ const HostedMatchesPanel = ({ onViewDetails }: { onViewDetails: (id: string) => 
         </form>
       </div>
 
-      <p className="border-brand-200 bg-brand-50 text-brand-900 rounded-lg border px-4 py-3 text-sm">
-        {t('playerMatch.myMatches.requestReviewUnavailable')}
-      </p>
-
       {query.isLoading && !query.data ? (
         <MatchCardSkeleton count={3} />
       ) : query.isError ? (
@@ -232,7 +232,12 @@ const HostedMatchesPanel = ({ onViewDetails }: { onViewDetails: (id: string) => 
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {matches.map((match) => (
-              <HostedPlayerMatchCard key={match.id} match={match} onViewDetails={onViewDetails} />
+              <HostedPlayerMatchCard
+                key={match.id}
+                match={match}
+                onViewDetails={onViewDetails}
+                onReviewRequests={setSelectedMatchForRequests}
+              />
             ))}
           </div>
         </>
@@ -245,6 +250,13 @@ const HostedMatchesPanel = ({ onViewDetails }: { onViewDetails: (id: string) => 
           onPageChange={setPage}
         />
       )}
+      <JoinRequestsDialog
+        match={selectedMatchForRequests}
+        open={Boolean(selectedMatchForRequests)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedMatchForRequests(null);
+        }}
+      />
     </div>
   );
 };

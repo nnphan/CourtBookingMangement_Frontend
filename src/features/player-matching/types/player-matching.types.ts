@@ -92,6 +92,16 @@ export interface HostedPlayerMatch {
   isFull: boolean;
 }
 
+export interface PlayerMatchJoinRequest {
+  requestId: string;
+  matchId: string;
+  userId: string;
+  fullName: string;
+  skillLevel?: PlayerMatchSkillLevel | null;
+  status: string;
+  requestedAt: string;
+}
+
 export interface ParticipatingPlayerMatch {
   matchId: string;
   title: string;

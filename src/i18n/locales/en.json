@@ -173,7 +173,6 @@
       "pendingRequests_one": "{{count}} pending request",
       "pendingRequests_other": "{{count}} pending requests",
       "noPendingRequests": "No pending requests",
-      "requestReviewUnavailable": "Join requests cannot currently be reviewed or managed from this page.",
       "loadError": "Unable to load matches. Please try again.",
       "hostedEmpty": "You have not hosted any matches yet.",
       "participatingEmpty": "You are not participating in any matches yet.",
@@ -195,6 +194,24 @@
       "match_cancelled": "Match cancelled",
       "cancelledDescription": "This match was cancelled.",
       "cancelUnavailable": "Cancelling a pending request is not currently supported."
+    },
+    "joinRequests": {
+      "title": "Join requests",
+      "description": "Review players who are waiting for approval to join this match.",
+      "pending": "Pending requests",
+      "review": "Review {{count}} requests for {{title}}",
+      "reviewCount_one": "Review Requests ({{count}})",
+      "reviewCount_other": "Review Requests ({{count}})",
+      "loading": "Loading join requests",
+      "emptyTitle": "No pending requests",
+      "emptyDescription": "There are currently no players waiting for your approval.",
+      "loadError": "Unable to load join requests.",
+      "retry": "Retry",
+      "requestedAt": "Requested {{date}}",
+      "approve": "Approve",
+      "approveApplicant": "Approve {{name}}'s request",
+      "reject": "Reject",
+      "rejectApplicant": "Reject {{name}}'s request"
     },
     "detail": {
       "title": "Match details",

@@ -173,7 +173,6 @@
       "pendingRequests_one": "{{count}} yêu cầu đang chờ",
       "pendingRequests_other": "{{count}} yêu cầu đang chờ",
       "noPendingRequests": "Không có yêu cầu đang chờ",
-      "requestReviewUnavailable": "Hiện chưa thể xem hoặc xử lý yêu cầu tham gia từ trang này.",
       "loadError": "Không thể tải danh sách trận đấu. Vui lòng thử lại.",
       "hostedEmpty": "Bạn chưa tạo ghép sân nào.",
       "participatingEmpty": "Bạn chưa tham gia ghép sân nào.",
@@ -195,6 +194,24 @@
       "match_cancelled": "Trận đã bị hủy",
       "cancelledDescription": "Trận đấu này đã bị hủy.",
       "cancelUnavailable": "Hiện chưa hỗ trợ hủy yêu cầu đang chờ."
+    },
+    "joinRequests": {
+      "title": "Yêu cầu tham gia",
+      "description": "Xem những người chơi đang chờ bạn xác nhận tham gia trận đấu.",
+      "pending": "Yêu cầu đang chờ",
+      "review": "Duyệt yêu cầu ({{count}}) cho trận {{title}}",
+      "reviewCount_one": "Duyệt yêu cầu ({{count}})",
+      "reviewCount_other": "Duyệt yêu cầu ({{count}})",
+      "loading": "Đang tải yêu cầu tham gia",
+      "emptyTitle": "Không có yêu cầu đang chờ",
+      "emptyDescription": "Hiện tại chưa có người chơi nào đang chờ bạn xác nhận.",
+      "loadError": "Không thể tải yêu cầu tham gia.",
+      "retry": "Thử lại",
+      "requestedAt": "Gửi yêu cầu {{date}}",
+      "approve": "Chấp nhận",
+      "approveApplicant": "Chấp nhận yêu cầu của {{name}}",
+      "reject": "Từ chối",
+      "rejectApplicant": "Từ chối yêu cầu của {{name}}"
     },
     "detail": {
       "title": "Chi tiết trận đấu",

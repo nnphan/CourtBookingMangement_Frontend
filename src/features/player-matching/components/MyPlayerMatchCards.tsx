@@ -13,6 +13,7 @@ interface MatchCardProps {
   match: HostedPlayerMatch | ParticipatingPlayerMatch;
   matchId: string;
   onViewDetails: (matchId: string) => void;
+  additionalAction?: ReactNode;
 }
 
 const MatchCardDetails = ({
@@ -20,6 +21,7 @@ const MatchCardDetails = ({
   onViewDetails,
   matchId,
   children,
+  additionalAction,
 }: MatchCardProps & {
   children: ReactNode;
 }) => {
@@ -73,14 +75,17 @@ const MatchCardDetails = ({
         </div>
         {children}
       </div>
-      <Button
-        type="button"
-        variant="outline"
-        className="border-line mt-5 w-full"
-        onClick={() => onViewDetails(matchId)}
-      >
-        {t('playerMatch.myMatches.viewDetails')}
-      </Button>
+      <div className={`mt-5 grid gap-2 ${additionalAction ? 'sm:grid-cols-2' : ''}`}>
+        <Button
+          type="button"
+          variant="outline"
+          className="border-line w-full"
+          onClick={() => onViewDetails(matchId)}
+        >
+          {t('playerMatch.myMatches.viewDetails')}
+        </Button>
+        {additionalAction}
+      </div>
     </article>
   );
 };
@@ -88,15 +93,38 @@ const MatchCardDetails = ({
 export const HostedPlayerMatchCard = ({
   match,
   onViewDetails,
+  onReviewRequests,
 }: {
   match: HostedPlayerMatch;
   onViewDetails: (matchId: string) => void;
+  onReviewRequests: (match: HostedPlayerMatch) => void;
 }) => {
   const { t } = useTranslation();
   const statusKey = match.status.toLowerCase();
 
   return (
-    <MatchCardDetails match={match} matchId={match.id} onViewDetails={onViewDetails}>
+    <MatchCardDetails
+      match={match}
+      matchId={match.id}
+      onViewDetails={onViewDetails}
+      additionalAction={
+        match.pendingRequestCount > 0 ? (
+          <Button
+            type="button"
+            className="w-full"
+            aria-label={t('playerMatch.joinRequests.review', {
+              count: match.pendingRequestCount,
+              title: match.title,
+            })}
+            onClick={() => onReviewRequests(match)}
+          >
+            {t('playerMatch.joinRequests.reviewCount', {
+              count: match.pendingRequestCount,
+            })}
+          </Button>
+        ) : undefined
+      }
+    >
       <div className="border-line mt-3 space-y-2 border-t pt-3 text-sm">
         <p className="text-content-secondary">
           {t(`playerMatch.myMatches.status.${statusKey}`, { defaultValue: match.status })}

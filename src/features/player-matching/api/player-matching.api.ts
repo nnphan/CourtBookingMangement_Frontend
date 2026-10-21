@@ -4,6 +4,7 @@ import type {
   HostedPlayerMatch,
   HostedPlayerMatchesParams,
   JoinPlayerMatchResponse,
+  PlayerMatchJoinRequest,
   PlayerMatchDetail,
   PlayerMatchListItem,
   PlayerMatchSearchParams,
@@ -51,6 +52,25 @@ export const playerMatchingApi = {
     );
     if (!response.data.success) throw new Error(response.data.message);
     return response.data;
+  },
+
+  getPlayerMatchJoinRequests: async (
+    matchId: string,
+    status?: string,
+    signal?: AbortSignal,
+  ): Promise<PlayerMatchJoinRequest[]> => {
+    const id = matchId.trim();
+    if (!id) throw new Error('A player match id is required.');
+
+    const response = await http.get<ApiResponse<PlayerMatchJoinRequest[]>>(
+      `/api/player-matches/${encodeURIComponent(id)}/join-requests`,
+      {
+        params: status ? { status } : undefined,
+        signal,
+      },
+    );
+    if (!response.data.success) throw new Error(response.data.message);
+    return response.data.data;
   },
 
   getParticipatingPlayerMatches: async (

@@ -33,6 +33,8 @@ export const playerMatchKeys = {
   hostedRoot: () => [...playerMatchKeys.all, 'hosted'] as const,
   hosted: (params: HostedPlayerMatchesParams) =>
     [...playerMatchKeys.hostedRoot(), params] as const,
+  joinRequests: (matchId: string, status?: string) =>
+    [...playerMatchKeys.all, 'join-requests', matchId, status] as const,
   participatingRoot: () => [...playerMatchKeys.all, 'participating'] as const,
   participating: (params: ParticipatingPlayerMatchesParams) =>
     [...playerMatchKeys.participatingRoot(), params] as const,
@@ -63,6 +65,18 @@ export const useHostedPlayerMatches = (
     queryFn: ({ signal }) => playerMatchingApi.getHostedPlayerMatches(params, signal),
     enabled,
     placeholderData: keepPreviousData,
+  });
+
+export const usePlayerMatchJoinRequests = (
+  matchId?: string,
+  status?: string,
+  enabled = true,
+) =>
+  useQuery({
+    queryKey: playerMatchKeys.joinRequests(matchId ?? '', status),
+    queryFn: ({ signal }) =>
+      playerMatchingApi.getPlayerMatchJoinRequests(matchId ?? '', status, signal),
+    enabled: Boolean(matchId?.trim()) && enabled,
   });
 
 export const useParticipatingPlayerMatches = (
