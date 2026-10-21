@@ -113,14 +113,16 @@ export const AdminBranchLayout: React.FC = () => {
 
           <LanguageSwitcher mode="dropdown" variant="contrast" />
 
-          <button
-            type="button"
-            onClick={() => navigate(paths.dashboard)}
-            className="hidden items-center gap-1.5 rounded-xl bg-white/15 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-white/25 md:flex"
-          >
-            <LayoutGrid className="size-3.5 text-emerald-200" />
-            <span>{t('layout.nav.dashboard')}</span>
-          </button>
+          {permissions.isAdmin && (
+            <button
+              type="button"
+              onClick={() => navigate(paths.dashboard)}
+              className="hidden items-center gap-1.5 rounded-xl bg-white/15 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-white/25 md:flex"
+            >
+              <LayoutGrid className="size-3.5 text-emerald-200" />
+              <span>{t('layout.nav.dashboard')}</span>
+            </button>
+          )}
           <CurrentUserMenu />
         </div>
       </header>

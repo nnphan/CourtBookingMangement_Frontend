@@ -1,6 +1,8 @@
 import { Navigate, Outlet, useLocation } from 'react-router';
 import { useAuthStore } from '@/features/auth/store/auth.store';
 import { paths } from '@/app/router/paths';
+import { getCurrentUserRole } from '@/shared/utils/current-user';
+import { getDefaultRouteForUser } from '@/app/router/role-destination';
 
 export const ProtectedRoute = () => {
   const location = useLocation();
@@ -13,5 +15,16 @@ export const ProtectedRoute = () => {
 
 export const GuestRoute = () => {
   const authenticated = useAuthStore((s) => s.isAuthenticated());
-  return authenticated ? <Navigate to={paths.dashboard} replace /> : <Outlet />;
+  const user = useAuthStore((s) => s.user);
+  const destination = getDefaultRouteForUser(user);
+  return authenticated ? <Navigate to={destination} replace /> : <Outlet />;
+};
+
+export const AdminRoute = () => {
+  const user = useAuthStore((s) => s.user);
+  return getCurrentUserRole(user) === 'admin' ? (
+    <Outlet />
+  ) : (
+    <Navigate to={paths.root} replace />
+  );
 };

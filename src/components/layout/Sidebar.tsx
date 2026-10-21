@@ -20,6 +20,8 @@ import {
   Building2,
 } from 'lucide-react';
 import { useLogout } from '@/features/auth/hooks/useLogout';
+import { useAuthStore } from '@/features/auth/store/auth.store';
+import { getCurrentUserRole } from '@/shared/utils/current-user';
 import { cn } from '@/lib/utils';
 
 import { paths } from '@/app/router/paths';
@@ -51,6 +53,8 @@ const menuItems = [
 export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const { t } = useTranslation();
   const { logout, isLoggingOut } = useLogout();
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = getCurrentUserRole(user) === 'admin';
   const navigate = useNavigate();
   const sidebarRef = useRef<HTMLDivElement>(null);
 
@@ -109,23 +113,25 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
         <div className="h-[calc(100dvh-3.5rem-env(safe-area-inset-top,0px))] overflow-y-auto pb-[env(safe-area-inset-bottom,0px)]">
           <nav className="flex flex-col py-2">
-            {menuItems.map((item, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => {
-                  if ('path' in item && item.path) {
-                    navigate(item.path);
-                    onClose();
-                  }
-                }}
-                className="group flex w-full cursor-pointer items-center gap-3 border-b border-white/5 px-4 py-3.5 text-left transition-colors hover:bg-white/10 focus-visible:bg-white/10"
-              >
-                <item.icon aria-hidden className="size-5 shrink-0 opacity-80" />
-                <span className="flex-1 text-[15px] font-medium">{item.label}</span>
-                <ChevronRight aria-hidden className="size-4 shrink-0 opacity-60" />
-              </button>
-            ))}
+            {menuItems
+              .filter((item) => item.path !== paths.dashboard || isAdmin)
+              .map((item, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => {
+                    if ('path' in item && item.path) {
+                      navigate(item.path);
+                      onClose();
+                    }
+                  }}
+                  className="group flex w-full cursor-pointer items-center gap-3 border-b border-white/5 px-4 py-3.5 text-left transition-colors hover:bg-white/10 focus-visible:bg-white/10"
+                >
+                  <item.icon aria-hidden className="size-5 shrink-0 opacity-80" />
+                  <span className="flex-1 text-[15px] font-medium">{item.label}</span>
+                  <ChevronRight aria-hidden className="size-4 shrink-0 opacity-60" />
+                </button>
+              ))}
             <button
               type="button"
               onClick={logout}

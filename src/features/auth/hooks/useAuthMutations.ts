@@ -4,6 +4,7 @@ import type { AxiosError } from 'axios';
 import { authApi } from '@/features/auth/api/auth.api';
 import { useAuthStore } from '@/features/auth/store/auth.store';
 import { paths } from '@/app/router/paths';
+import { getPostLoginRouteForUser } from '@/app/router/role-destination';
 import { toast } from '@/lib/toast';
 import type { AuthSession } from '@/types/auth';
 import type {
@@ -16,11 +17,12 @@ const useOnAuthenticated = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const setSession = useAuthStore((s) => s.setSession);
-  const from = (location.state as { from?: string } | null)?.from ?? paths.dashboard;
+  const requestedPath = (location.state as { from?: string } | null)?.from;
 
   return (session: AuthSession) => {
     setSession(session);
-    void navigate(from, { replace: true });
+    const destination = getPostLoginRouteForUser(session.user, requestedPath);
+    void navigate(destination, { replace: true });
   };
 };
 

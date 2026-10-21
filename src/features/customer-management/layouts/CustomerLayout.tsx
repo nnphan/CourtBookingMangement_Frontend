@@ -7,12 +7,16 @@ import { ManagementNavigation } from '@/components/navigation';
 import { paths } from '@/app/router/paths';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 import { CurrentUserMenu } from '@/shared/components/current-user';
+import { useAuthStore } from '@/features/auth/store/auth.store';
+import { getCurrentUserRole } from '@/shared/utils/current-user';
 
 export const CustomerLayout: React.FC = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = getCurrentUserRole(user) === 'admin';
 
   const isListPage = location.pathname === paths.customers;
 
@@ -68,14 +72,16 @@ export const CustomerLayout: React.FC = () => {
         <div className="flex items-center gap-2 sm:gap-3">
           <LanguageSwitcher variant="contrast" />
 
-          <button
-            type="button"
-            onClick={() => navigate(paths.dashboard)}
-            className="hidden items-center gap-1.5 rounded-xl bg-white/15 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-white/25 sm:flex"
-          >
-            <LayoutGrid className="size-3.5 text-emerald-200" />
-            <span>Dashboard</span>
-          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => navigate(paths.dashboard)}
+              className="hidden items-center gap-1.5 rounded-xl bg-white/15 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-white/25 sm:flex"
+            >
+              <LayoutGrid className="size-3.5 text-emerald-200" />
+              <span>Dashboard</span>
+            </button>
+          )}
 
           {isListPage && (
             <button

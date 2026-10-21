@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router';
 import { paths } from '@/app/router/paths';
-import { GuestRoute, ProtectedRoute } from '@/app/router/guards';
+import { AdminRoute, GuestRoute, ProtectedRoute } from '@/app/router/guards';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { RouteFallback } from '@/components/common/RouteFallback';
 import { RouteErrorBoundary } from '@/components/common/RouteErrorBoundary';
@@ -95,7 +95,10 @@ export const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
-          { path: paths.dashboard, element: withSuspense(<DashboardPage />) },
+          {
+            element: <AdminRoute />,
+            children: [{ path: paths.dashboard, element: withSuspense(<DashboardPage />) }],
+          },
           { path: paths.courts, element: withSuspense(<CourtsPage />) },
           { path: paths.bookings, element: withSuspense(<BookingsPage />) },
         ],

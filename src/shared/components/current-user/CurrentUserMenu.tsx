@@ -37,7 +37,7 @@ export const CurrentUserMenu = ({ variant = 'contrast' }: CurrentUserMenuProps) 
   const roleKey = getCurrentUserRole(user);
   const roleLabel = t(`account.roles.${roleKey}`);
   const isCustomer = roleKey === 'customer';
-  const canAccessDashboard = ['admin', 'branchManager', 'staff'].includes(roleKey);
+  const canAccessDashboard = roleKey === 'admin';
 
   return (
     <DropdownMenu>

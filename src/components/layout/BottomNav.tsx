@@ -2,8 +2,13 @@ import { NavLink } from 'react-router';
 import { Home, CalendarCheck, ClipboardList, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { paths } from '@/app/router/paths';
+import { useAuthStore } from '@/features/auth/store/auth.store';
+import { getCurrentUserRole } from '@/shared/utils/current-user';
 
 export const BottomNav = () => {
+  const user = useAuthStore((s) => s.user);
+  const homePath = getCurrentUserRole(user) === 'admin' ? paths.dashboard : paths.root;
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-30">
       {/* Floating Action Button for Chat */}
@@ -20,7 +25,7 @@ export const BottomNav = () => {
       {/* Bottom Nav Bar */}
       <nav className="flex h-[calc(4rem+env(safe-area-inset-bottom,0px))] w-full bg-brand-600 pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
         <NavLink
-          to={paths.dashboard}
+          to={homePath}
           className={({ isActive }) =>
             cn(
               'flex flex-1 flex-col items-center justify-center gap-1 transition-colors',
