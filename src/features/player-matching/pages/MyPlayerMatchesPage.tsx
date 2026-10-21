@@ -122,6 +122,22 @@ const MatchPagination = ({
   );
 };
 
+const MatchEmptyState = ({
+  title,
+  description,
+  action,
+}: {
+  title: string;
+  description: string;
+  action?: ReactNode;
+}) => (
+  <section className="border-line bg-surface flex flex-col items-center gap-2 rounded-2xl border p-8 text-center">
+    <h2 className="text-content-primary font-semibold">{title}</h2>
+    <p className="text-content-secondary max-w-md text-sm">{description}</p>
+    {action}
+  </section>
+);
+
 const HostedMatchesPanel = ({ onViewDetails }: { onViewDetails: (id: string) => void }) => {
   const { t } = useTranslation();
   const [selectedMatchForRequests, setSelectedMatchForRequests] =
@@ -209,9 +225,18 @@ const HostedMatchesPanel = ({ onViewDetails }: { onViewDetails: (id: string) => 
           </Button>
         </div>
       ) : matches.length === 0 ? (
-        <p className="border-line bg-surface text-content-secondary rounded-xl border p-8 text-center">
-          {t('playerMatch.myMatches.hostedEmpty')}
-        </p>
+        <MatchEmptyState
+          title={t(
+            status || matchDate || keyword
+              ? 'playerMatch.myMatches.noMatchesTitle'
+              : 'playerMatch.myMatches.hostedEmptyTitle',
+          )}
+          description={t(
+            status || matchDate || keyword
+              ? 'playerMatch.myMatches.noMatchesDescription'
+              : 'playerMatch.myMatches.hostedEmptyDescription',
+          )}
+        />
       ) : (
         <>
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -230,7 +255,7 @@ const HostedMatchesPanel = ({ onViewDetails }: { onViewDetails: (id: string) => 
               </span>
             )}
           </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {matches.map((match) => (
               <HostedPlayerMatchCard
                 key={match.id}
@@ -261,7 +286,13 @@ const HostedMatchesPanel = ({ onViewDetails }: { onViewDetails: (id: string) => 
   );
 };
 
-const ParticipatingMatchesPanel = ({ onViewDetails }: { onViewDetails: (id: string) => void }) => {
+const ParticipatingMatchesPanel = ({
+  onViewDetails,
+  onDiscover,
+}: {
+  onViewDetails: (id: string) => void;
+  onDiscover: () => void;
+}) => {
   const { t } = useTranslation();
   const [participationStatus, setParticipationStatus] = useState('');
   const [matchStatus, setMatchStatus] = useState('');
@@ -334,9 +365,27 @@ const ParticipatingMatchesPanel = ({ onViewDetails }: { onViewDetails: (id: stri
           </Button>
         </div>
       ) : matches.length === 0 ? (
-        <p className="border-line bg-surface text-content-secondary rounded-xl border p-8 text-center">
-          {t('playerMatch.myMatches.participatingEmpty')}
-        </p>
+        <MatchEmptyState
+          title={t(
+            participationStatus || matchStatus || fromDate
+              ? 'playerMatch.myMatches.noMatchesTitle'
+              : 'playerMatch.myMatches.participatingEmptyTitle',
+          )}
+          description={t(
+            participationStatus
+              ? `playerMatch.myMatches.emptyParticipation.${participationStatus.toLowerCase()}`
+              : participationStatus || matchStatus || fromDate
+                ? 'playerMatch.myMatches.noMatchesDescription'
+                : 'playerMatch.myMatches.participatingEmptyDescription',
+          )}
+          action={
+            !participationStatus && !matchStatus && !fromDate ? (
+              <Button type="button" className="mt-2" onClick={onDiscover}>
+                {t('playerMatch.myMatches.discoverMatches')}
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
         <>
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -355,7 +404,7 @@ const ParticipatingMatchesPanel = ({ onViewDetails }: { onViewDetails: (id: stri
               </span>
             )}
           </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {matches.map((match) => (
               <ParticipatingPlayerMatchCard
                 key={match.matchId}
@@ -442,7 +491,10 @@ export const MyPlayerMatchesPage = () => {
           </TabsContent>
           <TabsContent value="participating">
             {activeTab === 'participating' && (
-              <ParticipatingMatchesPanel onViewDetails={handleViewDetails} />
+              <ParticipatingMatchesPanel
+                onViewDetails={handleViewDetails}
+                onDiscover={() => navigate(paths.playerMatching)}
+              />
             )}
           </TabsContent>
         </Tabs>
