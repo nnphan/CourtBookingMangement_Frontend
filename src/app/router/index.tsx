@@ -44,6 +44,10 @@ const BranchListPage = lazy(() => import('@/pages/admin/branches/BranchListPage'
 const BranchCreatePage = lazy(() => import('@/pages/admin/branches/BranchCreatePage'));
 const BranchDetailPage = lazy(() => import('@/pages/admin/branches/BranchDetailPage'));
 const BranchEditPage = lazy(() => import('@/pages/admin/branches/BranchEditPage'));
+const UserManagementLayout = lazy(
+  () => import('@/features/user-management/layouts/UserManagementLayout'),
+);
+const UserListPage = lazy(() => import('@/features/user-management/pages/UserListPage'));
 const NotFoundPage = lazy(() => import('@/components/common/NotFoundPage'));
 
 const withSuspense = (node: React.ReactNode) => (
@@ -113,6 +117,15 @@ export const router = createBrowserRouter([
           { path: paths.customerCreate, element: withSuspense(<CustomerCreatePage />) },
           { path: '/customers/:id', element: withSuspense(<CustomerDetailPage />) },
           { path: '/customers/:id/edit', element: withSuspense(<CustomerEditPage />) },
+        ],
+      },
+      {
+        element: <AdminRoute />,
+        children: [
+          {
+            element: withSuspense(<UserManagementLayout />),
+            children: [{ path: paths.adminUsers, element: withSuspense(<UserListPage />) }],
+          },
         ],
       },
       {

@@ -22,6 +22,7 @@ export const paths = {
   myPlayerMatches: '/my-matches',
   branchDetail: (id: string = ':id') => `/branches/${id}`,
   adminBranches: '/admin/branches',
+  adminUsers: '/admin/users',
   adminBranchCreate: '/admin/branches/create',
   adminBranchDetail: (id: string = ':id') => `/admin/branches/${id}`,
   adminBranchEdit: (id: string = ':id') => `/admin/branches/${id}/edit`,
