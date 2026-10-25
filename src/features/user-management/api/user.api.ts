@@ -1,5 +1,5 @@
 import { http } from '@/lib/axios';
-import type { ApiResponse } from '@/types/api';
+import type { ApiResponse, PaginationMetadata } from '@/types/api';
 import type {
   AssignUserRolesRequest,
   RoleListItem,
@@ -7,10 +7,23 @@ import type {
   UserRoleDetail,
 } from '../types/user.types';
 
-export const getUsers = async (): Promise<UserListItem[]> => {
-  const { data: response } = await http.get<ApiResponse<UserListItem[]>>('/users/getlist');
+export interface GetUsersParams {
+  pageNumber: number;
+  pageSize: number;
+  keyword?: string;
+}
+
+export interface UserListPageResult {
+  data: UserListItem[];
+  metadata: PaginationMetadata | null;
+}
+
+export const getUsers = async (params: GetUsersParams): Promise<UserListPageResult> => {
+  const { data: response } = await http.get<ApiResponse<UserListItem[]>>('/users/getlist', {
+    params: { ...params, keyword: params.keyword || undefined },
+  });
   if (!response.success) throw new Error(response.message);
-  return response.data;
+  return { data: response.data, metadata: response.metadata };
 };
 
 export const getRoles = async (): Promise<RoleListItem[]> => {

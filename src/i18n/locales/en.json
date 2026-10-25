@@ -347,6 +347,7 @@
     "rolesRemaining": "{{count}} more roles: {{roles}}",
     "manageRoles": "Manage roles",
     "edit": "Edit",
+    "paginationItems": "users",
     "delete": "Delete",
     "editUser": "Edit user {{user}}",
     "deleteUser": "Delete user {{user}}",

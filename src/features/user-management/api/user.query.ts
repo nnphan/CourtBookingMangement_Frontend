@@ -1,6 +1,8 @@
 export const USER_QUERY_KEYS = {
   all: ['users'] as const,
   list: () => [...USER_QUERY_KEYS.all, 'list'] as const,
+  page: (params: { pageNumber: number; pageSize: number; keyword: string }) =>
+    [...USER_QUERY_KEYS.list(), params] as const,
   roles: (userId: string) => [...USER_QUERY_KEYS.all, userId, 'roles'] as const,
 };
 

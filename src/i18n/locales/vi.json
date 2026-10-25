@@ -347,6 +347,7 @@
     "rolesRemaining": "Còn {{count}} vai trò: {{roles}}",
     "manageRoles": "Quản lý vai trò",
     "edit": "Sửa",
+    "paginationItems": "người dùng",
     "delete": "Xóa",
     "editUser": "Chỉnh sửa người dùng {{user}}",
     "deleteUser": "Xóa người dùng {{user}}",
