@@ -36,6 +36,9 @@ interface OwnerFormDialogProps {
 
 type OwnerFormField = 'userId' | 'businessName' | 'taxId';
 type OwnerFormErrors = Partial<Record<OwnerFormField, string>>;
+type SelectedUserSummary = Pick<UserListItem, 'id' | 'fullName' | 'email' | 'phoneNumber'>;
+
+const MIN_USER_SEARCH_LENGTH = 2;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -63,13 +66,23 @@ export const OwnerFormDialog = ({ owner, onClose }: OwnerFormDialogProps) => {
   const isEditing = Boolean(owner);
   const [userKeyword, setUserKeyword] = useState('');
   const [debouncedUserKeyword, setDebouncedUserKeyword] = useState('');
-  const [selectedUser, setSelectedUser] = useState<UserListItem | null>(null);
+  const [selectedUser, setSelectedUser] = useState<SelectedUserSummary | null>(null);
+  const [activeUserIndex, setActiveUserIndex] = useState(-1);
   const [formErrors, setFormErrors] = useState<OwnerFormErrors>({});
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setDebouncedUserKeyword(userKeyword.trim()), 300);
+    const timer = window.setTimeout(
+      () => setDebouncedUserKeyword(userKeyword.trim()),
+      300,
+    );
     return () => window.clearTimeout(timer);
   }, [userKeyword]);
+
+  const normalizedUserKeyword = userKeyword.trim();
+  const hasMinimumUserKeyword =
+    normalizedUserKeyword.length >= MIN_USER_SEARCH_LENGTH;
+  const isUserSearchSettled =
+    hasMinimumUserKeyword && normalizedUserKeyword === debouncedUserKeyword;
 
   const usersQuery = useQuery({
     queryKey: USER_QUERY_KEYS.page({
@@ -78,7 +91,7 @@ export const OwnerFormDialog = ({ owner, onClose }: OwnerFormDialogProps) => {
       keyword: debouncedUserKeyword,
     }),
     queryFn: () => getUsers({ pageNumber: 1, pageSize: 10, keyword: debouncedUserKeyword }),
-    enabled: !owner,
+    enabled: !owner && isUserSearchSettled,
     staleTime: 60 * 1000,
     retry: 1,
   });
@@ -125,6 +138,24 @@ export const OwnerFormDialog = ({ owner, onClose }: OwnerFormDialogProps) => {
   });
 
   const isPending = createMutation.isPending || updateMutation.isPending;
+  const users = usersQuery.data?.data ?? [];
+  const isUserSearchLoading =
+    hasMinimumUserKeyword &&
+    (!isUserSearchSettled || (usersQuery.isFetching && !usersQuery.isError));
+  const isUserSearchPanelOpen =
+    isUserSearchSettled && !usersQuery.isFetching && !usersQuery.isError && users.length > 0;
+
+  const selectUser = (user: UserListItem) => {
+    setSelectedUser({
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+    });
+    setUserKeyword('');
+    setActiveUserIndex(-1);
+    setFormErrors((current) => ({ ...current, userId: undefined }));
+  };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -155,8 +186,6 @@ export const OwnerFormDialog = ({ owner, onClose }: OwnerFormDialogProps) => {
     createMutation.mutate({ ...request, userId: selectedUser.id });
   };
 
-  const users = usersQuery.data?.data ?? [];
-
   return (
     <Dialog open onOpenChange={(open) => !open && !isPending && onClose()}>
       <DialogContent closeDisabled={isPending} className="max-h-[90vh] overflow-y-auto">
@@ -169,6 +198,20 @@ export const OwnerFormDialog = ({ owner, onClose }: OwnerFormDialogProps) => {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {owner && (
+            <div className="space-y-1 rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs font-medium text-slate-500">
+                {t('ownerManagement.linkedUser')}
+              </p>
+              <p className="truncate text-sm font-semibold text-slate-900">
+                {owner.fullName || owner.email}
+              </p>
+              <p className="truncate text-xs text-slate-600">{owner.email}</p>
+              {owner.phoneNumber && (
+                <p className="text-xs text-slate-600">{owner.phoneNumber}</p>
+              )}
+            </div>
+          )}
           {!owner && (
             <div className="space-y-2">
               <label htmlFor="owner-user-search" className="text-sm font-medium text-slate-700">
@@ -182,14 +225,60 @@ export const OwnerFormDialog = ({ owner, onClose }: OwnerFormDialogProps) => {
                 <input
                   id="owner-user-search"
                   type="search"
+                  role="combobox"
                   value={userKeyword}
                   onChange={(event) => {
                     setUserKeyword(event.target.value);
                     setSelectedUser(null);
+                    setActiveUserIndex(-1);
                     setFormErrors((current) => ({ ...current, userId: undefined }));
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'ArrowDown' && isUserSearchSettled && users.length > 0) {
+                      event.preventDefault();
+                      setActiveUserIndex((current) =>
+                        current < 0 || current === users.length - 1 ? 0 : current + 1,
+                      );
+                    } else if (
+                      event.key === 'ArrowUp' &&
+                      isUserSearchSettled &&
+                      users.length > 0
+                    ) {
+                      event.preventDefault();
+                      setActiveUserIndex((current) =>
+                        current <= 0 ? users.length - 1 : current - 1,
+                      );
+                    } else if (
+                      event.key === 'Enter' &&
+                      isUserSearchSettled &&
+                      activeUserIndex >= 0 &&
+                      users[activeUserIndex]
+                    ) {
+                      event.preventDefault();
+                      selectUser(users[activeUserIndex]);
+                    } else if (event.key === 'Escape') {
+                      setUserKeyword('');
+                      setActiveUserIndex(-1);
+                    }
                   }}
                   placeholder={t('ownerManagement.userSearch')}
                   autoComplete="off"
+                  aria-autocomplete="list"
+                  aria-expanded={isUserSearchPanelOpen}
+                  aria-controls={isUserSearchPanelOpen ? 'owner-user-results' : undefined}
+                  aria-activedescendant={
+                    isUserSearchPanelOpen && activeUserIndex >= 0 && users[activeUserIndex]
+                      ? `owner-user-option-${activeUserIndex}`
+                      : undefined
+                  }
+                  aria-invalid={Boolean(formErrors.userId)}
+                  aria-describedby={
+                    formErrors.userId
+                      ? 'owner-user-search-error'
+                      : hasMinimumUserKeyword
+                        ? undefined
+                        : 'owner-user-search-hint'
+                  }
                   className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
@@ -208,19 +297,38 @@ export const OwnerFormDialog = ({ owner, onClose }: OwnerFormDialogProps) => {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => setSelectedUser(null)}
+                    onClick={() => {
+                      setSelectedUser(null);
+                      setUserKeyword('');
+                    }}
                   >
                     {t('ownerManagement.changeUser')}
                   </Button>
                 </div>
-              ) : usersQuery.isLoading ? (
+              ) : !hasMinimumUserKeyword ? (
+                <p
+                  id="owner-user-search-hint"
+                  className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600"
+                >
+                  {normalizedUserKeyword
+                    ? t('ownerManagement.minUserSearchLength', {
+                        minLength: MIN_USER_SEARCH_LENGTH,
+                      })
+                    : t('ownerManagement.userSearchHint')}
+                </p>
+              ) : isUserSearchLoading ? (
                 <p className="flex items-center gap-2 p-2 text-sm text-slate-500">
                   <Loader2 aria-hidden className="size-4 animate-spin" />
-                  {t('ownerManagement.loadingUsers')}
+                  <span role="status" aria-live="polite">
+                    {t('ownerManagement.searchingUsers')}
+                  </span>
                 </p>
               ) : usersQuery.isError ? (
-                <div className="flex items-center justify-between gap-3 rounded-lg bg-red-50 p-3 text-sm text-red-800">
-                  <span>{t('ownerManagement.usersLoadError')}</span>
+                <div
+                  role="alert"
+                  className="flex items-center justify-between gap-3 rounded-lg bg-red-50 p-3 text-sm text-red-800"
+                >
+                  <span>{t('ownerManagement.userSearchError')}</span>
                   <Button
                     type="button"
                     variant="outline"
@@ -231,41 +339,43 @@ export const OwnerFormDialog = ({ owner, onClose }: OwnerFormDialogProps) => {
                   </Button>
                 </div>
               ) : users.length === 0 ? (
-                <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+                <p role="status" className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
                   {t('ownerManagement.noUsers')}
                 </p>
               ) : (
                 <ul
+                  id="owner-user-results"
+                  role="listbox"
                   aria-label={t('ownerManagement.userResults')}
                   className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-200 p-1"
                 >
-                  {users.map((user) => (
-                    <li key={user.id}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedUser(user);
-                          setFormErrors((current) => ({ ...current, userId: undefined }));
-                        }}
-                        className="w-full rounded-md px-3 py-2 text-left hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
-                      >
-                        <span className="block truncate text-sm font-medium text-slate-900">
-                          {user.fullName || user.email}
-                        </span>
-                        <span className="block truncate text-xs text-slate-600">{user.email}</span>
-                        {user.phoneNumber && (
-                          <span className="block text-xs text-slate-500">
-                            {user.phoneNumber}
-                          </span>
-                        )}
-                      </button>
+                  {users.map((user, index) => (
+                    <li
+                      key={user.id}
+                      id={`owner-user-option-${index}`}
+                      role="option"
+                      aria-selected={activeUserIndex === index}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onMouseEnter={() => setActiveUserIndex(index)}
+                      onClick={() => selectUser(user)}
+                      className={`cursor-pointer rounded-md px-3 py-2 text-left ${
+                        activeUserIndex === index ? 'bg-emerald-50' : 'hover:bg-emerald-50'
+                      }`}
+                    >
+                      <span className="block truncate text-sm font-medium text-slate-900">
+                        {user.fullName || user.email}
+                      </span>
+                      <span className="block truncate text-xs text-slate-600">{user.email}</span>
+                      {user.phoneNumber && (
+                        <span className="block text-xs text-slate-500">{user.phoneNumber}</span>
+                      )}
                     </li>
                   ))}
                 </ul>
               )}
               <p className="text-xs text-slate-500">{t('ownerManagement.userEligibilityNote')}</p>
               {formErrors.userId && (
-                <p className="text-xs text-red-700" role="alert">
+                <p id="owner-user-search-error" className="text-xs text-red-700" role="alert">
                   {formErrors.userId}
                 </p>
               )}
