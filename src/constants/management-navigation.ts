@@ -28,6 +28,14 @@ export const MANAGEMENT_NAVIGATION_ITEMS: readonly ManagementNavigationItem[] = 
     roles: ['ADMIN'],
   },
   {
+    key: 'owners',
+    label: 'Quản lý chủ sân',
+    translationKey: 'navigation.owners',
+    path: paths.adminOwners,
+    icon: Building2,
+    roles: ['ADMIN'],
+  },
+  {
     key: 'court-status',
     label: 'Court Status',
     translationKey: 'navigation.courtStatus',

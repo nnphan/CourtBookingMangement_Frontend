@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Outlet, useNavigate } from 'react-router';
+import { Outlet, useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { Menu, UserCog, LayoutGrid } from 'lucide-react';
+import { Building2, Menu, UserCog, LayoutGrid } from 'lucide-react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { ManagementNavigation } from '@/components/navigation';
 import { paths } from '@/app/router/paths';
@@ -11,7 +11,9 @@ import { CurrentUserMenu } from '@/shared/components/current-user';
 export const UserManagementLayout: React.FC = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { t } = useTranslation();
+  const isOwnerPage = pathname.startsWith(paths.adminOwners);
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-slate-50/70 text-slate-900">
@@ -39,8 +41,12 @@ export const UserManagementLayout: React.FC = () => {
             <div className="hidden items-center gap-2 text-xs font-semibold text-white/80 sm:flex">
               <span className="text-white/40">/</span>
               <div className="flex items-center gap-1.5 font-bold text-white">
-                <UserCog className="size-3.5 text-emerald-300" />
-                <span>{t('userManagement.title')}</span>
+                {isOwnerPage ? (
+                  <Building2 className="size-3.5 text-emerald-300" />
+                ) : (
+                  <UserCog className="size-3.5 text-emerald-300" />
+                )}
+                <span>{t(isOwnerPage ? 'ownerManagement.title' : 'userManagement.title')}</span>
               </div>
             </div>
           </div>

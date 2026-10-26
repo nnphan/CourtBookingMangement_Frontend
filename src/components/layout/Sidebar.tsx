@@ -34,6 +34,13 @@ interface SidebarProps {
 
 const menuItems = [
   { icon: Building2, label: 'Quản lý chi nhánh (Branches)', path: paths.adminBranches },
+  {
+    icon: Building2,
+    label: 'Quản lý chủ sân',
+    translationKey: 'navigation.owners',
+    path: paths.adminOwners,
+    adminOnly: true,
+  },
   { icon: Users, label: 'Quản lý khách hàng', path: paths.customers },
   { icon: Globe, label: 'Chuyển đổi ngôn ngữ' },
   { icon: Home, label: 'Đổi trang chủ: Trang chủ cũ', path: paths.dashboard },
@@ -114,6 +121,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         <div className="h-[calc(100dvh-3.5rem-env(safe-area-inset-top,0px))] overflow-y-auto pb-[env(safe-area-inset-bottom,0px)]">
           <nav className="flex flex-col py-2">
             {menuItems
+              .filter((item) => !('adminOnly' in item) || !item.adminOnly || isAdmin)
               .filter((item) => item.path !== paths.dashboard || isAdmin)
               .map((item, i) => (
                 <button
@@ -128,7 +136,11 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                   className="group flex w-full cursor-pointer items-center gap-3 border-b border-white/5 px-4 py-3.5 text-left transition-colors hover:bg-white/10 focus-visible:bg-white/10"
                 >
                   <item.icon aria-hidden className="size-5 shrink-0 opacity-80" />
-                  <span className="flex-1 text-[15px] font-medium">{item.label}</span>
+                  <span className="flex-1 text-[15px] font-medium">
+                    {'translationKey' in item && item.translationKey
+                      ? t(item.translationKey)
+                      : item.label}
+                  </span>
                   <ChevronRight aria-hidden className="size-4 shrink-0 opacity-60" />
                 </button>
               ))}
