@@ -44,7 +44,7 @@ const menuItems = [
   { icon: Users, label: 'Quản lý khách hàng', path: paths.customers },
   { icon: Globe, label: 'Chuyển đổi ngôn ngữ' },
   { icon: Home, label: 'Đổi trang chủ: Trang chủ cũ', path: paths.dashboard },
-  { icon: User, label: 'Thông tin tài khoản' },
+  { icon: User, label: 'Quản lý người dùng (User)', path: paths.adminUsers },
   { icon: Info, label: 'Phiên bản: 2.10.3' },
   { icon: Printer, label: 'Cài đặt máy hiện' },
   { icon: Receipt, label: 'Cài đặt hóa đơn' },
