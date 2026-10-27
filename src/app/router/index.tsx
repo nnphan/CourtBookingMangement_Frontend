@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router';
 import { paths } from '@/app/router/paths';
-import { AdminRoute, GuestRoute, ProtectedRoute } from '@/app/router/guards';
+import { AdminOnlyRoute, AdminRoute, GuestRoute, ProtectedRoute } from '@/app/router/guards';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { RouteFallback } from '@/components/common/RouteFallback';
 import { RouteErrorBoundary } from '@/components/common/RouteErrorBoundary';
@@ -105,7 +105,7 @@ export const router = createBrowserRouter([
         element: <AppLayout />,
         children: [
           {
-            element: <AdminRoute />,
+            element: <AdminOnlyRoute />,
             children: [{ path: paths.dashboard, element: withSuspense(<DashboardPage />) }],
           },
           { path: paths.courts, element: withSuspense(<CourtsPage />) },
@@ -125,7 +125,7 @@ export const router = createBrowserRouter([
         ],
       },
       {
-        element: <AdminRoute />,
+        element: <AdminOnlyRoute />,
         children: [
           {
             element: withSuspense(<UserManagementLayout />),
@@ -140,12 +140,17 @@ export const router = createBrowserRouter([
       },
       {
         path: paths.adminBranches,
-        element: withSuspense(<AdminBranchLayout />),
+        element: <AdminRoute />,
         children: [
-          { index: true, element: withSuspense(<BranchListPage />) },
-          { path: 'create', element: withSuspense(<BranchCreatePage />) },
-          { path: ':id', element: withSuspense(<BranchDetailPage />) },
-          { path: ':id/edit', element: withSuspense(<BranchEditPage />) },
+          {
+            element: withSuspense(<AdminBranchLayout />),
+            children: [
+              { index: true, element: withSuspense(<BranchListPage />) },
+              { path: 'create', element: withSuspense(<BranchCreatePage />) },
+              { path: ':id', element: withSuspense(<BranchDetailPage />) },
+              { path: ':id/edit', element: withSuspense(<BranchEditPage />) },
+            ],
+          },
         ],
       },
     ],

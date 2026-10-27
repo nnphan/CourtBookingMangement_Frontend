@@ -4,6 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { useBranchPermissions } from '@/hooks/branches';
 import { MANAGEMENT_NAVIGATION_ITEMS } from '@/constants/management-navigation';
 import type { ManagementNavigationItem } from '@/types/management-navigation';
+import { useAuthStore } from '@/features/auth/store/auth.store';
+import { hasCurrentUserRole } from '@/shared/utils/current-user';
+import { USER_ROLES } from '@/shared/constants/roles';
 
 export interface ResolvedManagementNavigationItem extends ManagementNavigationItem {
   title: string;
@@ -22,16 +25,23 @@ export const useManagementNavigation = (): ResolvedManagementNavigationItem[] =>
   const { pathname } = useLocation();
   const { t } = useTranslation();
   const { role } = useBranchPermissions();
+  const user = useAuthStore((state) => state.user);
+  const authenticated = useAuthStore((state) => state.isAuthenticated());
+  const hasHydrated = useAuthStore((state) => state.hasHydrated);
+  const canSeeAdminItems =
+    hasHydrated && authenticated && hasCurrentUserRole(user, USER_ROLES.ADMIN);
 
   return useMemo(
     () =>
       MANAGEMENT_NAVIGATION_ITEMS.filter(
-        (item) => !item.roles || (role !== 'OTHER' && item.roles.includes(role)),
+        (item) =>
+          (!item.adminOnly || canSeeAdminItems) &&
+          (!item.roles || (role !== 'OTHER' && item.roles.includes(role))),
       ).map((item) => ({
         ...item,
         title: t(item.translationKey, { defaultValue: item.label }),
         isActive: isPathActive(pathname, item.path),
       })),
-    [pathname, role, t],
+    [canSeeAdminItems, pathname, role, t],
   );
 };

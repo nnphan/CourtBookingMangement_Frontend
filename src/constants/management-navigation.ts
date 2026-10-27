@@ -1,4 +1,4 @@
-import { Building2, CalendarCheck, KeyRound, UserCog, Users } from 'lucide-react';
+import { Building2, CalendarCheck, KeyRound, Shield, UserCog, Users } from 'lucide-react';
 import { paths } from '@/app/router/paths';
 import type { ManagementNavigationItem } from '@/types/management-navigation';
 
@@ -9,7 +9,8 @@ export const MANAGEMENT_NAVIGATION_ITEMS: readonly ManagementNavigationItem[] = 
     translationKey: 'navigation.branches',
     path: paths.adminBranches,
     icon: Building2,
-    roles: ['ADMIN', 'BRANCH_MANAGER'],
+    roles: ['ADMIN'],
+    adminOnly: true,
   },
   {
     key: 'customers',
@@ -26,6 +27,7 @@ export const MANAGEMENT_NAVIGATION_ITEMS: readonly ManagementNavigationItem[] = 
     path: paths.adminUsers,
     icon: UserCog,
     roles: ['ADMIN'],
+    adminOnly: true,
   },
   {
     key: 'owners',
@@ -34,6 +36,7 @@ export const MANAGEMENT_NAVIGATION_ITEMS: readonly ManagementNavigationItem[] = 
     path: paths.adminOwners,
     icon: Building2,
     roles: ['ADMIN'],
+    adminOnly: true,
   },
   {
     key: 'permissions',
@@ -42,6 +45,16 @@ export const MANAGEMENT_NAVIGATION_ITEMS: readonly ManagementNavigationItem[] = 
     path: paths.adminPermissions,
     icon: KeyRound,
     roles: ['ADMIN'],
+    adminOnly: true,
+  },
+  {
+    key: 'roles',
+    label: 'Quản lý vai trò',
+    translationKey: 'navigation.roles',
+    path: paths.adminRoles,
+    icon: Shield,
+    roles: ['ADMIN'],
+    adminOnly: true,
   },
   {
     key: 'court-status',

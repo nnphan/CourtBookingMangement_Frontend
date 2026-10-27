@@ -1,4 +1,5 @@
 import type { User } from '@/types/auth';
+import type { AppRole } from '@/shared/constants/roles';
 
 export type CurrentUserRole = 'customer' | 'staff' | 'branchManager' | 'admin' | 'user';
 
@@ -31,4 +32,16 @@ export function getCurrentUserRole(user: Pick<User, 'role' | 'roles'> | null): C
   if (roles.has('STAFF') || roles.has('RECEPTIONIST')) return 'staff';
   if (roles.has('CUSTOMER')) return 'customer';
   return 'user';
+}
+
+export function hasCurrentUserRole(
+  user: Pick<User, 'role' | 'roles'> | null,
+  expectedRole: AppRole,
+): boolean {
+  if (!user) return false;
+
+  const roleValues: unknown[] = [user.role, ...(Array.isArray(user.roles) ? user.roles : [])];
+  return roleValues.some(
+    (role) => typeof role === 'string' && role.trim().toUpperCase() === expectedRole,
+  );
 }

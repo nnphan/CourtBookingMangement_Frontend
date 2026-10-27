@@ -23,7 +23,8 @@ import {
 } from 'lucide-react';
 import { useLogout } from '@/features/auth/hooks/useLogout';
 import { useAuthStore } from '@/features/auth/store/auth.store';
-import { getCurrentUserRole } from '@/shared/utils/current-user';
+import { getCurrentUserRole, hasCurrentUserRole } from '@/shared/utils/current-user';
+import { USER_ROLES } from '@/shared/constants/roles';
 import { cn } from '@/lib/utils';
 
 import { paths } from '@/app/router/paths';
@@ -35,7 +36,12 @@ interface SidebarProps {
 }
 
 const menuItems = [
-  { icon: Building2, label: 'Quản lý chi nhánh (Branches)', path: paths.adminBranches },
+  {
+    icon: Building2,
+    label: 'Quản lý chi nhánh (Branches)',
+    path: paths.adminBranches,
+    adminOnly: true,
+  },
   {
     icon: Building2,
     label: 'Quản lý chủ sân',
@@ -60,7 +66,12 @@ const menuItems = [
   { icon: Users, label: 'Quản lý khách hàng', path: paths.customers },
   { icon: Globe, label: 'Chuyển đổi ngôn ngữ' },
   { icon: Home, label: 'Đổi trang chủ: Trang chủ cũ', path: paths.dashboard },
-  { icon: User, label: 'Quản lý người dùng (User)', path: paths.adminUsers },
+  {
+    icon: User,
+    label: 'Quản lý người dùng (User)',
+    path: paths.adminUsers,
+    adminOnly: true,
+  },
   { icon: Info, label: 'Phiên bản: 2.10.3' },
   { icon: Printer, label: 'Cài đặt máy hiện' },
   { icon: Receipt, label: 'Cài đặt hóa đơn' },
@@ -77,7 +88,11 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const { t } = useTranslation();
   const { logout, isLoggingOut } = useLogout();
   const user = useAuthStore((s) => s.user);
-  const isAdmin = getCurrentUserRole(user) === 'admin';
+  const hasHydrated = useAuthStore((s) => s.hasHydrated);
+  const authenticated = useAuthStore((s) => s.isAuthenticated());
+  const canAccessAdminRoutes =
+    hasHydrated && authenticated && hasCurrentUserRole(user, USER_ROLES.ADMIN);
+  const isAdmin = hasHydrated && authenticated && getCurrentUserRole(user) === 'admin';
   const navigate = useNavigate();
   const sidebarRef = useRef<HTMLDivElement>(null);
 
@@ -137,7 +152,10 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         <div className="h-[calc(100dvh-3.5rem-env(safe-area-inset-top,0px))] overflow-y-auto pb-[env(safe-area-inset-bottom,0px)]">
           <nav className="flex flex-col py-2">
             {menuItems
-              .filter((item) => !('adminOnly' in item) || !item.adminOnly || isAdmin)
+              .filter(
+                (item) =>
+                  !('adminOnly' in item) || !item.adminOnly || canAccessAdminRoutes,
+              )
               .filter((item) => item.path !== paths.dashboard || isAdmin)
               .map((item, i) => (
                 <button

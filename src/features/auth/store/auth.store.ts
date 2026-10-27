@@ -9,10 +9,12 @@ interface AuthState {
   user: User | null;
   accessToken: string | null;
   status: 'authenticated' | 'unauthenticated';
+  hasHydrated: boolean;
   setSession: (session: AuthSession) => void;
   setUser: (user: User) => void;
   logout: () => void;
   isAuthenticated: () => boolean;
+  setHasHydrated: (hasHydrated: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -21,6 +23,7 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       accessToken: null,
       status: 'unauthenticated',
+      hasHydrated: false,
 
       setSession: ({ user, accessToken, refreshToken }) => {
         tokenStorage.write({ accessToken, refreshToken });
@@ -40,11 +43,15 @@ export const useAuthStore = create<AuthState>()(
         const token = get().accessToken ?? tokenStorage.read()?.accessToken ?? null;
         return !!token && !isExpired(token);
       },
+      setHasHydrated: (hasHydrated) => set({ hasHydrated }),
     }),
     {
       name: 'alobo.session',
       storage: createJSONStorage(() => localStorage),
       partialize: ({ user, accessToken, status }) => ({ user, accessToken, status }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     },
   ),
 );

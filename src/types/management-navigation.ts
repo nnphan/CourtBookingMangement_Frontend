@@ -9,6 +9,7 @@ export interface ManagementNavigationItem {
   translationKey: string;
   path: string;
   icon?: LucideIcon;
+  adminOnly?: boolean;
   /** Roles allowed to see the item. Omit to show it to everyone. */
   roles?: ManagementRole[];
 }

@@ -7,6 +7,10 @@ export const ROLE_PRIORITY = [
   'CUSTOMER',
 ] as const;
 
+export const USER_ROLES = {
+  ADMIN: 'ADMIN',
+} as const;
+
 export type AppRole = (typeof ROLE_PRIORITY)[number];
 
 export const DEFAULT_ROLE: AppRole = 'CUSTOMER';
