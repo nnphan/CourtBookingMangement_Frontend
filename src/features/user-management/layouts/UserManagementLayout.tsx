@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { Building2, Menu, UserCog, LayoutGrid } from 'lucide-react';
+import { Building2, KeyRound, Menu, UserCog, LayoutGrid } from 'lucide-react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { ManagementNavigation } from '@/components/navigation';
 import { paths } from '@/app/router/paths';
@@ -14,6 +14,12 @@ export const UserManagementLayout: React.FC = () => {
   const { pathname } = useLocation();
   const { t } = useTranslation();
   const isOwnerPage = pathname.startsWith(paths.adminOwners);
+  const isPermissionPage = pathname.startsWith(paths.adminPermissions);
+  const pageTitleKey = isOwnerPage
+    ? 'ownerManagement.title'
+    : isPermissionPage
+      ? 'permission.title'
+      : 'userManagement.title';
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-slate-50/70 text-slate-900">
@@ -43,10 +49,12 @@ export const UserManagementLayout: React.FC = () => {
               <div className="flex items-center gap-1.5 font-bold text-white">
                 {isOwnerPage ? (
                   <Building2 className="size-3.5 text-emerald-300" />
+                ) : isPermissionPage ? (
+                  <KeyRound className="size-3.5 text-emerald-300" />
                 ) : (
                   <UserCog className="size-3.5 text-emerald-300" />
                 )}
-                <span>{t(isOwnerPage ? 'ownerManagement.title' : 'userManagement.title')}</span>
+                <span>{t(pageTitleKey)}</span>
               </div>
             </div>
           </div>

@@ -49,6 +49,9 @@ const UserManagementLayout = lazy(
 );
 const UserListPage = lazy(() => import('@/features/user-management/pages/UserListPage'));
 const OwnerListPage = lazy(() => import('@/features/owner-management/pages/OwnerListPage'));
+const PermissionListPage = lazy(
+  () => import('@/features/permission-management/pages/PermissionListPage'),
+);
 const NotFoundPage = lazy(() => import('@/components/common/NotFoundPage'));
 
 const withSuspense = (node: React.ReactNode) => (
@@ -128,6 +131,7 @@ export const router = createBrowserRouter([
             children: [
               { path: paths.adminUsers, element: withSuspense(<UserListPage />) },
               { path: paths.adminOwners, element: withSuspense(<OwnerListPage />) },
+              { path: paths.adminPermissions, element: withSuspense(<PermissionListPage />) },
             ],
           },
         ],

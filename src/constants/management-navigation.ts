@@ -1,4 +1,4 @@
-import { Building2, CalendarCheck, UserCog, Users } from 'lucide-react';
+import { Building2, CalendarCheck, KeyRound, UserCog, Users } from 'lucide-react';
 import { paths } from '@/app/router/paths';
 import type { ManagementNavigationItem } from '@/types/management-navigation';
 
@@ -33,6 +33,14 @@ export const MANAGEMENT_NAVIGATION_ITEMS: readonly ManagementNavigationItem[] = 
     translationKey: 'navigation.owners',
     path: paths.adminOwners,
     icon: Building2,
+    roles: ['ADMIN'],
+  },
+  {
+    key: 'permissions',
+    label: 'Quản lý quyền',
+    translationKey: 'navigation.permissions',
+    path: paths.adminPermissions,
+    icon: KeyRound,
     roles: ['ADMIN'],
   },
   {

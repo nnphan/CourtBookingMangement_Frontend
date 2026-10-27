@@ -310,6 +310,7 @@
     "customers": "Customer Management",
     "users": "User Management",
     "owners": "Owner Management",
+    "permissions": "Permission Management",
     "courtStatus": "Court Status",
     "label": "Management navigation"
   },
@@ -467,6 +468,100 @@
     "deleteSuccess": "Owner removal completed.",
     "deleteErrorTitle": "Unable to remove owner",
     "deleteError": "Unable to remove the owner. Please try again."
+  },
+  "permission": {
+    "title": "Permission Management",
+    "description": "Manage system permissions and access capabilities.",
+    "permissionCount": "{{count}} permissions",
+    "filters": "Search permissions",
+    "missing": "—",
+    "paginationItems": "permissions",
+    "columns": {
+      "number": "No.",
+      "actions": "Actions"
+    },
+    "fields": {
+      "code": "Permission code",
+      "name": "Permission name",
+      "description": "Description",
+      "roleCount": "Roles",
+      "createdAt": "Created at",
+      "updatedAt": "Updated at"
+    },
+    "roleCount": "{{count}} roles",
+    "search": {
+      "aria": "Search permissions",
+      "placeholder": "Search by name, permission code, or description..."
+    },
+    "actions": {
+      "create": "Add Permission",
+      "viewLabel": "View permission details for {{name}}",
+      "editLabel": "Edit permission {{name}}",
+      "deleteLabel": "Delete permission {{name}}",
+      "clearSearch": "Clear search",
+      "retry": "Try again",
+      "cancel": "Cancel",
+      "close": "Close",
+      "save": "Save changes",
+      "createSubmit": "Create Permission",
+      "creating": "Creating...",
+      "saving": "Saving...",
+      "delete": "Delete Permission",
+      "deleting": "Deleting..."
+    },
+    "loading": {
+      "refreshing": "Refreshing permissions..."
+    },
+    "create": {
+      "title": "Add Permission",
+      "description": "Enter the details for the new permission.",
+      "success": "Permission created successfully.",
+      "codePlaceholder": "Example: booking.create",
+      "namePlaceholder": "Example: Create Booking",
+      "descriptionPlaceholder": "Enter a description (optional)",
+      "codeHelp": "The permission code is a unique technical identifier and cannot be changed after creation."
+    },
+    "edit": {
+      "title": "Edit Permission",
+      "description": "Update the permission name and description. The code cannot be changed.",
+      "success": "Permission updated successfully."
+    },
+    "detail": {
+      "title": "Permission Details",
+      "loading": "Loading permission details..."
+    },
+    "delete": {
+      "title": "Delete Permission?",
+      "description": "Are you sure you want to delete \"{{name}}\" ({{code}})? This action may not be reversible.",
+      "inUseDescription": "\"{{name}}\" is currently used by {{count}} roles. The system may prevent deleting an assigned permission.",
+      "success": "Permission deleted successfully.",
+      "inUseError": "This permission cannot be deleted because it is assigned to one or more roles.",
+      "errorTitle": "Unable to delete permission"
+    },
+    "empty": {
+      "title": "No permissions yet",
+      "description": "No access permissions have been configured in the system.",
+      "filteredTitle": "No permissions found",
+      "filteredDescription": "No permissions match your search keyword."
+    },
+    "error": {
+      "load": "Unable to load permissions. Please try again.",
+      "detail": "Unable to load permission details. Please try again.",
+      "notFound": "This permission no longer exists.",
+      "create": "Unable to create the permission. Please try again.",
+      "update": "Unable to update the permission. Please try again.",
+      "delete": "Unable to delete the permission. Please try again.",
+      "tryAgain": "Please try again later.",
+      "traceId": "Trace ID: {{traceId}}"
+    },
+    "validation": {
+      "codeRequired": "Permission code is required.",
+      "codeMax": "Permission code must be 100 characters or fewer.",
+      "nameRequired": "Permission name is required.",
+      "nameMax": "Permission name must be 150 characters or fewer."
+    },
+    "successTitle": "Success",
+    "saveErrorTitle": "Unable to save permission"
   },
   "auth": {
     "login": {

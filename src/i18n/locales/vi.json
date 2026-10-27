@@ -310,6 +310,7 @@
     "customers": "Quản lý khách hàng",
     "users": "Quản lý người dùng",
     "owners": "Quản lý chủ sân",
+    "permissions": "Quản lý quyền",
     "courtStatus": "Trạng thái sân",
     "label": "Điều hướng quản lý"
   },
@@ -467,6 +468,100 @@
     "deleteSuccess": "Đã hoàn tất yêu cầu gỡ hồ sơ chủ sân.",
     "deleteErrorTitle": "Không thể gỡ chủ sân",
     "deleteError": "Không thể gỡ chủ sân. Vui lòng thử lại."
+  },
+  "permission": {
+    "title": "Quản lý quyền",
+    "description": "Quản lý danh mục quyền và phạm vi truy cập trong hệ thống.",
+    "permissionCount": "{{count}} quyền",
+    "filters": "Tìm kiếm quyền",
+    "missing": "—",
+    "paginationItems": "quyền",
+    "columns": {
+      "number": "STT",
+      "actions": "Thao tác"
+    },
+    "fields": {
+      "code": "Mã quyền",
+      "name": "Tên quyền",
+      "description": "Mô tả",
+      "roleCount": "Số vai trò",
+      "createdAt": "Ngày tạo",
+      "updatedAt": "Ngày cập nhật"
+    },
+    "roleCount": "{{count}} vai trò",
+    "search": {
+      "aria": "Tìm kiếm quyền",
+      "placeholder": "Tìm theo tên, mã quyền hoặc mô tả..."
+    },
+    "actions": {
+      "create": "Thêm quyền",
+      "viewLabel": "Xem chi tiết quyền {{name}}",
+      "editLabel": "Chỉnh sửa quyền {{name}}",
+      "deleteLabel": "Xóa quyền {{name}}",
+      "clearSearch": "Xóa tìm kiếm",
+      "retry": "Thử lại",
+      "cancel": "Hủy",
+      "close": "Đóng",
+      "save": "Lưu thay đổi",
+      "createSubmit": "Tạo quyền",
+      "creating": "Đang tạo...",
+      "saving": "Đang lưu...",
+      "delete": "Xóa quyền",
+      "deleting": "Đang xóa..."
+    },
+    "loading": {
+      "refreshing": "Đang cập nhật danh sách..."
+    },
+    "create": {
+      "title": "Thêm quyền",
+      "description": "Nhập thông tin quyền mới.",
+      "success": "Tạo quyền thành công.",
+      "codePlaceholder": "Ví dụ: booking.create",
+      "namePlaceholder": "Ví dụ: Create Booking",
+      "descriptionPlaceholder": "Nhập mô tả (không bắt buộc)",
+      "codeHelp": "Mã quyền là định danh kỹ thuật duy nhất và không thể thay đổi sau khi tạo."
+    },
+    "edit": {
+      "title": "Chỉnh sửa quyền",
+      "description": "Cập nhật tên và mô tả quyền. Mã quyền không thể thay đổi.",
+      "success": "Cập nhật quyền thành công."
+    },
+    "detail": {
+      "title": "Thông tin quyền",
+      "loading": "Đang tải thông tin quyền..."
+    },
+    "delete": {
+      "title": "Xóa quyền?",
+      "description": "Bạn có chắc chắn muốn xóa quyền \"{{name}}\" ({{code}}) không? Hành động này có thể không thể hoàn tác.",
+      "inUseDescription": "Quyền \"{{name}}\" đang được sử dụng bởi {{count}} vai trò. Hệ thống có thể không cho phép xóa quyền đang được sử dụng.",
+      "success": "Xóa quyền thành công.",
+      "inUseError": "Không thể xóa quyền vì quyền này đang được gán cho một hoặc nhiều vai trò.",
+      "errorTitle": "Không thể xóa quyền"
+    },
+    "empty": {
+      "title": "Chưa có quyền nào",
+      "description": "Chưa có quyền truy cập nào được cấu hình trong hệ thống.",
+      "filteredTitle": "Không tìm thấy quyền",
+      "filteredDescription": "Không có quyền nào phù hợp với từ khóa tìm kiếm."
+    },
+    "error": {
+      "load": "Không thể tải danh sách quyền. Vui lòng thử lại.",
+      "detail": "Không thể tải thông tin quyền. Vui lòng thử lại.",
+      "notFound": "Quyền không còn tồn tại.",
+      "create": "Không thể tạo quyền. Vui lòng thử lại.",
+      "update": "Không thể cập nhật quyền. Vui lòng thử lại.",
+      "delete": "Không thể xóa quyền. Vui lòng thử lại.",
+      "tryAgain": "Vui lòng thử lại sau.",
+      "traceId": "Mã theo dõi: {{traceId}}"
+    },
+    "validation": {
+      "codeRequired": "Mã quyền là bắt buộc.",
+      "codeMax": "Mã quyền không được vượt quá 100 ký tự.",
+      "nameRequired": "Tên quyền là bắt buộc.",
+      "nameMax": "Tên quyền không được vượt quá 150 ký tự."
+    },
+    "successTitle": "Thành công",
+    "saveErrorTitle": "Không thể lưu quyền"
   },
   "auth": {
     "login": {

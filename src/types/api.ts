@@ -9,6 +9,7 @@ export interface ApiErrorShape {
   message: string;
   /** Server-side per-field messages, keyed by form field name. */
   fields?: Record<string, string>;
+  traceId?: string;
 }
 
 export interface ValidationError {

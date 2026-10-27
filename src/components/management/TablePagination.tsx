@@ -19,6 +19,8 @@ interface TablePaginationProps {
   pageSize: number;
   totalCount: number;
   totalPages: number;
+  hasPreviousPage?: boolean;
+  hasNextPage?: boolean;
   /** Translated plural noun for the records, e.g. "branches". */
   itemsLabel: string;
   onPageChange: (page: number) => void;
@@ -30,6 +32,8 @@ export const TablePagination: React.FC<TablePaginationProps> = ({
   pageSize,
   totalCount,
   totalPages,
+  hasPreviousPage,
+  hasNextPage,
   itemsLabel,
   onPageChange,
   onPageSizeChange,
@@ -85,7 +89,7 @@ export const TablePagination: React.FC<TablePaginationProps> = ({
           variant="outline"
           size="sm"
           onClick={() => onPageChange(pageNumber - 1)}
-          disabled={pageNumber <= 1}
+          disabled={hasPreviousPage ?? pageNumber <= 1}
           className="h-9 px-3 rounded-lg"
         >
           <ChevronLeft aria-hidden className="size-4" />
@@ -124,7 +128,7 @@ export const TablePagination: React.FC<TablePaginationProps> = ({
           variant="outline"
           size="sm"
           onClick={() => onPageChange(pageNumber + 1)}
-          disabled={pageNumber >= totalPages}
+          disabled={hasNextPage ?? pageNumber >= totalPages}
           className="h-9 px-3 rounded-lg"
         >
           {t('management.pagination.next')}

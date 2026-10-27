@@ -16,6 +16,7 @@ type ApiErrorResponseBody = {
   errorCode?: string;
   errors?: Record<string, string>;
   validationErrors?: ValidationError[] | null;
+  traceId?: string;
 };
 
 export const http: AxiosInstance = axios.create({
@@ -94,6 +95,7 @@ http.interceptors.response.use(
         error.response?.data?.code ?? error.response?.data?.errorCode ?? error.code ?? 'UNKNOWN',
       message: error.response?.data?.message ?? 'error.network',
       fields: error.response?.data?.errors ?? validationFields,
+      traceId: error.response?.data?.traceId,
     };
     return Promise.reject(shaped);
   },

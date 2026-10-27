@@ -18,6 +18,7 @@ import {
   LogOut,
   ChevronRight,
   Building2,
+  KeyRound,
 } from 'lucide-react';
 import { useLogout } from '@/features/auth/hooks/useLogout';
 import { useAuthStore } from '@/features/auth/store/auth.store';
@@ -39,6 +40,13 @@ const menuItems = [
     label: 'Quản lý chủ sân',
     translationKey: 'navigation.owners',
     path: paths.adminOwners,
+    adminOnly: true,
+  },
+  {
+    icon: KeyRound,
+    label: 'Quản lý quyền',
+    translationKey: 'navigation.permissions',
+    path: paths.adminPermissions,
     adminOnly: true,
   },
   { icon: Users, label: 'Quản lý khách hàng', path: paths.customers },
