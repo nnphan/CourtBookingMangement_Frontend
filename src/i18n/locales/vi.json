@@ -311,6 +311,7 @@
     "users": "Quản lý người dùng",
     "owners": "Quản lý chủ sân",
     "permissions": "Quản lý quyền",
+    "roles": "Quản lý vai trò",
     "courtStatus": "Trạng thái sân",
     "label": "Điều hướng quản lý"
   },
@@ -562,6 +563,132 @@
     },
     "successTitle": "Thành công",
     "saveErrorTitle": "Không thể lưu quyền"
+  },
+  "role": {
+    "title": "Quản lý vai trò",
+    "description": "Quản lý vai trò và các quyền truy cập được gán trong hệ thống.",
+    "roleCount": "{{count}} vai trò",
+    "filters": "Tìm kiếm vai trò",
+    "missing": "—",
+    "paginationItems": "vai trò",
+    "userCount": "{{count}} người dùng",
+    "permissionCount": "{{count}} quyền",
+    "noPermissions": "Chưa gán quyền",
+    "columns": {
+      "number": "STT",
+      "role": "Vai trò",
+      "actions": "Thao tác"
+    },
+    "fields": {
+      "code": "Mã vai trò",
+      "name": "Tên vai trò",
+      "description": "Mô tả",
+      "isActive": "Đang hoạt động",
+      "userCount": "Người dùng",
+      "permissionCount": "Số quyền",
+      "permissions": "Quyền truy cập",
+      "createdAt": "Ngày tạo",
+      "updatedAt": "Ngày cập nhật"
+    },
+    "status": {
+      "active": "Đang hoạt động",
+      "inactive": "Ngừng hoạt động"
+    },
+    "search": {
+      "aria": "Tìm kiếm vai trò",
+      "placeholder": "Tìm theo tên, mã vai trò hoặc mô tả..."
+    },
+    "actions": {
+      "create": "Thêm vai trò",
+      "viewLabel": "Xem chi tiết vai trò {{name}}",
+      "editLabel": "Chỉnh sửa vai trò {{name}}",
+      "deleteLabel": "Xóa vai trò {{name}}",
+      "clearSearch": "Xóa tìm kiếm",
+      "retry": "Thử lại",
+      "cancel": "Hủy",
+      "close": "Đóng",
+      "save": "Lưu thay đổi",
+      "createSubmit": "Tạo vai trò",
+      "creating": "Đang tạo...",
+      "saving": "Đang lưu...",
+      "delete": "Xóa vai trò",
+      "deleting": "Đang xóa..."
+    },
+    "loading": {
+      "refreshing": "Đang cập nhật danh sách..."
+    },
+    "create": {
+      "title": "Thêm vai trò",
+      "description": "Nhập thông tin vai trò và chọn các quyền được gán.",
+      "success": "Tạo vai trò thành công.",
+      "codePlaceholder": "Ví dụ: BRANCH_OWNER",
+      "namePlaceholder": "Ví dụ: Chủ chi nhánh",
+      "descriptionPlaceholder": "Nhập mô tả (không bắt buộc)",
+      "codeHelp": "Mã vai trò phải là duy nhất trong hệ thống."
+    },
+    "edit": {
+      "title": "Chỉnh sửa vai trò",
+      "description": "Cập nhật thông tin vai trò và tập quyền được gán.",
+      "success": "Cập nhật vai trò thành công.",
+      "codeHelp": "Mã vai trò là định danh kỹ thuật và không thể thay đổi."
+    },
+    "detail": {
+      "title": "Thông tin vai trò",
+      "loading": "Đang tải thông tin vai trò...",
+      "permissionsTitle": "Quyền được gán",
+      "noPermissions": "Vai trò này chưa được gán quyền nào."
+    },
+    "delete": {
+      "title": "Xóa vai trò?",
+      "description": "Bạn có chắc chắn muốn xóa vai trò \"{{name}}\" ({{code}}) không? Vai trò sẽ không còn hoạt động trong hệ thống.",
+      "inUseDescription": "Vai trò \"{{name}}\" đang được gán cho {{count}} người dùng. Hệ thống có thể không cho phép xóa vai trò đang được sử dụng.",
+      "permissionImpact": "{{count}} quyền sẽ không còn được áp dụng thông qua vai trò này.",
+      "success": "Xóa vai trò thành công.",
+      "inUseError": "Không thể xóa vai trò vì vai trò này đang được gán cho một hoặc nhiều người dùng.",
+      "errorTitle": "Không thể xóa vai trò"
+    },
+    "permissions": {
+      "searchAria": "Tìm kiếm quyền",
+      "searchPlaceholder": "Tìm theo mã, tên hoặc mô tả quyền...",
+      "selectedCount": "Đã chọn: {{count}}",
+      "selected": "Quyền đã chọn",
+      "noneSelected": "Chưa chọn quyền nào.",
+      "clearAll": "Bỏ chọn tất cả",
+      "removeLabel": "Bỏ chọn quyền {{code}}",
+      "loading": "Đang tải danh sách quyền...",
+      "noPermissions": "Chưa có quyền nào để gán cho vai trò.",
+      "noResults": "Không tìm thấy quyền phù hợp.",
+      "loadError": "Không thể tải danh sách quyền. Vui lòng thử lại.",
+      "otherGroup": "Khác",
+      "pageInfo": "Trang {{page}}/{{total}} · {{count}} quyền",
+      "previous": "Trước",
+      "next": "Sau"
+    },
+    "empty": {
+      "title": "Chưa có vai trò nào",
+      "description": "Chưa có vai trò phân quyền nào được cấu hình trong hệ thống.",
+      "filteredTitle": "Không tìm thấy vai trò",
+      "filteredDescription": "Không có vai trò nào phù hợp với từ khóa tìm kiếm."
+    },
+    "error": {
+      "load": "Không thể tải danh sách vai trò. Vui lòng thử lại.",
+      "detail": "Không thể tải thông tin vai trò. Vui lòng thử lại.",
+      "notFound": "Vai trò không còn tồn tại.",
+      "create": "Không thể tạo vai trò. Vui lòng thử lại.",
+      "update": "Không thể cập nhật vai trò. Vui lòng thử lại.",
+      "delete": "Không thể xóa vai trò. Vui lòng thử lại.",
+      "tryAgain": "Vui lòng thử lại sau.",
+      "traceId": "Mã theo dõi: {{traceId}}"
+    },
+    "validation": {
+      "codeRequired": "Mã vai trò là bắt buộc.",
+      "codeMax": "Mã vai trò không được vượt quá 100 ký tự.",
+      "nameRequired": "Tên vai trò là bắt buộc.",
+      "nameMax": "Tên vai trò không được vượt quá 150 ký tự.",
+      "invalidPermission": "Quyền được chọn không hợp lệ."
+    },
+    "successTitle": "Thành công",
+    "saveErrorTitle": "Không thể lưu vai trò"
   },
   "auth": {
     "login": {

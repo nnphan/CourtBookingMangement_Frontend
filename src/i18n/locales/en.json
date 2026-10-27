@@ -311,6 +311,7 @@
     "users": "User Management",
     "owners": "Owner Management",
     "permissions": "Permission Management",
+    "roles": "Role Management",
     "courtStatus": "Court Status",
     "label": "Management navigation"
   },
@@ -562,6 +563,135 @@
     },
     "successTitle": "Success",
     "saveErrorTitle": "Unable to save permission"
+  },
+  "role": {
+    "title": "Role Management",
+    "description": "Manage system roles and assigned access permissions.",
+    "roleCount_one": "{{count}} role",
+    "roleCount_other": "{{count}} roles",
+    "filters": "Search roles",
+    "missing": "—",
+    "paginationItems": "roles",
+    "userCount_one": "{{count}} user",
+    "userCount_other": "{{count}} users",
+    "permissionCount_one": "{{count}} permission",
+    "permissionCount_other": "{{count}} permissions",
+    "noPermissions": "No permissions assigned",
+    "columns": {
+      "number": "No.",
+      "role": "Role",
+      "actions": "Actions"
+    },
+    "fields": {
+      "code": "Role code",
+      "name": "Role name",
+      "description": "Description",
+      "isActive": "Active",
+      "userCount": "Users",
+      "permissionCount": "Permissions count",
+      "permissions": "Access permissions",
+      "createdAt": "Created at",
+      "updatedAt": "Updated at"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "search": {
+      "aria": "Search roles",
+      "placeholder": "Search by name, role code or description..."
+    },
+    "actions": {
+      "create": "Add Role",
+      "viewLabel": "View role {{name}}",
+      "editLabel": "Edit role {{name}}",
+      "deleteLabel": "Delete role {{name}}",
+      "clearSearch": "Clear search",
+      "retry": "Retry",
+      "cancel": "Cancel",
+      "close": "Close",
+      "save": "Save changes",
+      "createSubmit": "Create role",
+      "creating": "Creating...",
+      "saving": "Saving...",
+      "delete": "Delete role",
+      "deleting": "Deleting..."
+    },
+    "loading": {
+      "refreshing": "Refreshing list..."
+    },
+    "create": {
+      "title": "Add Role",
+      "description": "Enter role details and choose the permissions to assign.",
+      "success": "Role created successfully.",
+      "codePlaceholder": "e.g. BRANCH_OWNER",
+      "namePlaceholder": "e.g. Branch Owner",
+      "descriptionPlaceholder": "Enter a description (optional)",
+      "codeHelp": "The role code must be unique in the system."
+    },
+    "edit": {
+      "title": "Edit Role",
+      "description": "Update role details and the assigned permission set.",
+      "success": "Role updated successfully.",
+      "codeHelp": "The role code is a technical identifier and cannot be changed."
+    },
+    "detail": {
+      "title": "Role details",
+      "loading": "Loading role details...",
+      "permissionsTitle": "Assigned permissions",
+      "noPermissions": "This role has no permissions assigned."
+    },
+    "delete": {
+      "title": "Delete role?",
+      "description": "Are you sure you want to delete the role \"{{name}}\" ({{code}})? The role will no longer be active in the system.",
+      "inUseDescription": "The role \"{{name}}\" is assigned to {{count}} user(s). The system may refuse to delete a role that is in use.",
+      "permissionImpact": "{{count}} permission(s) will no longer be applied through this role.",
+      "success": "Role deleted successfully.",
+      "inUseError": "Cannot delete this role because it is assigned to one or more users.",
+      "errorTitle": "Unable to delete role"
+    },
+    "permissions": {
+      "searchAria": "Search permissions",
+      "searchPlaceholder": "Search by permission code, name or description...",
+      "selectedCount": "Selected: {{count}}",
+      "selected": "Selected permissions",
+      "noneSelected": "No permissions selected.",
+      "clearAll": "Clear all",
+      "removeLabel": "Remove permission {{code}}",
+      "loading": "Loading permissions...",
+      "noPermissions": "There are no permissions to assign yet.",
+      "noResults": "No matching permissions found.",
+      "loadError": "Unable to load permissions. Please try again.",
+      "otherGroup": "Other",
+      "pageInfo": "Page {{page}}/{{total}} · {{count}} permissions",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "empty": {
+      "title": "No roles yet",
+      "description": "No access roles have been configured in the system.",
+      "filteredTitle": "No roles found",
+      "filteredDescription": "No roles match your search keyword."
+    },
+    "error": {
+      "load": "Unable to load roles. Please try again.",
+      "detail": "Unable to load role details. Please try again.",
+      "notFound": "This role no longer exists.",
+      "create": "Unable to create the role. Please try again.",
+      "update": "Unable to update the role. Please try again.",
+      "delete": "Unable to delete the role. Please try again.",
+      "tryAgain": "Please try again later.",
+      "traceId": "Trace ID: {{traceId}}"
+    },
+    "validation": {
+      "codeRequired": "Role code is required.",
+      "codeMax": "Role code must not exceed 100 characters.",
+      "nameRequired": "Role name is required.",
+      "nameMax": "Role name must not exceed 150 characters.",
+      "invalidPermission": "A selected permission is invalid."
+    },
+    "successTitle": "Success",
+    "saveErrorTitle": "Unable to save role"
   },
   "auth": {
     "login": {

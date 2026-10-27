@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Building2,
   KeyRound,
+  Shield,
 } from 'lucide-react';
 import { useLogout } from '@/features/auth/hooks/useLogout';
 import { useAuthStore } from '@/features/auth/store/auth.store';
@@ -44,9 +45,16 @@ const menuItems = [
   },
   {
     icon: KeyRound,
-    label: 'Quản lý quyền',
+    label: 'Quản lý permissions',
     translationKey: 'navigation.permissions',
     path: paths.adminPermissions,
+    adminOnly: true,
+  },
+  {
+    icon: Shield,
+    label: 'Quản lý roles',
+    translationKey: 'navigation.roles',
+    path: paths.adminRoles,
     adminOnly: true,
   },
   { icon: Users, label: 'Quản lý khách hàng', path: paths.customers },

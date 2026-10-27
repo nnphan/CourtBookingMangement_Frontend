@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { Building2, KeyRound, Menu, UserCog, LayoutGrid } from 'lucide-react';
+import { Building2, KeyRound, Menu, Shield, UserCog, LayoutGrid } from 'lucide-react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { ManagementNavigation } from '@/components/navigation';
 import { paths } from '@/app/router/paths';
@@ -15,11 +15,14 @@ export const UserManagementLayout: React.FC = () => {
   const { t } = useTranslation();
   const isOwnerPage = pathname.startsWith(paths.adminOwners);
   const isPermissionPage = pathname.startsWith(paths.adminPermissions);
+  const isRolePage = pathname.startsWith(paths.adminRoles);
   const pageTitleKey = isOwnerPage
     ? 'ownerManagement.title'
     : isPermissionPage
       ? 'permission.title'
-      : 'userManagement.title';
+      : isRolePage
+        ? 'role.title'
+        : 'userManagement.title';
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-slate-50/70 text-slate-900">
@@ -51,6 +54,8 @@ export const UserManagementLayout: React.FC = () => {
                   <Building2 className="size-3.5 text-emerald-300" />
                 ) : isPermissionPage ? (
                   <KeyRound className="size-3.5 text-emerald-300" />
+                ) : isRolePage ? (
+                  <Shield className="size-3.5 text-emerald-300" />
                 ) : (
                   <UserCog className="size-3.5 text-emerald-300" />
                 )}

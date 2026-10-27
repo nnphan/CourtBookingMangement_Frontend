@@ -25,6 +25,7 @@ export const paths = {
   adminUsers: '/admin/users',
   adminOwners: '/admin/owners',
   adminPermissions: '/admin/permissions',
+  adminRoles: '/admin/roles',
   adminBranchCreate: '/admin/branches/create',
   adminBranchDetail: (id: string = ':id') => `/admin/branches/${id}`,
   adminBranchEdit: (id: string = ':id') => `/admin/branches/${id}/edit`,

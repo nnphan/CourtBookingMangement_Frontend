@@ -52,6 +52,7 @@ const OwnerListPage = lazy(() => import('@/features/owner-management/pages/Owner
 const PermissionListPage = lazy(
   () => import('@/features/permission-management/pages/PermissionListPage'),
 );
+const RoleListPage = lazy(() => import('@/features/role-management/pages/RoleListPage'));
 const NotFoundPage = lazy(() => import('@/components/common/NotFoundPage'));
 
 const withSuspense = (node: React.ReactNode) => (
@@ -132,6 +133,7 @@ export const router = createBrowserRouter([
               { path: paths.adminUsers, element: withSuspense(<UserListPage />) },
               { path: paths.adminOwners, element: withSuspense(<OwnerListPage />) },
               { path: paths.adminPermissions, element: withSuspense(<PermissionListPage />) },
+              { path: paths.adminRoles, element: withSuspense(<RoleListPage />) },
             ],
           },
         ],
