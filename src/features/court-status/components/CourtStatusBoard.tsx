@@ -1,5 +1,7 @@
 import React, { memo, useMemo, useRef, useState, useEffect, useCallback } from 'react';
-import type { CourtStatusCourtDto, CourtScheduleItemDto } from '../types/court-status.types';
+import { useTranslation } from 'react-i18next';
+import type { CourtStatusCourtDto } from '../types/court-status.types';
+import type { CourtScheduleBlockViewModel } from '../types/court-schedule-block';
 import { generateTimelineHours, calculateCurrentTimeIndicator } from '../utils/timeline.utils';
 import type { CourtSelection } from '../utils/time-selection.utils';
 import { useCourtSelectionStore } from '../store/court-selection.store';
@@ -20,10 +22,12 @@ import {
 
 export interface CourtStatusBoardProps {
   courts: CourtStatusCourtDto[];
-  scheduleItems: CourtScheduleItemDto[];
-  openTime?: string;
-  closeTime?: string;
+  scheduleItems: CourtScheduleBlockViewModel[];
+  openTime: string;
+  closeTime: string;
   selectedDate: string;
+  timezone?: string;
+  isClosed?: boolean;
   selectedBranchId?: string;
   zoomLevel?: number;
   onZoomChange?: (zoom: number) => void;
@@ -44,14 +48,17 @@ export const CourtStatusBoard: React.FC<CourtStatusBoardProps> = memo(
   ({
     courts,
     scheduleItems,
-    openTime = '05:00:00',
-    closeTime = '23:00:00',
+    openTime,
+    closeTime,
     selectedDate,
+    timezone = 'Asia/Ho_Chi_Minh',
+    isClosed = false,
     selectedBranchId,
     zoomLevel = 1.0,
     onZoomChange,
     onConfirmSelection,
   }) => {
+    const { t } = useTranslation();
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [tick, setTick] = useState<number>(() => Date.now());
     const {
@@ -130,7 +137,7 @@ export const CourtStatusBoard: React.FC<CourtStatusBoardProps> = memo(
 
     // 3. Group scheduleItems by courtId for O(1) row access
     const bookingsByCourtId = useMemo(() => {
-      const map = new Map<string, CourtScheduleItemDto[]>();
+      const map = new Map<string, CourtScheduleBlockViewModel[]>();
       for (const item of scheduleItems) {
         const list = map.get(item.courtId);
         if (list) {
@@ -156,11 +163,20 @@ export const CourtStatusBoard: React.FC<CourtStatusBoardProps> = memo(
             bookings,
             selectedDate,
             court.status,
+            timezone,
           );
         }
-        updateSelection(court.courtId, slot, timelineHours, bookings, selectedDate, court.status);
+        updateSelection(
+          court.courtId,
+          slot,
+          timelineHours,
+          bookings,
+          selectedDate,
+          court.status,
+          timezone,
+        );
       },
-      [bookingsByCourtId, selectedDate, startSelection, timelineHours, updateSelection],
+      [bookingsByCourtId, selectedDate, startSelection, timelineHours, updateSelection, timezone],
     );
 
     // 4. Current Time Vertical Red Indicator Line
@@ -171,8 +187,9 @@ export const CourtStatusBoard: React.FC<CourtStatusBoardProps> = memo(
         normalizedCloseTime,
         hourWidth,
         selectedDate,
+        timezone,
       );
-    }, [normalizedOpenTime, normalizedCloseTime, hourWidth, selectedDate, tick]);
+    }, [normalizedOpenTime, normalizedCloseTime, hourWidth, selectedDate, tick, timezone]);
 
     // Global mouseup & touchend & keydown (Escape) listener
     useEffect(() => {
@@ -220,7 +237,15 @@ export const CourtStatusBoard: React.FC<CourtStatusBoardProps> = memo(
         const currentSelection = useCourtSelectionStore.getState();
         if (currentSelection.isSelecting && currentSelection.selectedCourtId === court.courtId) {
           const bookings = bookingsByCourtId.get(court.courtId) || [];
-          updateSelection(court.courtId, hour, timelineHours, bookings, selectedDate, court.status);
+          updateSelection(
+            court.courtId,
+            hour,
+            timelineHours,
+            bookings,
+            selectedDate,
+            court.status,
+            timezone,
+          );
         } else {
           setHoverSlot(hour);
         }
@@ -232,6 +257,7 @@ export const CourtStatusBoard: React.FC<CourtStatusBoardProps> = memo(
         selectedDate,
         setHoverSlot,
         updateDragSelection,
+        timezone,
       ],
     );
 
@@ -256,9 +282,10 @@ export const CourtStatusBoard: React.FC<CourtStatusBoardProps> = memo(
           bookings,
           selectedDate,
           court.status,
+          timezone,
         );
       },
-      [bookingsByCourtId, handleClickSlot, timelineHours, selectedDate],
+      [bookingsByCourtId, handleClickSlot, timelineHours, selectedDate, timezone],
     );
 
     // Mobile Touch Event Handlers
@@ -350,9 +377,7 @@ export const CourtStatusBoard: React.FC<CourtStatusBoardProps> = memo(
           >
             <div className="flex items-center gap-2">
               <Info className="size-4 shrink-0 text-emerald-600" />
-              <span>
-                Chưa có lịch đặt nào cho ngày đã chọn. Nhấp hoặc kéo chuột để chọn dải giờ đặt sân!
-              </span>
+              <span>{t('courtStatus.empty.noSchedules')}</span>
             </div>
           </div>
         )}
@@ -396,6 +421,8 @@ export const CourtStatusBoard: React.FC<CourtStatusBoardProps> = memo(
                   rowHeight={ROW_HEIGHT}
                   courtColumnWidth={COURT_COLUMN_WIDTH}
                   selectedDate={selectedDate}
+                  timezone={timezone}
+                  isBranchClosed={isClosed}
                   onMouseDown={handleCellMouseDown}
                   onMouseEnter={handleCellMouseEnter}
                   onMouseUp={handleCellMouseUp}
@@ -427,12 +454,17 @@ export const CourtStatusBoard: React.FC<CourtStatusBoardProps> = memo(
           <div className="flex items-center gap-3 text-xs text-slate-600">
             <span className="flex items-center gap-1.5 font-bold text-slate-800">
               <Layers className="size-3.5 text-emerald-600" />
-              <span>{courts.length} sân</span>
+              <span>
+                {courts.length} {t('courtStatus.summary.totalCourts', { count: courts.length })}
+              </span>
             </span>
             <span className="h-3 w-px bg-slate-300" />
             <span className="flex items-center gap-1.5 font-medium">
               <Clock className="size-3.5 text-slate-500" />
-              <span>{scheduleItems.length} lịch đặt</span>
+              <span>
+                {scheduleItems.length}{' '}
+                {t('courtStatus.summary.scheduleItems', { count: scheduleItems.length })}
+              </span>
             </span>
           </div>
 

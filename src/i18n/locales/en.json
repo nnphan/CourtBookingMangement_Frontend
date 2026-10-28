@@ -840,6 +840,50 @@
     "mobile": {
       "activeBookings": "bookings",
       "emptyCourt": "Available all day"
+    },
+    "summary": {
+      "label": "Court status summary",
+      "totalCourts_one": "court",
+      "totalCourts_other": "courts",
+      "totalBookings_one": "booking",
+      "totalBookings_other": "bookings",
+      "scheduleItems_one": "court reservation",
+      "scheduleItems_other": "court reservations",
+      "occupiedCourts_one": "occupied court",
+      "occupiedCourts_other": "occupied courts"
+    },
+    "closed": {
+      "title": "Branch closed.",
+      "description": "This branch is closed on the selected date."
+    },
+    "status": {
+      "pendingPayment": "Pending payment",
+      "reserved": "Reserved",
+      "confirmed": "Confirmed",
+      "paid": "Paid",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "expired": "Expired",
+      "unknown": "Unknown status"
+    },
+    "booking": {
+      "multiCourtBadge": "{{count}} courts",
+      "courtCount": "{{count}} courts in this booking"
+    },
+    "schedule": {
+      "accessibleLabel": "{{courtName}}, {{startTime}} to {{endTime}}, {{status}}, booking code {{bookingCode}}, {{bookingType}}, {{courtCount}}"
+    },
+    "slot": {
+      "past": "The {{time}} time slot has passed"
+    },
+    "empty": {
+      "noSchedules": "There are no court reservations on this date.",
+      "noCourts": "This branch has no available courts.",
+      "noCourtsDescription": "No courts are configured or operational for this branch.",
+      "noCourtsOnDate": "This branch has no available courts on {{date}}."
+    },
+    "error": {
+      "invalidHours": "Valid operating hours are not configured for this branch and date."
     }
   },
   "customer": {

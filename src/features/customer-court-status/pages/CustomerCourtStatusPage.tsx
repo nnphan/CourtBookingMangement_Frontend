@@ -2,9 +2,13 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 import dayjs from '@/lib/dayjs';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { paths } from '@/app/router/paths';
 import { useBranchSearchStore } from '@/features/branch-discovery/store/branch-search.store';
-import { useCustomerCourtStatus } from '../hooks/useCustomerCourtStatus';
+import {
+  customerCourtStatusKeys,
+  useCustomerCourtStatus,
+} from '../hooks/useCustomerCourtStatus';
 import { useCustomerCourtStatusStore } from '../store/customer-court-status.store';
 import { CourtStatusHeader } from '@/features/court-status/components/CourtStatusHeader';
 import { CourtStatusBoard } from '@/features/court-status/components/CourtStatusBoard';
@@ -20,6 +24,8 @@ import type { CourtSelection } from '@/features/court-status/utils/time-selectio
 import type { BookingSelection } from '@/features/bookings/types/booking.types';
 import { useCourtSelectionStore } from '@/features/court-status/store/court-selection.store';
 import { formatBookingDateToApi, formatTimeToApi } from '@/features/bookings/utils/booking.mapper';
+import { isValidTimeOnly } from '../utils/court-status-v2.mapper';
+import { timeToMinutes } from '@/features/court-status/utils/time-selection.utils';
 
 interface NavigationLocationState {
   branchId?: string;
@@ -28,6 +34,7 @@ interface NavigationLocationState {
 }
 
 export const CustomerCourtStatusPage: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -99,7 +106,7 @@ export const CustomerCourtStatusPage: React.FC = () => {
     }
   }, [selectedDate, storeDate, queryDate, setSelectedDate, setSearchParams]);
 
-  // TanStack Query Server State: Completely driven by GET /api/court-status
+  // TanStack Query Server State: Completely driven by GET /api/court-status-v2
   const {
     branches,
     statusData,
@@ -107,6 +114,7 @@ export const CustomerCourtStatusPage: React.FC = () => {
     scheduleItems,
     openTime,
     closeTime,
+    timezone,
     branchName,
     isLoading,
     isError,
@@ -170,10 +178,17 @@ export const CustomerCourtStatusPage: React.FC = () => {
   // Handle confirming multi-cell selection from CourtStatusBoard
   const handleConfirmSelection = useCallback(
     (sel: CourtSelection) => {
-      if (!activeBranchId || sel.selectedSlots.length === 0 || sel.durationHours <= 0) return;
+      if (
+        !activeBranchId ||
+        statusData?.isClosed ||
+        sel.selectedSlots.length === 0 ||
+        sel.durationHours <= 0
+      ) {
+        return;
+      }
       setIsCreateBookingOpen(true);
     },
-    [activeBranchId],
+    [activeBranchId, statusData?.isClosed],
   );
 
   // Current branch display resolution
@@ -185,8 +200,8 @@ export const CustomerCourtStatusPage: React.FC = () => {
       branchName: branchName || statusData?.branchName || 'TMT Badminton Center',
       branchCode: 'CLB',
       address: '123 Nguyễn Thị Thập, Quận 7, TP.HCM',
-      openTime: openTime || '05:00:00',
-      closeTime: closeTime || '23:00:00',
+      openTime: openTime ?? '',
+      closeTime: closeTime ?? '',
       rating: 4.9,
       isActive: true,
     };
@@ -221,16 +236,48 @@ export const CustomerCourtStatusPage: React.FC = () => {
     };
   }, [activeBranchId, currentBranch.branchName, selectedDate, selection]);
   useEffect(() => {
-    if (!bookingSelection) setIsCreateBookingOpen(false);
-  }, [bookingSelection]);
+    if (statusData?.isClosed) {
+      useCourtSelectionStore.getState().clearSelection();
+      setIsCreateBookingOpen(false);
+    } else if (!bookingSelection) {
+      setIsCreateBookingOpen(false);
+    }
+  }, [bookingSelection, statusData?.isClosed]);
 
   const invalidateCourtStatus = useCallback(() => {
     if (!activeBranchId) return;
     void queryClient.invalidateQueries({
-      queryKey: ['court-status', activeBranchId, selectedDate],
+      queryKey: customerCourtStatusKeys.byBranchAndDate(activeBranchId, selectedDate),
       exact: true,
     });
   }, [activeBranchId, queryClient, selectedDate]);
+
+  const hasValidOperatingHours = Boolean(
+    openTime &&
+      closeTime &&
+      isValidTimeOnly(openTime) &&
+      isValidTimeOnly(closeTime) &&
+      timeToMinutes(openTime) < timeToMinutes(closeTime),
+  );
+  const hasInvalidOperatingHours = Boolean(
+    statusData && !statusData.isClosed && !hasValidOperatingHours,
+  );
+  const closedScheduleHours = useMemo(() => {
+    if (
+      !statusData?.isClosed ||
+      hasValidOperatingHours ||
+      scheduleItems.length === 0
+    ) {
+      return null;
+    }
+
+    const firstStart = Math.min(...scheduleItems.map((item) => timeToMinutes(item.startTime)));
+    const lastEnd = Math.max(...scheduleItems.map((item) => timeToMinutes(item.endTime)));
+    const startHour = Math.floor(firstStart / 60);
+    const endHour = Math.max(startHour + 1, Math.ceil(lastEnd / 60));
+    const formatHour = (hour: number) => `${String(hour).padStart(2, '0')}:00`;
+    return { openTime: formatHour(startHour), closeTime: formatHour(endHour) };
+  }, [statusData?.isClosed, hasValidOperatingHours, scheduleItems]);
 
   const handleBookingCreated = useCallback(() => {
     useCourtSelectionStore.getState().clearSelection();
@@ -280,8 +327,45 @@ export const CustomerCourtStatusPage: React.FC = () => {
         <CustomerNoticeBanner />
       </section>
 
-      {/* 5. MAIN SCHEDULER VIEW: Rendered completely from GET /api/court-status */}
+      {statusData?.summary && (
+        <section
+          aria-label={t('courtStatus.summary.label')}
+          className="flex flex-wrap gap-x-5 gap-y-1 border-b border-emerald-100 bg-white px-4 py-2 text-xs text-slate-700 sm:px-6"
+        >
+          <span>
+            <strong>{statusData.summary.totalCourts}</strong>{' '}
+            {t('courtStatus.summary.totalCourts', { count: statusData.summary.totalCourts })}
+          </span>
+          <span>
+            <strong>{statusData.summary.totalBookings}</strong>{' '}
+            {t('courtStatus.summary.totalBookings', { count: statusData.summary.totalBookings })}
+          </span>
+          <span>
+            <strong>{statusData.summary.totalScheduleItems}</strong>{' '}
+            {t('courtStatus.summary.scheduleItems', {
+              count: statusData.summary.totalScheduleItems,
+            })}
+          </span>
+          <span>
+            <strong>{statusData.summary.occupiedCourtCount}</strong>{' '}
+            {t('courtStatus.summary.occupiedCourts', {
+              count: statusData.summary.occupiedCourtCount,
+            })}
+          </span>
+        </section>
+      )}
+
+      {/* 5. MAIN SCHEDULER VIEW: Rendered completely from GET /api/court-status-v2 */}
       <main className="flex w-full flex-1 flex-col overflow-hidden bg-white">
+        {statusData?.isClosed && (
+          <div
+            role="status"
+            className="flex items-center gap-2 border-b border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-950 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100"
+          >
+            <span>{t('courtStatus.closed.title')}</span>
+            <span className="font-normal">{t('courtStatus.closed.description')}</span>
+          </div>
+        )}
         {isLoading ? (
           <CustomerCourtStatusSkeleton />
         ) : isError ? (
@@ -291,18 +375,31 @@ export const CustomerCourtStatusPage: React.FC = () => {
               onRetry={() => refetch()}
             />
           </div>
+        ) : hasInvalidOperatingHours ? (
+          <div className="flex w-full flex-1 items-center justify-center p-6">
+            <CustomerCourtStatusError
+              message={t('courtStatus.error.invalidHours')}
+              onRetry={() => refetch()}
+            />
+          </div>
         ) : courts.length === 0 ? (
           <div className="flex w-full flex-1 items-center justify-center p-6">
-            <CustomerCourtStatusEmpty date={selectedDate} />
+            <CustomerCourtStatusEmpty />
           </div>
         ) : (
           <div className="flex h-full w-full flex-1 flex-col overflow-hidden">
             <CourtStatusBoard
               courts={courts}
               scheduleItems={scheduleItems}
-              openTime={openTime}
-              closeTime={closeTime}
+              openTime={
+                hasValidOperatingHours ? openTime ?? '' : closedScheduleHours?.openTime ?? ''
+              }
+              closeTime={
+                hasValidOperatingHours ? closeTime ?? '' : closedScheduleHours?.closeTime ?? ''
+              }
               selectedDate={selectedDate}
+              timezone={timezone}
+              isClosed={statusData?.isClosed ?? false}
               selectedBranchId={activeBranchId}
               zoomLevel={zoomLevel}
               onZoomChange={setZoomLevel}

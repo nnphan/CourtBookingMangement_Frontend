@@ -1,5 +1,5 @@
 import dayjs from '@/lib/dayjs';
-import type { CourtScheduleItemDto } from '../types/court-status.types';
+import type { CourtScheduleBlockViewModel } from '../types/court-schedule-block';
 
 export interface CourtSelection {
   courtId: string;
@@ -81,10 +81,11 @@ export const isPastSlot = (
   date: string,
   slotTime: string,
   referenceNow?: dayjs.Dayjs,
+  timezone = 'Asia/Ho_Chi_Minh',
 ): boolean => {
   if (!date) return false;
-  const now = referenceNow || dayjs();
-  const targetDate = dayjs(date);
+  const now = referenceNow || dayjs().tz(timezone);
+  const targetDate = dayjs.tz(date, 'YYYY-MM-DD', timezone);
 
   if (!targetDate.isValid()) return false;
 
@@ -112,12 +113,12 @@ export const isPastSlot = (
 export const isBookedSlot = (
   courtId: string,
   slotTime: string,
-  scheduleItems: CourtScheduleItemDto[],
+  scheduleItems: CourtScheduleBlockViewModel[],
 ): boolean => {
   const slotMinutes = timeToMinutes(slotTime);
 
   return scheduleItems.some((item) => {
-    if (item.courtId !== courtId) return false;
+    if (item.courtId !== courtId || !item.blocksAvailability) return false;
     const startMin = timeToMinutes(item.startTime);
     const endMin = timeToMinutes(item.endTime);
     return slotMinutes >= startMin && slotMinutes < endMin;
@@ -132,14 +133,13 @@ export const isSelectableSlot = (
   slotTime: string,
   courtStatus: string = 'active',
   date: string,
-  scheduleItems: CourtScheduleItemDto[],
+  scheduleItems: CourtScheduleBlockViewModel[],
   referenceNow?: dayjs.Dayjs,
+  timezone = 'Asia/Ho_Chi_Minh',
 ): boolean => {
   const statusLower = (courtStatus || 'active').trim().toLowerCase();
-  if (statusLower === 'maintenance' || statusLower === 'inactive') {
-    return false;
-  }
-  if (isPastSlot(date, slotTime, referenceNow)) {
+  if (statusLower !== 'active') return false;
+  if (isPastSlot(date, slotTime, referenceNow, timezone)) {
     return false;
   }
   if (isBookedSlot(courtId, slotTime, scheduleItems)) {
@@ -158,13 +158,24 @@ export const buildSelectedRange = (
   startSlot: string,
   endSlot: string,
   timelineHours: string[],
-  scheduleItems: CourtScheduleItemDto[],
+  scheduleItems: CourtScheduleBlockViewModel[],
   date: string,
   courtStatus: string = 'active',
   referenceNow?: dayjs.Dayjs,
+  timezone = 'Asia/Ho_Chi_Minh',
 ): CourtSelection | null => {
   // Edge Case 2: User starts selection on unselectable slot -> Nothing happens
-  if (!isSelectableSlot(courtId, startSlot, courtStatus, date, scheduleItems, referenceNow)) {
+  if (
+    !isSelectableSlot(
+      courtId,
+      startSlot,
+      courtStatus,
+      date,
+      scheduleItems,
+      referenceNow,
+      timezone,
+    )
+  ) {
     return null;
   }
 
@@ -182,7 +193,17 @@ export const buildSelectedRange = (
     if (!slot) break;
 
     // Edge Case 3: Stop selection before booked or disabled slot
-    if (!isSelectableSlot(courtId, slot, courtStatus, date, scheduleItems, referenceNow)) {
+    if (
+      !isSelectableSlot(
+        courtId,
+        slot,
+        courtStatus,
+        date,
+        scheduleItems,
+        referenceNow,
+        timezone,
+      )
+    ) {
       break;
     }
 
