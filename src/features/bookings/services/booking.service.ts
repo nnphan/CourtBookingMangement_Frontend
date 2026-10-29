@@ -1,7 +1,7 @@
 import dayjs from '@/lib/dayjs';
 import type { CreateBookingRequest, CreateBookingResponse } from '../types/booking.types';
 import { bookingApi } from '../api/booking.api';
-import { toCreateBookingPayload } from '../utils/booking.mapper';
+import { toCreateBookingRequest } from '../utils/booking.mapper';
 
 export class BookingService {
   /**
@@ -58,5 +58,5 @@ export class BookingService {
   /**
    * Build create booking request payload
    */
-  public static buildPayload = toCreateBookingPayload;
+  public static buildPayload = toCreateBookingRequest;
 }

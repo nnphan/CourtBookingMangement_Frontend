@@ -13,7 +13,9 @@ import { CourtStatusFilters } from '../components/CourtStatusFilters';
 import { LegendBar } from '../components/LegendBar';
 import { CourtScheduler } from '../components/CourtScheduler';
 import { BookingDetailDrawer } from '../components/BookingDetailDrawer';
-import { CreateBookingDialog } from '../components/CreateBookingDialog';
+import { CreateBookingDialog } from '@/features/bookings/components/CreateBookingDialog';
+import { EditBookingDialog } from '../components/EditBookingDialog';
+import type { MultiCourtBookingSelection } from '@/features/bookings/types/booking.types';
 import { CourtStatusBoardSkeleton } from '../components/CourtStatusBoardSkeleton';
 import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
@@ -73,8 +75,6 @@ export const CourtStatusPage: React.FC = () => {
     isError,
     error,
     refetch,
-    createBooking,
-    isCreating,
     updateBooking,
     isUpdating,
     cancelBooking,
@@ -93,6 +93,7 @@ export const CourtStatusPage: React.FC = () => {
   const isCreateDialogOpen = useCourtStatusStore((s) => s.isCreateDialogOpen);
   const isDetailDrawerOpen = useCourtStatusStore((s) => s.isDetailDrawerOpen);
   const createDialogDefaultValues = useCourtStatusStore((s) => s.createDialogDefaultValues);
+  const activeSelection = useCourtStatusStore((s) => s.activeSelection);
 
   const openCreateDialog = useCourtStatusStore((s) => s.openCreateDialog);
   const closeCreateDialog = useCourtStatusStore((s) => s.closeCreateDialog);
@@ -189,12 +190,28 @@ export const CourtStatusPage: React.FC = () => {
     async (payload: Partial<BookingItem>) => {
       if (payload.id) {
         await updateBooking({ id: payload.id, data: payload });
-      } else {
-        await createBooking(payload);
       }
     },
-    [createBooking, updateBooking],
+    [updateBooking],
   );
+
+  const createSelection = useMemo<MultiCourtBookingSelection | null>(() => {
+    const defaults = createDialogDefaultValues;
+    const court = courts.find((item) => item.id === defaults?.courtId) ?? courts[0];
+    const selectedCourts = activeSelection?.courts?.length
+      ? activeSelection.courts
+      : court
+        ? [{ courtId: court.id, courtName: court.name }]
+        : [];
+    if (!selectedBranch || selectedCourts.length === 0 || !defaults?.startTime && !activeSelection?.startTime) return null;
+    return {
+      branchId: selectedBranch,
+      bookingDate: defaults?.bookingDate ?? defaults?.date ?? selectedDate,
+      startTime: activeSelection?.startTime ?? defaults?.startTime ?? '',
+      endTime: activeSelection?.endTime ?? defaults?.endTime ?? '',
+      courts: selectedCourts,
+    };
+  }, [activeSelection, courts, createDialogDefaultValues, selectedBranch, selectedDate]);
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-[#0d6838] text-white">
@@ -339,16 +356,27 @@ export const CourtStatusPage: React.FC = () => {
       />
 
       {/* Create / Edit Booking Modal Dialog */}
-      <CreateBookingDialog
-        isOpen={isCreateDialogOpen}
-        onClose={closeCreateDialog}
-        courts={courts}
-        branchId={selectedBranch}
-        defaultValues={createDialogDefaultValues}
-        editingBooking={editingBooking}
-        onSubmitBooking={handleSubmitBooking}
-        isLoading={isCreating || isUpdating}
-      />
+      {editingBooking ? (
+        <EditBookingDialog
+          isOpen={isCreateDialogOpen}
+          onClose={closeCreateDialog}
+          courts={courts}
+          branchId={selectedBranch}
+          editingBooking={editingBooking}
+          onSubmitBooking={handleSubmitBooking}
+          isLoading={isUpdating}
+        />
+      ) : (
+        <CreateBookingDialog
+          isOpen={isCreateDialogOpen}
+          onClose={closeCreateDialog}
+          mode="ADMIN"
+          selection={createSelection}
+          onBookingCreated={() => {
+            useCourtStatusStore.getState().clearActiveSelection();
+          }}
+        />
+      )}
     </div>
   );
 };

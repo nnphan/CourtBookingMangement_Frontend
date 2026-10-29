@@ -128,7 +128,7 @@ export const CourtRow: React.FC<CourtRowProps> = memo(
 
               return (
                 <CourtStatusBookingFrame
-                  key={booking.bookingId}
+                  key={booking.bookingDetailId ?? `${booking.bookingId}-${booking.courtId}-${booking.startTime}`}
                   left={left + 2}
                   width={Math.max(32, width - 4)}
                   height={rowHeight - 6}

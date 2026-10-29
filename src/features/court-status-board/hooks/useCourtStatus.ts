@@ -121,14 +121,6 @@ export const useCourtStatus = (
   // Mapped bookings for backward compatibility
   const bookings: BookingItem[] = scheduleItems.map(mapScheduleItemToBooking);
 
-  // Mutations to preserve booking actions without breaking functionality
-  const createBookingMutation = useMutation({
-    mutationFn: (data: Partial<BookingItem>) => courtStatusApi.createBooking(data),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: courtStatusKeys.all });
-    },
-  });
-
   const updateBookingMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<BookingItem> }) =>
       courtStatusApi.updateBooking(id, data),
@@ -170,8 +162,6 @@ export const useCourtStatus = (
     branchName: query.data?.branchName || '',
     branchId: query.data?.branchId || branchId,
     groups: [],
-    createBooking: createBookingMutation.mutateAsync,
-    isCreating: createBookingMutation.isPending,
     updateBooking: updateBookingMutation.mutateAsync,
     isUpdating: updateBookingMutation.isPending,
     cancelBooking: cancelBookingMutation.mutateAsync,

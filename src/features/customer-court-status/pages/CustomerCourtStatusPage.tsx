@@ -11,13 +11,13 @@ import { CourtStatusBoard } from '@/features/court-status/components/CourtStatus
 import { StatusLegend } from '../components/StatusLegend';
 import { CustomerNoticeBanner } from '../components/CustomerNoticeBanner';
 import { CourtPriceModal } from '../components/CourtPriceModal';
-import { CreateBookingDialog } from '@/features/court-status-board/components/CreateBookingDialog';
+import { CreateBookingDialog } from '@/features/bookings/components/CreateBookingDialog';
 import { CustomerCourtStatusSkeleton } from '../components/CustomerCourtStatusSkeleton';
 import { CustomerCourtStatusEmpty } from '../components/CustomerCourtStatusEmpty';
 import { CustomerCourtStatusError } from '../components/CustomerCourtStatusError';
 import { CustomerDatePickerDialog } from '../components/CustomerDatePickerDialog';
 import type { CourtSelection } from '@/features/court-status/utils/time-selection.utils';
-import type { BookingSelection } from '@/features/bookings/types/booking.types';
+import type { MultiCourtBookingSelection } from '@/features/bookings/types/booking.types';
 import { useCourtSelectionStore } from '@/features/court-status/store/court-selection.store';
 import { formatBookingDateToApi, formatTimeToApi } from '@/features/bookings/utils/booking.mapper';
 
@@ -50,6 +50,8 @@ export const CustomerCourtStatusPage: React.FC = () => {
   const zoomLevel = useCustomerCourtStatusStore((s) => s.zoomLevel);
   const setZoomLevel = useCustomerCourtStatusStore((s) => s.setZoomLevel);
   const selection = useCourtSelectionStore((s) => s.selection);
+  const selectedCourts = useCourtSelectionStore((s) => s.selectedCourts);
+  const removeCourt = useCourtSelectionStore((s) => s.removeCourt);
   const [isCreateBookingOpen, setIsCreateBookingOpen] = useState(false);
 
   // Single Source of Truth Date Resolution
@@ -192,37 +194,17 @@ export const CustomerCourtStatusPage: React.FC = () => {
     };
   }, [branches, activeBranchId, branchName, statusData?.branchName, openTime, closeTime]);
 
-  const bookingCourts = useMemo(
-    () =>
-      activeBranchId
-        ? courts.map((court) => ({
-            id: court.courtId,
-            name: court.courtName,
-            courtNumber: court.courtNumber,
-            branchId: activeBranchId,
-            isActive: court.status.trim().toLowerCase() === 'active',
-            pricePerHour: 0,
-          }))
-        : [],
-    [activeBranchId, courts],
-  );
-
-  const bookingSelection = useMemo<BookingSelection | null>(() => {
-    if (!selection || !activeBranchId || selection.durationHours <= 0) return null;
+  const bookingSelection = useMemo<MultiCourtBookingSelection | null>(() => {
+    if (!selection || !activeBranchId || selection.durationHours <= 0 || selectedCourts.length === 0) return null;
     return {
       branchId: activeBranchId,
       branchName: currentBranch.branchName,
-      courtId: selection.courtId,
-      courtName: selection.courtName,
       bookingDate: formatBookingDateToApi(selectedDate),
       startTime: formatTimeToApi(selection.startTime),
       endTime: formatTimeToApi(selection.endTime),
-      durationMinutes: selection.durationHours * 60,
+      courts: selectedCourts,
     };
-  }, [activeBranchId, currentBranch.branchName, selectedDate, selection]);
-  useEffect(() => {
-    if (!bookingSelection) setIsCreateBookingOpen(false);
-  }, [bookingSelection]);
+  }, [activeBranchId, currentBranch.branchName, selectedDate, selectedCourts, selection]);
 
   // Customer-facing page: never expose other customers' personal or payment data.
   const publicScheduleItems = useMemo(
@@ -247,7 +229,6 @@ export const CustomerCourtStatusPage: React.FC = () => {
 
   const handleBookingCreated = useCallback(() => {
     useCourtSelectionStore.getState().clearSelection();
-    setIsCreateBookingOpen(false);
     invalidateCourtStatus();
   }, [invalidateCourtStatus]);
 
@@ -332,10 +313,9 @@ export const CustomerCourtStatusPage: React.FC = () => {
       <CreateBookingDialog
         isOpen={isCreateBookingOpen}
         onClose={() => setIsCreateBookingOpen(false)}
-        courts={bookingCourts}
-        branchId={activeBranchId}
         mode="CUSTOMER"
-        initialSelection={bookingSelection}
+        selection={bookingSelection}
+        onRemoveCourt={removeCourt}
         onBookingCreated={handleBookingCreated}
         onBookingConflict={invalidateCourtStatus}
       />

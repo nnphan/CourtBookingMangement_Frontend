@@ -274,7 +274,48 @@
       "unexpectedUnauthorized": "The booking request was rejected. Please try again later or contact support."
     },
     "multiCourt": {
-      "conflictNoPartial": "One or more courts were just booked by someone else. No court from this request was created. Please review and choose again."
+      "conflictNoPartial": "One or more courts were just booked by someone else. No court from this request was created. Please review and choose again.",
+      "title": "Book courts",
+      "success": "{{count}} court(s) booked successfully.",
+      "selectedCount": "{{count}} court(s) selected",
+      "selectedCourts": "Selected courts",
+      "sameTimeRequired": "Please choose the same time range for all courts.",
+      "atLeastOneCourt": "Please select at least one court.",
+      "removeCourt": "Remove {{name}}",
+      "clearSelection": "Clear selection",
+      "continue": "Continue booking",
+      "selectionCleared": "Selection was cleared because a court is no longer available. Please choose again.",
+      "branchClosed": "The branch is closed; courts cannot be selected.",
+      "reviewRequired": "Please review the selected courts before submitting again.",
+      "estimate": "Estimate ({{count}} court(s))",
+      "estimateNote": "Estimated price; the official total is confirmed by the system after booking."
+    },
+    "customer": {
+      "accountContact": "Details from your account",
+      "guestContact": "Contact details (guest)"
+    },
+    "fields": {
+      "customerName": "Full name",
+      "phoneNumber": "Phone number",
+      "paymentMethod": "Payment method",
+      "notes": "Notes"
+    },
+    "paymentMethods": {
+      "CASH": "Cash"
+    },
+    "validation": {
+      "customerNameRequired": "Full name is required when booking as a guest.",
+      "phoneNumberRequired": "Phone number is required when booking as a guest.",
+      "phoneNumberInvalid": "Invalid phone number."
+    },
+    "actions": {
+      "confirm": "Book",
+      "submitting": "Booking...",
+      "close": "Close"
+    },
+    "success": {
+      "bookingCode": "Booking code: {{code}}",
+      "total": "Total"
     }
   },
   "account": {

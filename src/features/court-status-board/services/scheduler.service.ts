@@ -329,6 +329,7 @@ export class SchedulerService {
     return {
       courtId,
       courtName,
+      courts: [{ courtId, courtName }],
       startTime,
       endTime,
       durationMinutes,
@@ -392,6 +393,7 @@ export class SchedulerService {
     return {
       courtId,
       courtName,
+      courts: [{ courtId, courtName }],
       startTime: finalStart,
       endTime: finalEnd,
       durationMinutes: duration.minutes,

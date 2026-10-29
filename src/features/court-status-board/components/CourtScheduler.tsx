@@ -192,9 +192,8 @@ export const CourtScheduler: React.FC<CourtSchedulerProps> = memo(
           startTime: selection.startTime,
           endTime: selection.endTime,
         });
-        clearSelection();
       },
-      [onOpenCreateBooking, clearSelection, isPastDate, selectedDate, t],
+      [onOpenCreateBooking, isPastDate, selectedDate, t],
     );
 
     const handleBottomReset = useCallback(() => {

@@ -1,5 +1,10 @@
 import dayjs from '@/lib/dayjs';
-import type { CreateBookingRequest, BookingTypeApi } from '../types/booking.types';
+import type {
+  BookingTypeApi,
+  CreateBookingFormValues,
+  CreateBookingRequest,
+  MultiCourtBookingSelection,
+} from '../types/booking.types';
 
 export const mapBookingTypeToPayload = (type: string): BookingTypeApi => {
   const normalized = (type || '').trim().toUpperCase();
@@ -8,7 +13,6 @@ export const mapBookingTypeToPayload = (type: string): BookingTypeApi => {
   }
   return 'FLEXIBLE';
 };
-
 export const mapBookingTypeToLabel = (type: string): string => {
   const normalized = (type || '').trim().toUpperCase();
   if (normalized === 'FIXED') {
@@ -194,34 +198,32 @@ export const formatBookingDateToApi = (date?: string | null): string => {
   return parsed.isValid() ? parsed.format('YYYY-MM-DD') : date;
 };
 
-export const toCreateBookingPayload = (
-  values: {
-    bookingType: string;
-    note?: string;
-  },
-  context: {
-    branchId: string;
-    courtIds: string[];
-    bookingDate: string;
-    startTime: string;
-    endTime: string;
-    paymentMethod?: string;
-  },
+export interface CreateBookingMapperContact {
+  customerName?: string;
+  phoneNumber?: string;
+}
+
+/**
+ * Single mapper for POST /api/bookings, used by every page.
+ * One request, one Detail per distinct Court, canonical HH:mm:ss times.
+ */
+export const toCreateBookingRequest = (
+  selection: MultiCourtBookingSelection,
+  values: CreateBookingFormValues,
+  contact: CreateBookingMapperContact = values,
 ): CreateBookingRequest => {
-  const bookingDate = formatBookingDateToApi(context.bookingDate);
-  const startTime = formatTimeToApi(context.startTime);
-  const endTime = formatTimeToApi(context.endTime);
+  const bookingDate = formatBookingDateToApi(selection.bookingDate);
+  const startTime = formatTimeToApi(selection.startTime);
+  const endTime = formatTimeToApi(selection.endTime);
+  const courtIds = Array.from(new Set(selection.courts.map((court) => court.courtId)));
 
   return {
-    branchId: context.branchId,
-    bookingType: mapBookingTypeToPayload(values.bookingType),
-    paymentMethod: context.paymentMethod || 'CASH',
-    notes: values.note?.trim() ?? '',
-    details: Array.from(new Set(context.courtIds)).map((courtId) => ({
-      courtId,
-      bookingDate,
-      startTime,
-      endTime,
-    })),
+    branchId: selection.branchId,
+    bookingType: 'FLEXIBLE',
+    paymentMethod: values.paymentMethod,
+    notes: values.notes?.trim() ?? '',
+    customerName: contact.customerName?.trim() || undefined,
+    phoneNumber: contact.phoneNumber?.trim() || undefined,
+    details: courtIds.map((courtId) => ({ courtId, bookingDate, startTime, endTime })),
   };
 };

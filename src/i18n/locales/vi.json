@@ -274,7 +274,48 @@
       "unexpectedUnauthorized": "Hệ thống từ chối yêu cầu đặt sân. Vui lòng thử lại sau hoặc liên hệ hỗ trợ."
     },
     "multiCourt": {
-      "conflictNoPartial": "Một hoặc nhiều sân vừa được người khác đặt. Không có sân nào trong yêu cầu này được tạo. Vui lòng kiểm tra và chọn lại."
+      "conflictNoPartial": "Một hoặc nhiều sân vừa được người khác đặt. Không có sân nào trong yêu cầu này được tạo. Vui lòng kiểm tra và chọn lại.",
+      "title": "Đặt sân",
+      "success": "Đặt {{count}} sân thành công.",
+      "selectedCount": "{{count}} sân đã chọn",
+      "selectedCourts": "Sân đã chọn",
+      "sameTimeRequired": "Vui lòng chọn cùng một khung giờ cho tất cả sân.",
+      "atLeastOneCourt": "Vui lòng chọn ít nhất một sân.",
+      "removeCourt": "Bỏ chọn {{name}}",
+      "clearSelection": "Xóa lựa chọn",
+      "continue": "Tiếp tục đặt sân",
+      "selectionCleared": "Lựa chọn đã được xóa vì sân không còn trống. Vui lòng chọn lại.",
+      "branchClosed": "Chi nhánh đã đóng cửa, không thể chọn sân.",
+      "reviewRequired": "Vui lòng kiểm tra lại các sân đã chọn trước khi đặt lại.",
+      "estimate": "Ước tính ({{count}} sân)",
+      "estimateNote": "Giá ước tính, tổng chính thức do hệ thống xác nhận sau khi đặt."
+    },
+    "customer": {
+      "accountContact": "Thông tin từ tài khoản của bạn",
+      "guestContact": "Thông tin liên hệ (khách)"
+    },
+    "fields": {
+      "customerName": "Họ và tên",
+      "phoneNumber": "Số điện thoại",
+      "paymentMethod": "Phương thức thanh toán",
+      "notes": "Ghi chú"
+    },
+    "paymentMethods": {
+      "CASH": "Tiền mặt"
+    },
+    "validation": {
+      "customerNameRequired": "Họ và tên là bắt buộc khi đặt sân với tư cách khách.",
+      "phoneNumberRequired": "Số điện thoại là bắt buộc khi đặt sân với tư cách khách.",
+      "phoneNumberInvalid": "Số điện thoại không hợp lệ."
+    },
+    "actions": {
+      "confirm": "Đặt sân",
+      "submitting": "Đang đặt sân...",
+      "close": "Đóng"
+    },
+    "success": {
+      "bookingCode": "Mã booking: {{code}}",
+      "total": "Tổng tiền"
     }
   },
   "account": {

@@ -54,18 +54,47 @@ export const useSlotSelection = ({
         return;
       }
 
-      // 1. Same Court Rule:
-      // If there are already selected slots on another court, reject and show toast
-      if (
+      const selectedCourts = activeSelection?.courts ?? [];
+      const isAnotherCourt = Boolean(
         activeSelection &&
-        activeSelection.courtId !== court.id &&
-        activeSelection.selectedSlots &&
-        activeSelection.selectedSlots.length > 0
-      ) {
-        toast.error(
-          t('courtStatus.selection.differentCourt', 'Vui lòng chỉ chọn các khung giờ trên cùng một sân.'),
-          'Please select slots from the same court.',
+          activeSelection.selectedSlots.length > 0 &&
+          activeSelection.courtId !== court.id,
+      );
+      if (isAnotherCourt) {
+        const withinSharedRange =
+          SchedulerService.parseTimeToMinutes(slot.time) >=
+            SchedulerService.parseTimeToMinutes(activeSelection!.startTime) &&
+          SchedulerService.parseTimeToMinutes(slot.time) <
+            SchedulerService.parseTimeToMinutes(activeSelection!.endTime);
+        const courtBookings = bookings.filter((booking) => booking.courtId === court.id);
+        const available = activeSelection!.selectedSlots.every(
+          (time) => !SchedulerService.checkCollision(
+            courtBookings,
+            court.id,
+            time,
+            SchedulerService.minutesToTime(
+              SchedulerService.parseTimeToMinutes(time) + slotInterval,
+            ),
+          ),
         );
+        if (!withinSharedRange || !available) {
+          toast.error(t('booking.multiCourt.sameTimeRequired'));
+          return;
+        }
+        const alreadySelected = selectedCourts.some((item) => item.courtId === court.id);
+        if (alreadySelected) {
+          const remaining = selectedCourts.filter((item) => item.courtId !== court.id);
+          if (remaining.length === 0) {
+            clearActiveSelection();
+          } else {
+            setActiveSelection({ ...activeSelection!, courts: remaining, courtId: remaining[0]!.courtId, courtName: remaining[0]!.courtName });
+          }
+        } else {
+          setActiveSelection({
+            ...activeSelection!,
+            courts: [...selectedCourts, { courtId: court.id, courtName: court.name }],
+          });
+        }
         return;
       }
 
@@ -132,7 +161,7 @@ export const useSlotSelection = ({
    */
   const isSlotSelected = useCallback(
     (courtId: string, slotTime: string): boolean => {
-      if (!activeSelection || activeSelection.courtId !== courtId) return false;
+      if (!activeSelection || !(activeSelection.courts ?? []).some((item) => item.courtId === courtId)) return false;
       return activeSelection.selectedSlots.includes(slotTime);
     },
     [activeSelection],

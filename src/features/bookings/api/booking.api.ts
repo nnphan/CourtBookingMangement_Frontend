@@ -30,9 +30,10 @@ export const bookingApi = {
     }
 
     try {
-      const response = await http.post<
-        CreateBookingResponse | { success: boolean; data: CreateBookingResponse }
-      >('/api/bookings', payload);
+      const response = await http.post<ApiSuccessResponse<CreateBookingResponse>>(
+        '/api/bookings',
+        payload,
+      );
 
       if (import.meta.env.DEV) {
         console.debug('[booking:create] response received', {
@@ -42,12 +43,7 @@ export const bookingApi = {
         });
       }
 
-      const body = response.data;
-      if (body && typeof body === 'object' && 'data' in body && (body as { data: unknown }).data) {
-        return (body as { data: CreateBookingResponse }).data;
-      }
-
-      return body as CreateBookingResponse;
+      return response.data.data;
     } catch (error: unknown) {
       const details =
         error && typeof error === 'object'

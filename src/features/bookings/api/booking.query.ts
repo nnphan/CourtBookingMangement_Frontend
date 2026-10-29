@@ -3,6 +3,7 @@ import i18n from 'i18next';
 import { bookingApi } from './booking.api';
 import type { CreateBookingRequest, CreateBookingResponse } from '../types/booking.types';
 import { toast } from '@/lib/toast';
+import { useAuthStore } from '@/features/auth/store/auth.store';
 interface BookingApiError {
   status?: number;
   code?: string;
@@ -40,23 +41,34 @@ export const useCreateBooking = (options?: UseCreateBookingOptions) => {
   return useMutation<CreateBookingResponse, Error, CreateBookingMutationVariables>({
     mutationFn: ({ payload, requestDebugId }) => bookingApi.createBooking(payload, requestDebugId),
     retry: false,
-    onSuccess: async (data) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: BOOKING_QUERY_KEYS.courtStatus }),
-        queryClient.invalidateQueries({ queryKey: BOOKING_QUERY_KEYS.all }),
-        queryClient.invalidateQueries({ queryKey: BOOKING_QUERY_KEYS.myBookings() }),
-      ]);
+    onSuccess: async (data, { payload }) => {
+      const bookingDate = payload.details[0]?.bookingDate;
+      const tasks: Promise<unknown>[] = [
+        queryClient.invalidateQueries({
+          queryKey: bookingDate
+            ? [...BOOKING_QUERY_KEYS.courtStatus, payload.branchId, bookingDate]
+            : BOOKING_QUERY_KEYS.courtStatus,
+        }),
+      ];
+      if (useAuthStore.getState().isAuthenticated()) {
+        tasks.push(queryClient.invalidateQueries({ queryKey: BOOKING_QUERY_KEYS.all }));
+      }
+      await Promise.all(tasks);
       toast.success(
+        i18n.t('booking.multiCourt.success', {
+          defaultValue: 'Đặt {{count}} sân thành công.',
+          count: data.details.length,
+        }),
         data.bookingCode
-          ? i18n.t('booking.guest.successWithCode', {
-              defaultValue: 'Đặt sân thành công. Mã đặt sân: {{code}}',
+          ? i18n.t('booking.success.bookingCode', {
+              defaultValue: 'Mã booking: {{code}}',
               code: data.bookingCode,
             })
-          : i18n.t('booking.guest.success', 'Đặt sân thành công.'),
+          : undefined,
       );
       options?.onSuccess?.(data);
     },
-    onError: async (err: unknown) => {
+    onError: async (err: unknown, { payload }) => {
       const errorObj = err && typeof err === 'object' ? (err as BookingApiError) : undefined;
       const errorCode = errorObj?.code?.toUpperCase();
       let message = 'Không thể tạo đặt sân. Vui lòng thử lại.';
@@ -68,11 +80,14 @@ export const useCreateBooking = (options?: UseCreateBookingOptions) => {
           'Yêu cầu đặt sân đã hết thời gian chờ. Vui lòng kiểm tra trạng thái sân trước khi thử lại.';
         await queryClient.invalidateQueries({ queryKey: BOOKING_QUERY_KEYS.courtStatus });
       } else if (errorCode === 'BOOKING_CONFLICT') {
-        message = i18n.t(
-          'booking.multiCourt.conflictNoPartial',
-          'Một hoặc nhiều sân vừa được người khác đặt. Không có sân nào trong yêu cầu này được tạo. Vui lòng kiểm tra và chọn lại.',
-        );
-        void queryClient.invalidateQueries({ queryKey: BOOKING_QUERY_KEYS.courtStatus });
+        const date = payload.details[0]?.bookingDate;
+        await queryClient.refetchQueries({
+          queryKey: date
+            ? [...BOOKING_QUERY_KEYS.courtStatus, payload.branchId, date]
+            : BOOKING_QUERY_KEYS.courtStatus,
+        });
+        options?.onError?.(err as Error);
+        return;
       } else if (
         errorObj?.status === 401 ||
         errorObj?.status === 403 ||

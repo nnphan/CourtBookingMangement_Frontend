@@ -30,7 +30,7 @@ export * from './components/BookingDetailDrawer';
 export * from './components/BookingDetails';
 export * from './components/BookingDetailSkeleton';
 export * from './components/BookingStatusBadge';
-export * from './components/CreateBookingDialog';
+export * from './components/EditBookingDialog';
 export * from './components/CourtStatusSkeleton';
 export * from './components/EmptyState';
 export * from './components/ErrorState';
@@ -50,4 +50,3 @@ export * from './components/CustomerSearchInput';
 export * from './components/BookingForm';
 export * from './components/BookingPriceSummary';
 export * from './pages/CourtStatusPage';
-

@@ -70,6 +70,8 @@ export const CourtStatusBoard: React.FC<CourtStatusBoardProps> = memo(
 
     // Zustand Court Selection Store
     const selection = useCourtSelectionStore((s) => s.selection);
+    const selectedCourts = useCourtSelectionStore((s) => s.selectedCourts);
+    const selectionNotice = useCourtSelectionStore((s) => s.selectionNotice);
 
     const startSelection = useCourtSelectionStore((s) => s.startSelection);
     const updateSelection = useCourtSelectionStore((s) => s.updateSelection);
@@ -495,6 +497,8 @@ export const CourtStatusBoard: React.FC<CourtStatusBoardProps> = memo(
         {/* Floating Selection Confirmation Bar (Thông tin đặt sân) */}
         <CourtSelectionBar
           selection={selection}
+          courts={selectedCourts}
+          notice={selectionNotice}
           date={selectedDate}
           onClear={clearSelection}
           onConfirm={(sel) => onConfirmSelection?.(sel)}

@@ -25,6 +25,7 @@ export interface TimeSlot {
 export interface SlotSelectionRange {
   courtId: string;
   courtName: string;
+  courts?: { courtId: string; courtName: string }[];
   startTime: string; // e.g. "14:00"
   endTime: string; // e.g. "17:00"
   durationMinutes: number; // e.g. 180

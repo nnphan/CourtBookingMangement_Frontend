@@ -85,7 +85,10 @@ export const SchedulerGrid: React.FC<SchedulerGridProps> = memo(
           const court = courts[virtualRow.index];
           if (!court) return null;
 
-          const isCurrentCourtSelected = activeSelection?.courtId === court.id;
+          const isCurrentCourtSelected = Boolean(
+            activeSelection?.courts?.some((item) => item.courtId === court.id) ||
+              activeSelection?.courtId === court.id,
+          );
 
           return (
             <div
@@ -211,4 +214,3 @@ export const SchedulerGrid: React.FC<SchedulerGridProps> = memo(
 );
 
 SchedulerGrid.displayName = 'SchedulerGrid';
-

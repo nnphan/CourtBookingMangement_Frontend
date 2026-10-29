@@ -1,89 +1,61 @@
 import React, { memo } from 'react';
-import type { CourtSelection } from '../utils/time-selection.utils';
-import { Calendar, Clock, X, ArrowRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { ArrowRight, Calendar, Clock, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import type { SelectedBookingCourt } from '@/features/bookings/types/booking.types';
+import type { CourtSelection } from '../utils/time-selection.utils';
 
 export interface CourtSelectionBarProps {
   selection: CourtSelection | null;
+  courts?: SelectedBookingCourt[];
+  notice?: string | null;
   onClear: () => void;
   onConfirm: (selection: CourtSelection) => void;
   date?: string;
 }
 
 export const CourtSelectionBar: React.FC<CourtSelectionBarProps> = memo(
-  ({ selection, onClear, onConfirm, date }) => {
+  ({ selection, courts, notice, onClear, onConfirm, date }) => {
+    const { t } = useTranslation();
     if (!selection) return null;
-
-    const isButtonEnabled = Boolean(
-      selection.courtId && selection.startTime && selection.endTime,
-    );
+    const selectedCourts = courts?.length
+      ? courts
+      : [{ courtId: selection.courtId, courtName: selection.courtName }];
+    const visibleCourts = selectedCourts.slice(0, 3);
+    const overflow = selectedCourts.length - visibleCourts.length;
 
     return (
       <aside
-        aria-label="Thông tin đặt sân"
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-xl animate-in fade-in slide-in-from-bottom-4 duration-200"
+        aria-label={t('booking.multiCourt.title')}
+        className="fixed bottom-6 left-1/2 z-50 w-[95%] max-w-xl -translate-x-1/2"
       >
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 bg-slate-900/95 text-white backdrop-blur-md rounded-2xl shadow-2xl border border-slate-700/80 ring-1 ring-black/20">
-          {/* Details summary */}
-          <div className="flex items-center gap-3">
-            
-
-            <div className="flex flex-col text-xs leading-snug">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
-                Thông tin đặt sân
-              </span>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="font-bold text-sm text-white">
-                  Sân: {selection.courtName}
+        <div className="flex flex-col gap-3 rounded-2xl border border-slate-700 bg-slate-900/95 p-4 text-white shadow-2xl sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-xs">
+            <p className="font-bold" aria-live="polite">
+              {t('booking.multiCourt.selectedCount', { count: selectedCourts.length })}
+            </p>
+            <div className="mt-1 flex flex-wrap gap-1">
+              {visibleCourts.map((court) => (
+                <span key={court.courtId} className="rounded-full border border-emerald-700 px-2 py-0.5">
+                  {court.courtName}
                 </span>
-                <span className="text-[11px] font-semibold text-emerald-300 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-800">
-                  Thời lượng: {selection.durationHours} giờ
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2 text-slate-300 mt-1 text-[11px]">
-                <span>
-                  Bắt đầu: <strong className="text-white">{selection.startTime}</strong>
-                </span>
-                <span>•</span>
-                <span>
-                  Kết thúc: <strong className="text-white">{selection.endTime}</strong>
-                </span>
-                {date && (
-                  <>
-                    <span>•</span>
-                    <span className="text-slate-400 flex items-center gap-1">
-                      <Calendar className="size-3" />
-                      {date}
-                    </span>
-                  </>
-                )}
-              </div>
+              ))}
+              {overflow > 0 && <span className="rounded-full border border-slate-600 px-2 py-0.5">+{overflow}</span>}
             </div>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-slate-300">
+              {date && <span><Calendar className="mr-1 inline size-3" aria-hidden />{date}</span>}
+              <span><Clock className="mr-1 inline size-3" aria-hidden />{selection.startTime}-{selection.endTime}</span>
+            </div>
+            {notice && <p role="alert" className="mt-1 font-semibold text-amber-300">{notice}</p>}
           </div>
-
-          {/* Action buttons */}
-          <div className="flex items-center gap-2 self-end sm:self-center">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={onClear}
-              className="h-9 px-3 rounded-xl border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold cursor-pointer"
-            >
-              <X className="size-3.5 mr-1" />
-              <span>Hủy</span>
+          <div className="flex gap-2 self-end sm:self-center">
+            <Button type="button" variant="outline" size="sm" onClick={onClear}>
+              <X className="mr-1 size-3.5" aria-hidden />
+              {t('booking.multiCourt.clearSelection')}
             </Button>
-
-            <Button
-              type="button"
-              size="sm"
-              disabled={!isButtonEnabled}
-              onClick={() => onConfirm(selection)}
-              className="h-9 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-emerald-900/40 cursor-pointer flex items-center gap-1.5 active:scale-95 transition-all"
-            >
-              <span>Đặt sân</span>
-              <ArrowRight className="size-3.5" />
+            <Button type="button" size="sm" onClick={() => onConfirm(selection)}>
+              {t('booking.multiCourt.continue')}
+              <ArrowRight className="ml-1 size-3.5" aria-hidden />
             </Button>
           </div>
         </div>

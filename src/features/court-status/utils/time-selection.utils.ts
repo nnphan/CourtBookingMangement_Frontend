@@ -1,6 +1,8 @@
 import dayjs from '@/lib/dayjs';
 import type { CourtScheduleItemDto } from '../types/court-status.types';
 
+import { isBlockingScheduleItem } from '@/features/bookings/utils/multi-court.utils';
+
 export interface CourtSelection {
   courtId: string;
   courtName: string;
@@ -117,7 +119,7 @@ export const isBookedSlot = (
   const slotMinutes = timeToMinutes(slotTime);
 
   return scheduleItems.some((item) => {
-    if (item.courtId !== courtId) return false;
+    if (item.courtId !== courtId || !isBlockingScheduleItem(item)) return false;
     const startMin = timeToMinutes(item.startTime);
     const endMin = timeToMinutes(item.endTime);
     return slotMinutes >= startMin && slotMinutes < endMin;

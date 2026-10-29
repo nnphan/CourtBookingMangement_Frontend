@@ -20,6 +20,10 @@ export interface CourtScheduleItemDto {
   endTime: string;
   bookingType: string;
   bookingStatus: string;
+  /** V2: unique per Court block; bookingId is the aggregate Booking shared across Courts. */
+  bookingDetailId?: string;
+  bookingDetailStatus?: string | null;
+  bookingCourtCount?: number;
   paymentStatus: string;
   customerName: string;
   phoneNumber: string;
@@ -35,6 +39,8 @@ export interface CourtStatusDto {
   closeTime: string;
   courts: CourtStatusCourtDto[];
   scheduleItems: CourtScheduleItemDto[];
+  isClosed?: boolean;
+  timezone?: string;
 }
 
 export type BookingStatusType = 'Pending' | 'CheckedIn' | 'Completed' | string;

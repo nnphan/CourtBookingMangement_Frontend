@@ -42,3 +42,36 @@ export const createBookingSchema = z
   );
 
 export type CreateBookingSchemaType = z.infer<typeof createBookingSchema>;
+
+/** Mode-aware schema for CreateBookingDialog. Messages are i18n keys resolved by the dialog. */
+export const buildCreateBookingFormSchema = (requireContact: boolean) =>
+  z
+    .object({
+      customerName: z.string().trim().optional(),
+      phoneNumber: z.string().trim().optional(),
+      paymentMethod: z.enum(['CASH']),
+      notes: z.string().optional(),
+    })
+    .superRefine((data, ctx) => {
+      if (!requireContact) return;
+      if (!data.customerName) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['customerName'],
+          message: 'booking.validation.customerNameRequired',
+        });
+      }
+      if (!data.phoneNumber) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['phoneNumber'],
+          message: 'booking.validation.phoneNumberRequired',
+        });
+      } else if (!VIETNAM_PHONE_REGEX.test(data.phoneNumber)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['phoneNumber'],
+          message: 'booking.validation.phoneNumberInvalid',
+        });
+      }
+    });

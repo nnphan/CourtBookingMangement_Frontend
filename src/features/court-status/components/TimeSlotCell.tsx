@@ -34,7 +34,10 @@ export const TimeSlotCell: React.FC<TimeSlotCellProps> = memo(
     onClick,
   }) => {
     const selectionSegment = useCourtSelectionStore((state) => {
-      if (state.selectedCourtId !== courtId || !state.selectedSlots.includes(slotTime)) {
+      if (
+        !state.selectedCourts.some((court) => court.courtId === courtId) ||
+        !state.selectedSlots.includes(slotTime)
+      ) {
         return null;
       }
       const isStart = state.selectedSlots[0] === slotTime;
@@ -99,6 +102,7 @@ export const TimeSlotCell: React.FC<TimeSlotCellProps> = memo(
         <div
           role="gridcell"
           aria-selected="true"
+          aria-label={`Đã chọn ${courtName}: ${slotTime}`}
           data-court-id={courtId}
           data-slot-hour={slotTime}
           style={{ width: `${hourWidth}px` }}
