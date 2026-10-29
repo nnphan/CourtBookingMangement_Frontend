@@ -69,7 +69,9 @@ http.interceptors.response.use(
   async (error: AxiosError<ApiErrorResponseBody>) => {
     const original = error.config as RetriableConfig | undefined;
 
-    if (error.response?.status === 401 && original && !original._retry) {
+    // Anonymous requests (no Authorization header) must not trigger refresh or session-expiry.
+    const wasAuthenticated = Boolean(original?.headers?.get('Authorization'));
+    if (error.response?.status === 401 && original && wasAuthenticated && !original._retry) {
       original._retry = true;
       refreshing ??= refreshAccessToken().finally(() => {
         refreshing = null;

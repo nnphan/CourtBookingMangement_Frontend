@@ -118,14 +118,16 @@ export const BookingCard: React.FC<BookingCardProps> = memo(
               {width > 120 && (
                 <div className="hidden sm:flex shrink-0 flex-col items-end gap-1">
                   {/* Payment Status Badge */}
-                  <span
-                    className={cn(
-                      'px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shadow-2xs border',
-                      paymentStatusInfo.badgeClass,
-                    )}
-                  >
-                    {paymentStatusInfo.label}
-                  </span>
+                  {item.paymentStatus && (
+                    <span
+                      className={cn(
+                        'px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shadow-2xs border',
+                        paymentStatusInfo.badgeClass,
+                      )}
+                    >
+                      {paymentStatusInfo.label}
+                    </span>
+                  )}
 
                   {/* Booking Status Badge */}
                   {width > 160 && (
@@ -154,14 +156,16 @@ export const BookingCard: React.FC<BookingCardProps> = memo(
                 {item.courtName}
               </span>
               <div className="flex items-center gap-1">
-                <span
-                  className={cn(
-                    'px-1.5 py-0.5 rounded text-[10px] font-bold border shadow-xs',
-                    paymentStatusInfo.badgeClass,
-                  )}
-                >
-                  {paymentStatusInfo.label}
-                </span>
+                {item.paymentStatus && (
+                  <span
+                    className={cn(
+                      'px-1.5 py-0.5 rounded text-[10px] font-bold border shadow-xs',
+                      paymentStatusInfo.badgeClass,
+                    )}
+                  >
+                    {paymentStatusInfo.label}
+                  </span>
+                )}
                 <span
                   className={cn(
                     'px-1.5 py-0.5 rounded text-[10px] font-bold border shadow-xs',
@@ -177,7 +181,7 @@ export const BookingCard: React.FC<BookingCardProps> = memo(
               <div className="flex items-center gap-2">
                 <User className="size-3.5 text-slate-400 shrink-0" />
                 <span className="font-semibold text-white">
-                  {item.customerName || 'Chưa có tên khách'}
+                  {item.customerName || item.title || 'Chưa có tên khách'}
                 </span>
               </div>
 

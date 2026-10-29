@@ -12,18 +12,20 @@ export interface BookingSelection {
   durationMinutes: number;
 }
 
+export interface CreateBookingDetailRequest {
+  courtId: string;
+  bookingDate: string; // YYYY-MM-DD
+  startTime: string; // HH:mm:ss
+  endTime: string; // HH:mm:ss
+}
+
+/** POST /api/bookings (anonymous): one aggregate Booking with one detail per Court. */
 export interface CreateBookingRequest {
   branchId: string;
-  courtId: string;
-  customerId?: string | null;
-  customerName: string;
-  phoneNumber: string;
-  bookingDate: string; // YYYY-MM-DD
-  startTime: string; // HH:mm
-  endTime: string; // HH:mm
   bookingType: BookingTypeApi;
-  paymentMethod: string; // Default: 'CASH'
-  note?: string;
+  paymentMethod: string;
+  notes: string;
+  details: CreateBookingDetailRequest[];
 }
 
 export interface CalculateBookingPriceRequest {
@@ -48,6 +50,7 @@ export interface CreateBookingResponse {
   id?: string;
   bookingId?: string;
   bookingNumber?: string;
+  bookingCode?: string;
   branchId?: string;
   courtId?: string;
   customerId?: string | null;

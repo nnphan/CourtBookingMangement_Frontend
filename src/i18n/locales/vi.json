@@ -266,6 +266,17 @@
       "error": "Không thể tải chi tiết trận đấu. Vui lòng thử lại."
     }
   },
+  "booking": {
+    "guest": {
+      "reviewDescription": "Kiểm tra thông tin và xác nhận đặt sân.",
+      "success": "Đặt sân thành công.",
+      "successWithCode": "Đặt sân thành công. Mã đặt sân: {{code}}",
+      "unexpectedUnauthorized": "Hệ thống từ chối yêu cầu đặt sân. Vui lòng thử lại sau hoặc liên hệ hỗ trợ."
+    },
+    "multiCourt": {
+      "conflictNoPartial": "Một hoặc nhiều sân vừa được người khác đặt. Không có sân nào trong yêu cầu này được tạo. Vui lòng kiểm tra và chọn lại."
+    }
+  },
   "account": {
     "user": "Người dùng",
     "loading": "Đang tải tài khoản",

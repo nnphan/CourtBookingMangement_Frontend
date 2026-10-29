@@ -196,32 +196,32 @@ export const formatBookingDateToApi = (date?: string | null): string => {
 
 export const toCreateBookingPayload = (
   values: {
-    customerName: string;
-    phoneNumber: string;
     bookingType: string;
     note?: string;
   },
   context: {
     branchId: string;
-    courtId: string;
+    courtIds: string[];
     bookingDate: string;
     startTime: string;
     endTime: string;
-    customerId?: string | null;
     paymentMethod?: string;
   },
 ): CreateBookingRequest => {
+  const bookingDate = formatBookingDateToApi(context.bookingDate);
+  const startTime = formatTimeToApi(context.startTime);
+  const endTime = formatTimeToApi(context.endTime);
+
   return {
     branchId: context.branchId,
-    courtId: context.courtId,
-    customerId: context.customerId ?? null,
-    customerName: values.customerName.trim(),
-    phoneNumber: values.phoneNumber.trim(),
-    bookingDate: context.bookingDate,
-    startTime: context.startTime,
-    endTime: context.endTime,
     bookingType: mapBookingTypeToPayload(values.bookingType),
     paymentMethod: context.paymentMethod || 'CASH',
-    note: values.note?.trim() || '',
+    notes: values.note?.trim() ?? '',
+    details: Array.from(new Set(context.courtIds)).map((courtId) => ({
+      courtId,
+      bookingDate,
+      startTime,
+      endTime,
+    })),
   };
 };

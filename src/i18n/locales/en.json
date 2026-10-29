@@ -266,6 +266,17 @@
       "error": "Unable to load match details. Please try again."
     }
   },
+  "booking": {
+    "guest": {
+      "reviewDescription": "Review the details and confirm your booking.",
+      "success": "Booking created successfully.",
+      "successWithCode": "Booking created successfully. Booking code: {{code}}",
+      "unexpectedUnauthorized": "The booking request was rejected. Please try again later or contact support."
+    },
+    "multiCourt": {
+      "conflictNoPartial": "One or more courts were just booked by someone else. No court from this request was created. Please review and choose again."
+    }
+  },
   "account": {
     "user": "User",
     "loading": "Loading account",

@@ -1,13 +1,9 @@
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, CalendarDays, Clock, Loader2, MapPin } from 'lucide-react';
 import { toast } from '@/lib/toast';
-import { useAuthStore } from '@/features/auth/store/auth.store';
-import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
-import { paths } from '@/app/router/paths';
 import type {
   BookingDialogMode,
   BookingSelection,
@@ -87,17 +83,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
     const [dialogDebugId] = useState(() => crypto.randomUUID());
     const activeRequestDebugIdRef = useRef<string | null>(null);
     const createBookingInFlightRef = useRef(false);
-    const location = useLocation();
-    const navigate = useNavigate();
-    const isAuthenticated = useAuthStore((s) => s.isAuthenticated());
-    const {
-      user: authUser,
-      isLoading: isCurrentUserLoading,
-      isError: isCurrentUserError,
-      refetch: refetchCurrentUser,
-    } = useCurrentUser();
-    const authUserRef = useRef(authUser);
-    authUserRef.current = authUser;
+    const [conflictMessage, setConflictMessage] = useState<string | null>(null);
 
     const storeSelectedDate = useCourtStatusStore((s) => s.selectedDate);
     const storeSelectedBranch = useCourtStatusStore((s) => s.selectedBranch);
@@ -229,11 +215,11 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
       if (!isOpen || mode !== 'CUSTOMER' || !initialSelection) return;
 
       setSelectedCustomer(null);
-      const currentUser = authUserRef.current;
+      setConflictMessage(null);
       reset({
-        customerId: currentUser?.id ?? null,
-        customerName: currentUser?.fullName ?? '',
-        phoneNumber: currentUser?.phoneNumber ?? '',
+        customerId: null,
+        customerName: '',
+        phoneNumber: '',
         courtId: initialSelection.courtId,
         bookingDate: formatBookingDateToApi(initialSelection.bookingDate),
         startTime: formatBookingTime(initialSelection.startTime),
@@ -305,29 +291,6 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
       reset,
     ]);
 
-    useEffect(() => {
-      if (!isOpen || mode !== 'CUSTOMER' || !initialSelection) return;
-
-      setValue('customerId', isAuthenticated ? (authUser?.id ?? null) : null, {
-        shouldValidate: true,
-      });
-      setValue('customerName', isAuthenticated ? (authUser?.fullName ?? '') : '', {
-        shouldValidate: true,
-      });
-      setValue('phoneNumber', isAuthenticated ? (authUser?.phoneNumber ?? '') : '', {
-        shouldValidate: true,
-      });
-    }, [
-      isOpen,
-      mode,
-      initialSelection,
-      isAuthenticated,
-      authUser?.id,
-      authUser?.fullName,
-      authUser?.phoneNumber,
-      setValue,
-    ]);
-
     const handleSelectCustomer = (customer: Customer) => {
       setSelectedCustomer(customer);
       setValue('customerId', customer.id, { shouldValidate: true });
@@ -356,7 +319,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
     };
 
     const onSubmit = async (values: CreateBookingSchemaType) => {
-      if (mode === 'CUSTOMER' && (!isAuthenticated || !authUser)) return;
+      setConflictMessage(null);
 
       // Validate past date / time slot before submitting
       if (!editingBooking) {
@@ -385,8 +348,8 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
           id: editingBooking.id,
           courtId: values.courtId,
           courtName,
-          customerName: values.customerName.trim(),
-          phoneNumber: values.phoneNumber.trim(),
+          customerName: (values.customerName ?? '').trim(),
+          phoneNumber: (values.phoneNumber ?? '').trim(),
           date: values.bookingDate,
           startTime: values.startTime,
           endTime: values.endTime,
@@ -405,21 +368,15 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
       // Create Booking Flow: Calls POST /api/bookings with standard payload
       const payload = toCreateBookingPayload(
         {
-          customerName: values.customerName,
-          phoneNumber: values.phoneNumber,
           bookingType: values.bookingType,
           note: values.note,
         },
         {
           branchId: effectiveBranchId,
-          courtId: values.courtId,
+          courtIds: [values.courtId],
           bookingDate: values.bookingDate,
           startTime: values.startTime,
           endTime: values.endTime,
-          customerId:
-            mode === 'CUSTOMER'
-              ? (authUser?.id ?? null)
-              : (selectedCustomer?.id ?? values.customerId ?? null),
           paymentMethod: 'CASH',
         },
       );
@@ -444,8 +401,8 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
           await onSubmitBooking({
             courtId: values.courtId,
             courtName,
-            customerName: values.customerName.trim(),
-            phoneNumber: values.phoneNumber.trim(),
+            customerName: (values.customerName ?? '').trim(),
+            phoneNumber: (values.phoneNumber ?? '').trim(),
             date: values.bookingDate,
             startTime: values.startTime,
             endTime: values.endTime,
@@ -480,7 +437,13 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
             }
           }
         }
-        if (mode === 'CUSTOMER' && apiError.code === 'BOOKING_CONFLICT') {
+        if (apiError.code === 'BOOKING_CONFLICT') {
+          setConflictMessage(
+            t(
+              'booking.multiCourt.conflictNoPartial',
+              'Một hoặc nhiều sân vừa được người khác đặt. Không có sân nào trong yêu cầu này được tạo. Vui lòng kiểm tra và chọn lại.',
+            ),
+          );
           onBookingConflict?.();
         }
       } finally {
@@ -507,15 +470,8 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
     }, [dialogDebugId, isOpen, isProcessing]);
 
     const isCustomerMode = mode === 'CUSTOMER';
-    const isCustomerIdentityBlocked = isCustomerMode && (!isAuthenticated || !authUser);
     const isCustomerPricingPending =
       isCustomerMode && (isPricingLoading || (isPricingFetching && !pricingData));
-    const customerIdentity =
-      isCustomerMode && authUser
-        ? { fullName: authUser.fullName ?? '', phoneNumber: authUser.phoneNumber ?? null }
-        : null;
-
-    //console.log(customerIdentity);
 
     useEffect(() => {
       if (!isOpen && mode === 'CUSTOMER') {
@@ -554,10 +510,12 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                   : t('courtStatus.dialog.createTitle', 'Đặt sân mới')}
             </DialogTitle>
             <DialogDescription>
-              {t(
-                'courtStatus.dialog.description',
-                'Nhập đầy đủ thông tin khách hàng và giờ thuê sân.',
-              )}
+              {mode === 'CUSTOMER'
+                ? t('booking.guest.reviewDescription', 'Kiểm tra thông tin và xác nhận đặt sân.')
+                : t(
+                    'courtStatus.dialog.description',
+                    'Nhập đầy đủ thông tin khách hàng và giờ thuê sân.',
+                  )}
             </DialogDescription>
           </DialogHeader>
 
@@ -604,70 +562,36 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
               </div>
             )}
 
-            {isCustomerMode && !isAuthenticated ? (
-              <section
+            {conflictMessage && (
+              <div
                 role="alert"
-                className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950"
+                tabIndex={-1}
+                ref={(node) => node?.focus()}
+                className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs font-semibold text-red-700"
               >
-                <p>{t('account.loginRequired', 'Vui lòng đăng nhập để đặt sân.')}</p>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => {
-                    onClose();
-                    navigate(paths.login, {
-                      state: { from: `${location.pathname}${location.search}` },
-                    });
-                  }}
-                >
-                  {t('auth.login.title', 'Đăng nhập')}
-                </Button>
-              </section>
-            ) : isCustomerMode && !authUser ? (
-              <section
-                role={isCurrentUserLoading ? 'status' : 'alert'}
-                aria-busy={isCurrentUserLoading}
-                className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-950"
-              >
-                <p>
-                  {isCurrentUserLoading
-                    ? t('account.loading', 'Đang tải thông tin khách hàng...')
-                    : isCurrentUserError
-                      ? t('account.profileLoadError', 'Không thể tải thông tin khách hàng.')
-                      : t('account.loginRequired', 'Vui lòng đăng nhập để đặt sân.')}
-                </p>
-                {isCurrentUserError && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => void refetchCurrentUser()}
-                  >
-                    {t('account.retryProfile', 'Thử tải lại thông tin tài khoản')}
-                  </Button>
-                )}
-              </section>
-            ) : (
-              <BookingForm
-                register={register}
-                control={control}
-                errors={errors}
-                courts={courts}
-                mode={mode}
-                customerIdentity={customerIdentity}
-                selectedCustomer={selectedCustomer}
-                onSelectCustomer={handleSelectCustomer}
-                onDeselectCustomer={handleDeselectCustomer}
-                onConvertGuest={handleConvertGuest}
-                isEditing={Boolean(editingBooking)}
-                formattedDisplayDate={formattedDisplayDate}
-                durationDisplayText={effectiveDurationText}
-                pricingData={pricingData}
-                isPricingLoading={isPricingLoading || (isPricingFetching && !pricingData)}
-                isPricingError={isPricingError}
-                onRetryPricing={refetchPricing}
-              />
+                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-red-500" />
+                <span>{conflictMessage}</span>
+              </div>
             )}
+
+            <BookingForm
+              register={register}
+              control={control}
+              errors={errors}
+              courts={courts}
+              mode={mode}
+              selectedCustomer={selectedCustomer}
+              onSelectCustomer={handleSelectCustomer}
+              onDeselectCustomer={handleDeselectCustomer}
+              onConvertGuest={handleConvertGuest}
+              isEditing={Boolean(editingBooking)}
+              formattedDisplayDate={formattedDisplayDate}
+              durationDisplayText={effectiveDurationText}
+              pricingData={pricingData}
+              isPricingLoading={isPricingLoading || (isPricingFetching && !pricingData)}
+              isPricingError={isPricingError}
+              onRetryPricing={refetchPricing}
+            />
 
             <DialogFooter
               className={
@@ -690,7 +614,6 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                 size="sm"
                 disabled={
                   isProcessing ||
-                  isCustomerIdentityBlocked ||
                   isCustomerPricingPending ||
                   (!editingBooking && (isPastDate || isPastSlot))
                 }

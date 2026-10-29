@@ -5,15 +5,15 @@ export const VIETNAM_PHONE_REGEX = /^(0|\+84)[3|5|7|8|9][0-9]{8}$/;
 export const createBookingSchema = z
   .object({
     customerId: z.string().nullable().optional(),
-    customerName: z
-      .string({ required_error: 'Tên khách hàng là bắt buộc.' })
-      .trim()
-      .min(1, 'Tên khách hàng là bắt buộc.'),
+    // Not part of the POST /api/bookings contract; kept optional for the admin form UI only.
+    customerName: z.string().trim().optional(),
     phoneNumber: z
-      .string({ required_error: 'Số điện thoại là bắt buộc.' })
+      .string()
       .trim()
-      .min(10, 'Số điện thoại gồm ít nhất 10 số')
-      .regex(VIETNAM_PHONE_REGEX, 'Số điện thoại không hợp lệ'),
+      .optional()
+      .refine((value) => !value || VIETNAM_PHONE_REGEX.test(value), {
+        message: 'Số điện thoại không hợp lệ',
+      }),
     courtId: z.string({ required_error: 'Vui lòng chọn sân' }).min(1, 'Vui lòng chọn sân'),
     bookingDate: z.string({ required_error: 'Vui lòng chọn ngày' }).min(1, 'Vui lòng chọn ngày'),
     startTime: z

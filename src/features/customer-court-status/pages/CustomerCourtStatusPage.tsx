@@ -224,6 +224,19 @@ export const CustomerCourtStatusPage: React.FC = () => {
     if (!bookingSelection) setIsCreateBookingOpen(false);
   }, [bookingSelection]);
 
+  // Customer-facing page: never expose other customers' personal or payment data.
+  const publicScheduleItems = useMemo(
+    () =>
+      scheduleItems.map((item) => ({
+        ...item,
+        customerName: '',
+        phoneNumber: '',
+        paymentStatus: '',
+        title: 'Đã được đặt',
+      })),
+    [scheduleItems],
+  );
+
   const invalidateCourtStatus = useCallback(() => {
     if (!activeBranchId) return;
     void queryClient.invalidateQueries({
@@ -299,7 +312,7 @@ export const CustomerCourtStatusPage: React.FC = () => {
           <div className="flex h-full w-full flex-1 flex-col overflow-hidden">
             <CourtStatusBoard
               courts={courts}
-              scheduleItems={scheduleItems}
+              scheduleItems={publicScheduleItems}
               openTime={openTime}
               closeTime={closeTime}
               selectedDate={selectedDate}
