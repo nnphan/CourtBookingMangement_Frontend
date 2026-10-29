@@ -837,46 +837,6 @@
     "mobile": {
       "activeBookings": "lượt đặt",
       "emptyCourt": "Sân trống cả ngày"
-    },
-    "summary": {
-      "label": "Tóm tắt trạng thái sân",
-      "totalCourts": "sân",
-      "totalBookings": "booking",
-      "scheduleItems": "lượt sân đã đặt",
-      "occupiedCourts": "sân có lịch"
-    },
-    "closed": {
-      "title": "Chi nhánh đóng cửa.",
-      "description": "Chi nhánh đóng cửa vào ngày đã chọn."
-    },
-    "status": {
-      "pendingPayment": "Chờ thanh toán",
-      "reserved": "Đã giữ sân",
-      "confirmed": "Đã xác nhận",
-      "paid": "Đã thanh toán",
-      "completed": "Đã hoàn thành",
-      "cancelled": "Đã hủy",
-      "expired": "Đã hết hạn",
-      "unknown": "Không xác định"
-    },
-    "booking": {
-      "multiCourtBadge": "{{count}} sân",
-      "courtCount": "{{count}} sân trong cùng booking"
-    },
-    "schedule": {
-      "accessibleLabel": "{{courtName}}, {{startTime}} đến {{endTime}}, {{status}}, mã đặt sân {{bookingCode}}, {{bookingType}}, {{courtCount}}"
-    },
-    "slot": {
-      "past": "Khung giờ {{time}} đã qua"
-    },
-    "empty": {
-      "noSchedules": "Chưa có lịch đặt sân trong ngày này.",
-      "noCourts": "Chi nhánh chưa có sân khả dụng.",
-      "noCourtsDescription": "Chi nhánh chưa cấu hình sân hoặc chưa có sân hoạt động.",
-      "noCourtsOnDate": "Chi nhánh chưa có sân khả dụng vào ngày {{date}}."
-    },
-    "error": {
-      "invalidHours": "Chi nhánh chưa được cấu hình giờ hoạt động hợp lệ cho ngày này."
     }
   },
   "customer": {

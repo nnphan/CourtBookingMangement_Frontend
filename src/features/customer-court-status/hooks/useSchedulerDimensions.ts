@@ -108,12 +108,9 @@ export function useSchedulerDimensions({
   }, [containerRef]);
 
   return useMemo(() => {
-    const hasOperatingHours = Boolean(openTime && closeTime);
-    const normalized = hasOperatingHours
-      ? normalizeOperatingHours(openTime, closeTime)
-      : { openTime: '00:00', closeTime: '00:00', totalHours: 0 };
+    const normalized = normalizeOperatingHours(openTime, closeTime);
     const safeInterval = slotInterval > 0 ? slotInterval : SCHEDULER_CONFIG.SLOT_DURATION;
-    const totalSlots = Math.round((normalized.totalHours * 60) / safeInterval);
+    const totalSlots = Math.max(1, Math.round((normalized.totalHours * 60) / safeInterval));
 
     const { slotWidth, availableWidth, gridWidth, timelineWidth } = calculateAdaptiveSlotWidth({
       containerWidth,

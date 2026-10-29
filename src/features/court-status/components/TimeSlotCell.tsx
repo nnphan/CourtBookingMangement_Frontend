@@ -10,8 +10,6 @@ export interface TimeSlotCellProps {
   hourWidth: number;
   isPast: boolean;
   isBooked: boolean;
-  isBranchClosed?: boolean;
-  disabledTitle?: string;
   onMouseDown?: (e: React.MouseEvent) => void;
   onMouseEnter?: () => void;
   onMouseUp?: () => void;
@@ -28,8 +26,6 @@ export const TimeSlotCell: React.FC<TimeSlotCellProps> = memo(
     hourWidth,
     isPast,
     isBooked,
-    isBranchClosed = false,
-    disabledTitle,
     onMouseDown,
     onMouseEnter,
     onMouseUp,
@@ -76,12 +72,12 @@ export const TimeSlotCell: React.FC<TimeSlotCellProps> = memo(
     }
 
     // Priority 2: DISABLED (Past time slot)
-    if (isPast || isBranchClosed) {
+    if (isPast) {
       return (
         <div
           role="gridcell"
           aria-disabled="true"
-          title={disabledTitle ?? `Khung giờ ${slotTime} đã qua`}
+          title={`Khung giờ ${slotTime} đã qua`}
           data-court-id={courtId}
           data-slot-hour={slotTime}
           style={{ width: `${hourWidth}px` }}

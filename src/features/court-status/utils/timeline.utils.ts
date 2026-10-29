@@ -21,16 +21,17 @@ export const timeToMinutes = (timeStr: string): number => {
  * e.g. openTime = '05:00:00', closeTime = '23:00:00' -> ['05:00', '06:00', ..., '22:00']
  */
 export const generateTimelineHours = (openTime: string, closeTime: string): string[] => {
-  if (!openTime || !closeTime) return [];
-  const { hour: startHour } = parseHourMinute(openTime);
-  const endMinutes = timeToMinutes(closeTime);
+  const { hour: startHour } = parseHourMinute(openTime || '05:00:00');
+  const endMinutes = timeToMinutes(closeTime || '23:00:00');
   const hours: string[] = [];
 
   for (let h = startHour; h * 60 < endMinutes && h < 24; h++) {
     hours.push(`${String(h).padStart(2, '0')}:00`);
   }
 
-  return hours;
+  return hours.length > 0
+    ? hours
+    : Array.from({ length: 18 }, (_, index) => `${String(index + 5).padStart(2, '0')}:00`);
 };
 
 /**
@@ -64,15 +65,13 @@ export const calculateCurrentTimeIndicator = (
   closeTime: string,
   hourWidth: number,
   selectedDate: string,
-  timezone = 'Asia/Ho_Chi_Minh',
 ): { offsetPx: number | null; label: string } => {
-  const selectedBusinessDate = dayjs.tz(selectedDate, 'YYYY-MM-DD', timezone);
-  const now = dayjs().tz(timezone);
-  const isToday = selectedBusinessDate.isSame(now, 'day');
+  const isToday = dayjs(selectedDate).isSame(dayjs(), 'day');
   if (!isToday) {
     return { offsetPx: null, label: '' };
   }
 
+  const now = dayjs();
   const currentMinutes = now.hour() * 60 + now.minute();
   const openMinutes = timeToMinutes(openTime);
   const closeMinutes = timeToMinutes(closeTime);

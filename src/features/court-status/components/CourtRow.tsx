@@ -1,7 +1,5 @@
 import React, { memo, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
-import type { CourtStatusCourtDto } from '../types/court-status.types';
-import type { CourtScheduleBlockViewModel } from '../types/court-schedule-block';
+import type { CourtStatusCourtDto, CourtScheduleItemDto } from '../types/court-status.types';
 import { getCourtStatusInfo } from '../types/court-status.types';
 import { isPastSlot, isBookedSlot } from '../utils/time-selection.utils';
 import { TimeSlotCell } from './TimeSlotCell';
@@ -9,19 +7,16 @@ import { cn } from '@/lib/utils';
 import { CourtStatusCourtNameCell } from '@/features/court-status/shared/components/CourtStatusCourtNameCell';
 import { CourtStatusBookingFrame } from '@/features/court-status/shared/components/CourtStatusBookingFrame';
 import { calculateBookingDimensions } from '../utils/timeline.utils';
-import { COURT_SCHEDULE_STATUS_CLASSES } from '../types/court-schedule-status';
 
 export interface CourtRowProps {
   court: CourtStatusCourtDto;
-  bookings: CourtScheduleBlockViewModel[];
+  bookings: CourtScheduleItemDto[];
   timelineHours: string[];
   openTime: string;
   hourWidth: number;
   rowHeight?: number;
   courtColumnWidth: number;
   selectedDate: string;
-  timezone: string;
-  isBranchClosed: boolean;
   onMouseDown?: (court: CourtStatusCourtDto, hour: string, e: React.MouseEvent) => void;
   onMouseEnter?: (court: CourtStatusCourtDto, hour: string) => void;
   onMouseUp?: () => void;
@@ -40,8 +35,6 @@ export const CourtRow: React.FC<CourtRowProps> = memo(
     rowHeight = 48,
     courtColumnWidth,
     selectedDate,
-    timezone,
-    isBranchClosed,
     onMouseDown,
     onMouseEnter,
     onMouseUp,
@@ -49,11 +42,11 @@ export const CourtRow: React.FC<CourtRowProps> = memo(
     onTouchEnd,
     onClickSlot,
   }) => {
-    const { t } = useTranslation();
     const statusInfo = useMemo(() => getCourtStatusInfo(court.status), [court.status]);
     const totalTimelineWidth = timelineHours.length * hourWidth;
     const normalizedCourtStatus = (court.status || 'active').trim().toLowerCase();
-    const isUnavailableCourt = normalizedCourtStatus !== 'active';
+    const isMaintenanceOrInactive =
+      normalizedCourtStatus === 'maintenance' || normalizedCourtStatus === 'inactive';
 
     return (
       <div
@@ -67,7 +60,7 @@ export const CourtRow: React.FC<CourtRowProps> = memo(
           className={cn(
             'sticky left-0 z-20 flex shrink-0 items-center justify-between border-r border-slate-200 bg-[#f7faf8] px-3 py-2 text-xs shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)] backdrop-blur-xs select-none',
             normalizedCourtStatus === 'maintenance' && 'bg-amber-50/80',
-            isUnavailableCourt && 'bg-slate-100 opacity-60',
+            normalizedCourtStatus === 'inactive' && 'bg-slate-100 opacity-60',
           )}
         >
           <div className="flex flex-col truncate pr-1">
@@ -93,10 +86,7 @@ export const CourtRow: React.FC<CourtRowProps> = memo(
         >
           {/* Background Hourly Grid Cells */}
           {timelineHours.map((hour) => {
-            const isPast =
-              isPastSlot(selectedDate, hour, undefined, timezone) ||
-              isUnavailableCourt ||
-              isBranchClosed;
+            const isPast = isPastSlot(selectedDate, hour) || isMaintenanceOrInactive;
             const isBooked = isBookedSlot(court.courtId, hour, bookings);
 
             return (
@@ -108,12 +98,6 @@ export const CourtRow: React.FC<CourtRowProps> = memo(
                 hourWidth={hourWidth}
                 isPast={isPast}
                 isBooked={isBooked}
-                isBranchClosed={isBranchClosed}
-                disabledTitle={
-                  isBranchClosed
-                    ? t('courtStatus.closed.description')
-                    : t('courtStatus.slot.past', { time: hour })
-                }
                 onMouseDown={(e) => onMouseDown?.(court, hour, e)}
                 onMouseEnter={() => onMouseEnter?.(court, hour)}
                 onMouseUp={onMouseUp}
@@ -133,46 +117,28 @@ export const CourtRow: React.FC<CourtRowProps> = memo(
                 openTime,
                 hourWidth,
               );
-              const statusKey = booking.displayStatus
-                .toLowerCase()
-                .replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
-              const statusLabel = t(`courtStatus.status.${statusKey}`);
-              const timeRange = `${booking.startTime.slice(0, 5)} - ${booking.endTime.slice(0, 5)}`;
-              const courtCount = t('courtStatus.booking.courtCount', {
-                count: booking.bookingCourtCount,
-              });
-              const accessibleLabel = t('courtStatus.schedule.accessibleLabel', {
-                courtName: court.courtName,
-                startTime: booking.startTime.slice(0, 5),
-                endTime: booking.endTime.slice(0, 5),
-                status: statusLabel,
-                bookingCode: booking.bookingCode,
-                bookingType: booking.bookingType,
-                courtCount,
-              });
+              const normalizedType = (booking.bookingType || '').toLowerCase();
+              const label = normalizedType.includes('maintenance')
+                ? 'Bảo trì'
+                : normalizedType.includes('event')
+                  ? 'Sự kiện'
+                  : 'Đã đặt';
+              const color =
+                label === 'Bảo trì' ? '#f59e0b' : label === 'Sự kiện' ? '#0d9488' : '#64748b';
 
               return (
                 <CourtStatusBookingFrame
-                  key={booking.bookingDetailId}
+                  key={booking.bookingId}
                   left={left + 2}
                   width={Math.max(32, width - 4)}
                   height={rowHeight - 6}
+                  backgroundColor={color}
+                  color="#ffffff"
                   role="gridcell"
-                  ariaLabel={accessibleLabel}
-                  className={cn(
-                    'pointer-events-auto cursor-default rounded-md border px-1.5 text-[11px] sm:text-xs',
-                    COURT_SCHEDULE_STATUS_CLASSES[booking.displayStatus],
-                  )}
-                  title={`${booking.bookingCode} · ${timeRange} · ${court.courtName} · ${booking.bookingType} · ${statusLabel} · ${courtCount}`}
+                  ariaLabel={`${court.courtName}, ${booking.startTime} đến ${booking.endTime}, ${label}`}
+                  className="pointer-events-auto cursor-default rounded-md border border-black/10 px-1.5 text-[11px] hover:brightness-95 sm:text-xs"
                 >
-                  <span className="truncate">{statusLabel}</span>
-                  {booking.bookingCourtCount > 1 && (
-                    <span className="ml-1 shrink-0 text-[9px] font-semibold">
-                      {t('courtStatus.booking.multiCourtBadge', {
-                        count: booking.bookingCourtCount,
-                      })}
-                    </span>
-                  )}
+                  <span className="truncate">{label}</span>
                 </CourtStatusBookingFrame>
               );
             })}

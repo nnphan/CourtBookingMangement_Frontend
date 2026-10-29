@@ -1,5 +1,4 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 import { CourtStatusEmptyState } from '@/features/court-status/shared/components/CourtStatusEmptyState';
 
 interface CustomerCourtStatusEmptyProps {
@@ -7,15 +6,13 @@ interface CustomerCourtStatusEmptyProps {
 }
 
 export const CustomerCourtStatusEmpty: React.FC<CustomerCourtStatusEmptyProps> = ({ date }) => {
-  const { t } = useTranslation();
-
   return (
     <CourtStatusEmptyState
-      title={t('courtStatus.empty.noCourts')}
+      title="Không có sân khả dụng."
       description={
         date
-          ? t('courtStatus.empty.noCourtsOnDate', { date })
-          : t('courtStatus.empty.noCourtsDescription')
+          ? `Hiện không có sân nào hoạt động vào ngày ${date}. Quý khách vui lòng chọn ngày khác hoặc chuyển sang chi nhánh khác.`
+          : 'Không tìm thấy sân khả dụng cho chi nhánh đã chọn.'
       }
     />
   );

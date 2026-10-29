@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { CourtScheduleBlockViewModel } from '../types/court-schedule-block';
+import type { CourtScheduleItemDto } from '../types/court-status.types';
 import type { CourtSelection } from '../utils/time-selection.utils';
 import { buildSelectedRange, isSelectableSlot } from '../utils/time-selection.utils';
 
@@ -20,20 +20,18 @@ export interface CourtSelectionStore {
     courtName: string,
     slot: string,
     timelineHours: string[],
-    bookings: CourtScheduleBlockViewModel[],
+    bookings: CourtScheduleItemDto[],
     date: string,
     courtStatus?: string,
-    timezone?: string,
   ) => void;
 
   updateSelection: (
     courtId: string,
     slot: string,
     timelineHours: string[],
-    bookings: CourtScheduleBlockViewModel[],
+    bookings: CourtScheduleItemDto[],
     date: string,
     courtStatus?: string,
-    timezone?: string,
   ) => void;
 
   completeSelection: () => void;
@@ -49,10 +47,9 @@ export interface CourtSelectionStore {
     courtName: string,
     slot: string,
     timelineHours: string[],
-    bookings: CourtScheduleBlockViewModel[],
+    bookings: CourtScheduleItemDto[],
     date: string,
     courtStatus?: string,
-    timezone?: string,
   ) => void;
 }
 
@@ -68,18 +65,9 @@ export const useCourtSelectionStore = create<CourtSelectionStore>((set, get) => 
 
   setHoverSlot: (slot) => set({ hoverSlot: slot }),
 
-  startSelection: (
-    courtId,
-    courtName,
-    slot,
-    timelineHours,
-    bookings,
-    date,
-    courtStatus = 'active',
-    timezone = 'Asia/Ho_Chi_Minh',
-  ) => {
+  startSelection: (courtId, courtName, slot, timelineHours, bookings, date, courtStatus = 'active') => {
     // Edge Case 2: User starts selection on booked/disabled slot -> Nothing happens
-    if (!isSelectableSlot(courtId, slot, courtStatus, date, bookings, undefined, timezone)) {
+    if (!isSelectableSlot(courtId, slot, courtStatus, date, bookings)) {
       return;
     }
 
@@ -92,8 +80,6 @@ export const useCourtSelectionStore = create<CourtSelectionStore>((set, get) => 
       bookings,
       date,
       courtStatus,
-      undefined,
-      timezone,
     );
 
     if (range) {
@@ -109,15 +95,7 @@ export const useCourtSelectionStore = create<CourtSelectionStore>((set, get) => 
     }
   },
 
-  updateSelection: (
-    courtId,
-    slot,
-    timelineHours,
-    bookings,
-    date,
-    courtStatus = 'active',
-    timezone = 'Asia/Ho_Chi_Minh',
-  ) => {
+  updateSelection: (courtId, slot, timelineHours, bookings, date, courtStatus = 'active') => {
     const { isSelecting, selectedCourtId, selectedCourtName, selectionStart } = get();
 
     // Rule 1: Selection must remain inside the same court
@@ -135,8 +113,6 @@ export const useCourtSelectionStore = create<CourtSelectionStore>((set, get) => 
       bookings,
       date,
       courtStatus,
-      undefined,
-      timezone,
     );
 
     if (range) {
@@ -165,20 +141,11 @@ export const useCourtSelectionStore = create<CourtSelectionStore>((set, get) => 
     });
   },
 
-  handleClickSlot: (
-    courtId,
-    courtName,
-    slot,
-    timelineHours,
-    bookings,
-    date,
-    courtStatus = 'active',
-    timezone = 'Asia/Ho_Chi_Minh',
-  ) => {
+  handleClickSlot: (courtId, courtName, slot, timelineHours, bookings, date, courtStatus = 'active') => {
     const { selectedCourtId, selectedSlots, selectionStart } = get();
 
     // Edge Case 2: Cannot select booked or disabled slot
-    if (!isSelectableSlot(courtId, slot, courtStatus, date, bookings, undefined, timezone)) {
+    if (!isSelectableSlot(courtId, slot, courtStatus, date, bookings)) {
       return;
     }
 
@@ -199,8 +166,6 @@ export const useCourtSelectionStore = create<CourtSelectionStore>((set, get) => 
         bookings,
         date,
         courtStatus,
-        undefined,
-        timezone,
       );
       if (range) {
         set({
@@ -226,8 +191,6 @@ export const useCourtSelectionStore = create<CourtSelectionStore>((set, get) => 
       bookings,
       date,
       courtStatus,
-      undefined,
-      timezone,
     );
 
     if (range) {

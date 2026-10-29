@@ -5,13 +5,12 @@ interface CourtStatusBookingFrameProps {
   left: number;
   width: number;
   height: number;
-  backgroundColor?: string;
+  backgroundColor: string;
   color?: string;
   className?: string;
   role?: React.AriaRole;
   tabIndex?: number;
   ariaLabel?: string;
-  title?: string;
   onClick?: React.MouseEventHandler<HTMLDivElement>;
   onDoubleClick?: React.MouseEventHandler<HTMLDivElement>;
   onKeyDown?: React.KeyboardEventHandler<HTMLDivElement>;
@@ -28,7 +27,6 @@ export const CourtStatusBookingFrame: React.FC<CourtStatusBookingFrameProps> = (
   role,
   tabIndex,
   ariaLabel,
-  title,
   onClick,
   onDoubleClick,
   onKeyDown,
@@ -38,7 +36,6 @@ export const CourtStatusBookingFrame: React.FC<CourtStatusBookingFrameProps> = (
     role={role}
     tabIndex={tabIndex}
     aria-label={ariaLabel}
-    title={title}
     onClick={onClick}
     onDoubleClick={onDoubleClick}
     onKeyDown={onKeyDown}
