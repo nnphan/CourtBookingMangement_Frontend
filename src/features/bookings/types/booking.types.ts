@@ -15,9 +15,9 @@ export interface SelectedBookingCourt {
 export interface BookingScheduleDetail {
   courtId: string;
   courtName?: string;
-  bookingDate: string;
-  startTime: string;
-  endTime: string;
+  bookingDate?: string;
+  startTime?: string;
+  endTime?: string;
   price?: number;
 }
 
@@ -25,9 +25,9 @@ export interface MultiCourtBookingSelection {
   details?: BookingScheduleDetail[];
   branchId: string;
   branchName?: string;
-  bookingDate: string; // YYYY-MM-DD
-  startTime: string; // HH:mm or HH:mm:ss
-  endTime: string; // HH:mm or HH:mm:ss
+  bookingDate?: string; // YYYY-MM-DD
+  startTime?: string; // HH:mm or HH:mm:ss
+  endTime?: string; // HH:mm or HH:mm:ss
   courts: SelectedBookingCourt[];
 }
 
@@ -107,10 +107,22 @@ export interface CreateBookingFormValues {
 
 export type BookingStatusValue = 'PENDING' | 'CHECKED_IN' | 'COMPLETED' | string;
 
+export interface BookingDetailItemDto {
+  bookingDetailId: string;
+  courtId: string;
+  courtName: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  price: number;
+}
+
 export interface BookingDetailDto {
   bookingId: string;
   bookingCode: string;
-  courtName: string;
+  branchId?: string;
+  branchName: string;
+  customerId?: string | null;
   customerName: string;
   phoneNumber: string;
   bookingDate: string;
@@ -122,7 +134,9 @@ export interface BookingDetailDto {
   paymentStatus: string;
   totalAmount: number;
   paidAmount: number;
-  remainingAmount: number;
+  remainingAmount?: number;
+  details?: BookingDetailItemDto[];
+  courtName?: string;
   notes: string | null;
 }
 

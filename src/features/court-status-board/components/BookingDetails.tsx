@@ -11,6 +11,7 @@ import {
   FileText,
   Hourglass,
   Activity,
+  Layers,
 } from 'lucide-react';
 import type { BookingDetailDto } from '@/features/bookings/types/booking.types';
 import {
@@ -35,12 +36,30 @@ export const BookingDetails: React.FC<BookingDetailsProps> = memo(
     const { t } = useTranslation();
 
     const paymentStatusConfig = mapPaymentStatus(booking.paymentStatus);
-    const formattedDate = formatBookingDate(booking.bookingDate);
-    const startTime = formatBookingTime(booking.startTime);
-    const endTime = formatBookingTime(booking.endTime);
-    const duration = calculateBookingDuration(booking.startTime, booking.endTime);
+    const details = booking.details ?? [];
+    const firstDetail = details[0];
+    const lastDetail = details[details.length - 1];
+
+    const bookingDate = booking.bookingDate || firstDetail?.bookingDate;
+    const formattedDate = formatBookingDate(bookingDate);
+
+    const rawStartTime = booking.startTime || firstDetail?.startTime;
+    const rawEndTime = booking.endTime || lastDetail?.endTime;
+    const startTime = formatBookingTime(rawStartTime);
+    const endTime = formatBookingTime(rawEndTime);
+    const duration = calculateBookingDuration(rawStartTime, rawEndTime);
+
     const bookingTypeLabel = mapBookingTypeToLabel(booking.bookingType);
     const paymentMethodLabel = mapPaymentMethod(booking.paymentMethod);
+
+    const remainingAmount =
+      booking.remainingAmount ??
+      Math.max(0, (booking.totalAmount ?? 0) - (booking.paidAmount ?? 0));
+
+    const courtNames =
+      details.map((d) => d.courtName).filter(Boolean).join(', ') ||
+      booking.courtName ||
+      '-';
 
     return (
       <div className="space-y-4 py-2 text-sm">
@@ -97,8 +116,16 @@ export const BookingDetails: React.FC<BookingDetailsProps> = memo(
             <div className="flex items-start gap-2 text-slate-700">
               <MapPin className="mt-0.5 size-4 shrink-0 text-emerald-600" />
               <div>
+                <div className="text-[10px] text-slate-400">Chi nhánh</div>
+                <div className="font-semibold text-slate-900">{booking.branchName || '-'}</div>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2 text-slate-700">
+              <Layers className="mt-0.5 size-4 shrink-0 text-emerald-600" />
+              <div>
                 <div className="text-[10px] text-slate-400">Sân đấu</div>
-                <div className="font-semibold text-slate-900">{booking.courtName || '-'}</div>
+                <div className="font-semibold text-slate-900">{courtNames}</div>
               </div>
             </div>
 
@@ -128,6 +155,36 @@ export const BookingDetails: React.FC<BookingDetailsProps> = memo(
               </div>
             </div>
           </div>
+
+          {/* Detailed Court Schedule Items (when details array has records) */}
+          {details.length > 0 && (
+            <div className="mt-3 space-y-2 border-t border-slate-100 pt-3">
+              <div className="text-[11px] font-semibold text-slate-500">
+                Chi tiết sân ({details.length}):
+              </div>
+              <div className="space-y-1.5">
+                {details.map((detail) => (
+                  <div
+                    key={detail.bookingDetailId}
+                    className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1.5 text-xs"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-emerald-700">{detail.courtName}</span>
+                      <span className="text-slate-400">•</span>
+                      <span className="text-slate-600">
+                        {formatBookingTime(detail.startTime)} - {formatBookingTime(detail.endTime)}
+                      </span>
+                    </div>
+                    {detail.price !== undefined && (
+                      <span className="font-semibold text-slate-800">
+                        {formatCurrency(detail.price)}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Booking Type Section */}
@@ -138,7 +195,7 @@ export const BookingDetails: React.FC<BookingDetailsProps> = memo(
           </h4>
           <div className="flex items-center justify-between text-xs">
             <span className="text-slate-500">Hình thức đặt:</span>
-            <span className="rounded-md border border-purple-200 bg-purple-50 px-2 py-0.5 font-bold text-purple-700 text-slate-900">
+            <span className="rounded-md border border-purple-200 bg-purple-50 px-2 py-0.5 font-bold text-purple-700">
               {bookingTypeLabel}
             </span>
           </div>
@@ -201,10 +258,10 @@ export const BookingDetails: React.FC<BookingDetailsProps> = memo(
               <span
                 className={cn(
                   'font-bold',
-                  (booking.remainingAmount ?? 0) > 0 ? 'text-red-600' : 'text-slate-700',
+                  remainingAmount > 0 ? 'text-red-600' : 'text-slate-700',
                 )}
               >
-                {formatCurrency(booking.remainingAmount)}
+                {formatCurrency(remainingAmount)}
               </span>
             </div>
           </div>
@@ -216,7 +273,7 @@ export const BookingDetails: React.FC<BookingDetailsProps> = memo(
               <FileText className="size-3.5 text-slate-400" />
               {t('courtStatus.detail.notes', 'Ghi chú')}
             </h4>
-            <p className="border-slate-150 rounded-lg border bg-slate-50/80 p-2.5 text-xs text-slate-700 italic">
+            <p className="rounded-lg border border-slate-150 bg-slate-50/80 p-2.5 text-xs text-slate-700 italic">
               {booking.notes && booking.notes.trim() ? booking.notes : 'Không có ghi chú.'}
             </p>
           </div>

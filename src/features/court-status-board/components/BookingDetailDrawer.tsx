@@ -34,7 +34,7 @@ export const BookingDetailDrawer: React.FC<BookingDetailDrawerProps> = memo(
     // Priority: Explicit bookingId prop, fallback to booking?.id
     const targetBookingId = bookingId ?? booking?.id;
 
-    // Fetch latest booking detail directly from backend API
+    // Fetch latest booking detail directly from backend API (GET /api/bookings/{id})
     const {
       data: bookingDetail,
       isLoading,
@@ -47,24 +47,48 @@ export const BookingDetailDrawer: React.FC<BookingDetailDrawerProps> = memo(
 
     // Provide effective BookingItem for action handlers (edit, check-in, cancel)
     const getEffectiveBooking = (): BookingItem | null => {
-      if (booking) return booking;
-      if (!bookingDetail) return null;
+      if (!bookingDetail) return booking ?? null;
+      const firstDetail = bookingDetail.details?.[0];
+      const lastDetail = bookingDetail.details?.[bookingDetail.details.length - 1];
+      const courtNames =
+        bookingDetail.details?.map((d) => d.courtName).filter(Boolean).join(', ') ||
+        bookingDetail.courtName ||
+        booking?.courtName ||
+        '';
+      const targetDate =
+        firstDetail?.bookingDate || bookingDetail.bookingDate || booking?.date || '';
+      const targetStartTime =
+        firstDetail?.startTime || bookingDetail.startTime || booking?.startTime || '';
+      const targetEndTime =
+        lastDetail?.endTime || bookingDetail.endTime || booking?.endTime || '';
+      const total = bookingDetail.totalAmount ?? booking?.totalAmount ?? 0;
+      const paid = bookingDetail.paidAmount ?? 0;
+      const remaining =
+        bookingDetail.remainingAmount ?? Math.max(0, total - paid);
+
+      const paymentLower = (
+        bookingDetail.paymentStatus || booking?.paymentStatus || 'unpaid'
+      ).toLowerCase();
+
       return {
         id: bookingDetail.bookingId,
         bookingNumber: bookingDetail.bookingCode || bookingDetail.bookingId,
-        courtId: '',
-        courtName: bookingDetail.courtName,
-        customerName: bookingDetail.customerName,
-        phoneNumber: bookingDetail.phoneNumber,
-        date: bookingDetail.bookingDate,
-        startTime: bookingDetail.startTime,
-        endTime: bookingDetail.endTime,
+        courtId: firstDetail?.courtId || booking?.courtId || '',
+        courtName: courtNames,
+        customerName: bookingDetail.customerName || booking?.customerName || '',
+        phoneNumber: bookingDetail.phoneNumber || booking?.phoneNumber || '',
+        date: targetDate,
+        startTime: targetStartTime,
+        endTime: targetEndTime,
         bookingType: toBookingTypeEnum(bookingDetail.bookingType),
-        bookingStatus: bookingDetail.bookingStatus,
-        paymentStatus: 'unpaid',
-        totalAmount: bookingDetail.totalAmount,
-        remainingAmount: bookingDetail.remainingAmount,
-        notes: bookingDetail.notes || undefined,
+        bookingStatus: bookingDetail.bookingStatus || booking?.bookingStatus || 'Pending',
+        paymentStatus: paymentLower as any,
+        totalAmount: total,
+        paidAmount: paid,
+        remainingAmount: remaining,
+        notes: bookingDetail.notes ?? booking?.notes,
+        checkedIn: booking?.checkedIn,
+        checkedOut: booking?.checkedOut,
       };
     };
 
