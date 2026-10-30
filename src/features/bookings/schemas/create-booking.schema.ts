@@ -1,6 +1,21 @@
 import { z } from 'zod';
 
-export const VIETNAM_PHONE_REGEX = /^(0|\+84)[3|5|7|8|9][0-9]{8}$/;
+export const VIETNAM_PHONE_REGEX = /^0[0-9]{9,10}$/;
+
+export const normalizePhoneNumber = (phone?: string | null): string => {
+  if (!phone) return '';
+  let cleaned = phone.trim().replace(/[\s.-]/g, '');
+  if (cleaned.startsWith('+84')) {
+    cleaned = '0' + cleaned.slice(3);
+  }
+  return cleaned;
+};
+
+export const isValidVietnamPhone = (phone?: string | null): boolean => {
+  if (!phone) return false;
+  const normalized = normalizePhoneNumber(phone);
+  return VIETNAM_PHONE_REGEX.test(normalized);
+};
 
 export const createBookingSchema = z
   .object({
@@ -11,7 +26,7 @@ export const createBookingSchema = z
       .string()
       .trim()
       .optional()
-      .refine((value) => !value || VIETNAM_PHONE_REGEX.test(value), {
+      .refine((value) => !value || isValidVietnamPhone(value), {
         message: 'Số điện thoại không hợp lệ',
       }),
     courtId: z.string({ required_error: 'Vui lòng chọn sân' }).min(1, 'Vui lòng chọn sân'),
@@ -54,20 +69,20 @@ export const buildCreateBookingFormSchema = (requireContact: boolean) =>
     })
     .superRefine((data, ctx) => {
       if (!requireContact) return;
-      if (!data.customerName) {
+      if (!data.customerName || data.customerName.trim().length === 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['customerName'],
           message: 'booking.validation.customerNameRequired',
         });
       }
-      if (!data.phoneNumber) {
+      if (!data.phoneNumber || data.phoneNumber.trim().length === 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['phoneNumber'],
           message: 'booking.validation.phoneNumberRequired',
         });
-      } else if (!VIETNAM_PHONE_REGEX.test(data.phoneNumber)) {
+      } else if (!isValidVietnamPhone(data.phoneNumber)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['phoneNumber'],

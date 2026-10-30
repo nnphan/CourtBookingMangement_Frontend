@@ -1,5 +1,6 @@
 import { useAuthStore } from '@/features/auth/store/auth.store';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
+import { tokenStorage, isExpired } from '@/lib/token-storage';
 
 export type BookingCallerMode = 'loading' | 'authenticated' | 'guest';
 
@@ -14,6 +15,14 @@ export interface BookingCaller {
 
 /** Resolves authenticated vs Guest only after auth hydration to avoid flashing Guest fields. */
 export const useBookingCaller = (): BookingCaller => {
+  const token = tokenStorage.read()?.accessToken;
+  const isDefinitelyNoToken = !token || isExpired(token);
+
+  // If there is unequivocally no valid token in storage, caller is a guest immediately without loading stall
+  if (isDefinitelyNoToken) {
+    return { mode: 'guest', customerName: '', phoneNumber: '', profileIncomplete: false };
+  }
+
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated());
   const { user, isLoading } = useCurrentUser();

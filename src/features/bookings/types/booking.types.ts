@@ -12,7 +12,17 @@ export interface SelectedBookingCourt {
  * Shared multi-Court selection: every Court shares one Branch, Date and time range.
  * Used by CustomerCourtStatusPage, CourtStatusPage and CreateBookingDialog.
  */
+export interface BookingScheduleDetail {
+  courtId: string;
+  courtName?: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  price?: number;
+}
+
 export interface MultiCourtBookingSelection {
+  details?: BookingScheduleDetail[];
   branchId: string;
   branchName?: string;
   bookingDate: string; // YYYY-MM-DD

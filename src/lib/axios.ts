@@ -5,7 +5,7 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from 'axios';
 import { env } from '@/lib/env';
-import { tokenStorage } from '@/lib/token-storage';
+import { tokenStorage, isExpired } from '@/lib/token-storage';
 import type { ApiErrorShape } from '@/types/api';
 import type { ValidationError } from '@/types/api';
 
@@ -28,8 +28,16 @@ export const http: AxiosInstance = axios.create({
 /* ---------------------------------------------------------------- request */
 http.interceptors.request.use((config) => {
   const tokens = tokenStorage.read();
-  if (tokens?.accessToken) {
+  if (
+    tokens?.accessToken &&
+    typeof tokens.accessToken === 'string' &&
+    tokens.accessToken !== 'undefined' &&
+    tokens.accessToken !== 'null' &&
+    !isExpired(tokens.accessToken)
+  ) {
     config.headers.set('Authorization', `Bearer ${tokens.accessToken}`);
+  } else {
+    config.headers.delete('Authorization');
   }
   config.headers.set(
     'Accept-Language',

@@ -1,3 +1,4 @@
+import { normalizePhoneNumber } from '../schemas/create-booking.schema';
 import dayjs from '@/lib/dayjs';
 import type {
   BookingTypeApi,
@@ -212,10 +213,29 @@ export const toCreateBookingRequest = (
   values: CreateBookingFormValues,
   contact: CreateBookingMapperContact = values,
 ): CreateBookingRequest => {
-  const bookingDate = formatBookingDateToApi(selection.bookingDate);
-  const startTime = formatTimeToApi(selection.startTime);
-  const endTime = formatTimeToApi(selection.endTime);
-  const courtIds = Array.from(new Set(selection.courts.map((court) => court.courtId)));
+  const defaultBookingDate = formatBookingDateToApi(selection.bookingDate);
+  const defaultStartTime = formatTimeToApi(selection.startTime);
+  const defaultEndTime = formatTimeToApi(selection.endTime);
+  const courtIds = Array.from(new Set((selection.courts ?? []).map((court) => court.courtId)));
+
+  const normalizedPhone = contact.phoneNumber
+    ? normalizePhoneNumber(contact.phoneNumber)
+    : undefined;
+
+  const details: CreateBookingDetailRequest[] =
+    selection.details && selection.details.length > 0
+      ? selection.details.map((d) => ({
+          courtId: d.courtId,
+          bookingDate: formatBookingDateToApi(d.bookingDate) || defaultBookingDate,
+          startTime: formatTimeToApi(d.startTime),
+          endTime: formatTimeToApi(d.endTime),
+        }))
+      : courtIds.map((courtId) => ({
+          courtId,
+          bookingDate: defaultBookingDate,
+          startTime: defaultStartTime,
+          endTime: defaultEndTime,
+        }));
 
   return {
     branchId: selection.branchId,
@@ -223,7 +243,7 @@ export const toCreateBookingRequest = (
     paymentMethod: values.paymentMethod,
     notes: values.notes?.trim() ?? '',
     customerName: contact.customerName?.trim() || undefined,
-    phoneNumber: contact.phoneNumber?.trim() || undefined,
-    details: courtIds.map((courtId) => ({ courtId, bookingDate, startTime, endTime })),
+    phoneNumber: normalizedPhone || undefined,
+    details,
   };
 };

@@ -70,8 +70,15 @@ export const validateSelection = (
   selection: MultiCourtBookingSelection | null | undefined,
 ): SelectionValidationError | null => {
   if (!selection || !selection.branchId) return 'missingBranch';
+  if (selection.details && selection.details.length > 0) {
+    for (const d of selection.details) {
+      if (!d.bookingDate) return 'missingDate';
+      if (timeToMinutes(d.endTime) <= timeToMinutes(d.startTime)) return 'invalidRange';
+    }
+    return null;
+  }
   if (!selection.bookingDate) return 'missingDate';
-  if (dedupeCourts(selection.courts).length === 0) return 'atLeastOneCourt';
+  if (dedupeCourts(selection.courts ?? []).length === 0) return 'atLeastOneCourt';
   if (timeToMinutes(selection.endTime) <= timeToMinutes(selection.startTime)) return 'invalidRange';
   return null;
 };
