@@ -7,7 +7,13 @@ import { useBranchSearchStore } from '@/features/branch-discovery/store/branch-s
 import { useCustomerCourtStatus } from '../hooks/useCustomerCourtStatus';
 import { useCustomerCourtStatusStore } from '../store/customer-court-status.store';
 import { CourtStatusHeader } from '@/features/court-status/components/CourtStatusHeader';
-import { CourtStatusBoard } from '@/features/court-status/components/CourtStatusBoard';
+import {
+  CourtScheduleBoard,
+  type CourtScheduleBoardCourt,
+  type CourtScheduleBoardBooking,
+} from '@/features/court-status/components/CourtScheduleBoard';
+import { SelectedScheduleSummary } from '@/features/court-status/components/SelectedScheduleSummary';
+import { useCourtSlotSelection } from '@/features/court-status/hooks/useCourtSlotSelection';
 import { StatusLegend } from '../components/StatusLegend';
 import { CustomerNoticeBanner } from '../components/CustomerNoticeBanner';
 import { CourtPriceModal } from '../components/CourtPriceModal';
@@ -16,9 +22,7 @@ import { CustomerCourtStatusSkeleton } from '../components/CustomerCourtStatusSk
 import { CustomerCourtStatusEmpty } from '../components/CustomerCourtStatusEmpty';
 import { CustomerCourtStatusError } from '../components/CustomerCourtStatusError';
 import { CustomerDatePickerDialog } from '../components/CustomerDatePickerDialog';
-import type { CourtSelection } from '@/features/court-status/utils/time-selection.utils';
 import type { MultiCourtBookingSelection } from '@/features/bookings/types/booking.types';
-import { useCourtSelectionStore } from '@/features/court-status/store/court-selection.store';
 import { formatBookingDateToApi, formatTimeToApi } from '@/features/bookings/utils/booking.mapper';
 
 interface NavigationLocationState {
@@ -49,13 +53,22 @@ export const CustomerCourtStatusPage: React.FC = () => {
   const setSelectedDate = useCustomerCourtStatusStore((s) => s.setSelectedDate);
   const zoomLevel = useCustomerCourtStatusStore((s) => s.zoomLevel);
   const setZoomLevel = useCustomerCourtStatusStore((s) => s.setZoomLevel);
-  const selection = useCourtSelectionStore((s) => s.selection);
-  const selectedCourts = useCourtSelectionStore((s) => s.selectedCourts);
-  const removeCourt = useCourtSelectionStore((s) => s.removeCourt);
   const [isCreateBookingOpen, setIsCreateBookingOpen] = useState(false);
 
+  // Unified multi-court, multi-time-slot selection state
+  const {
+    selectedSlotKeys,
+    normalizedRanges,
+    totalDurationHours,
+    totalCourtCount,
+    hasSelection,
+    toggleSlot,
+    removeRange,
+    removeCourt,
+    clearSelection,
+  } = useCourtSlotSelection({ defaultSlotDurationMinutes: 60 });
+
   // Single Source of Truth Date Resolution
-  // Priority: 1. Route Date (?date= or location.state) -> 2. Branch Search Store -> 3. Local Store -> 4. Today
   const routeDate = useMemo(() => {
     if (queryDate && dayjs(queryDate).isValid()) {
       return dayjs(queryDate).format('YYYY-MM-DD');
@@ -77,6 +90,11 @@ export const CustomerCourtStatusPage: React.FC = () => {
 
   const activeBranchId = targetBranchId || selectedBranchId;
 
+  // Clear selections when date or branch changes
+  useEffect(() => {
+    clearSelection();
+  }, [activeBranchId, selectedDate, clearSelection]);
+
   // Sync route parameter branchId into Zustand store
   useEffect(() => {
     if (targetBranchId && targetBranchId !== selectedBranchId) {
@@ -84,7 +102,7 @@ export const CustomerCourtStatusPage: React.FC = () => {
     }
   }, [targetBranchId, selectedBranchId, setSelectedBranchId]);
 
-  // Sync resolved selectedDate into store and URL query string for deep linking & refresh persistence
+  // Sync resolved selectedDate into store and URL query string for deep linking
   useEffect(() => {
     if (selectedDate !== storeDate) {
       setSelectedDate(selectedDate);
@@ -130,7 +148,6 @@ export const CustomerCourtStatusPage: React.FC = () => {
     navigate(-1);
   }, [navigate]);
 
-  // Helper to update both store and URL query string when user changes date
   const updateSelectedDate = useCallback(
     (newDate: string) => {
       const normalized =
@@ -150,7 +167,6 @@ export const CustomerCourtStatusPage: React.FC = () => {
     [setSelectedDate, setSearchParams],
   );
 
-  // Date Navigation Handlers
   const handlePrevDay = useCallback(() => {
     const prev = dayjs(selectedDate).subtract(1, 'day').format('YYYY-MM-DD');
     updateSelectedDate(prev);
@@ -169,15 +185,6 @@ export const CustomerCourtStatusPage: React.FC = () => {
     [navigate, selectedDate, setSelectedBranchId],
   );
 
-  // Handle confirming multi-cell selection from CourtStatusBoard
-  const handleConfirmSelection = useCallback(
-    (sel: CourtSelection) => {
-      if (!activeBranchId || sel.selectedSlots.length === 0 || sel.durationHours <= 0) return;
-      setIsCreateBookingOpen(true);
-    },
-    [activeBranchId],
-  );
-
   // Current branch display resolution
   const currentBranch = useMemo(() => {
     const found = branches.find((b) => b.id === activeBranchId);
@@ -194,30 +201,73 @@ export const CustomerCourtStatusPage: React.FC = () => {
     };
   }, [branches, activeBranchId, branchName, statusData?.branchName, openTime, closeTime]);
 
+  // Map courts to board interface
+  const boardCourts = useMemo<CourtScheduleBoardCourt[]>(() => {
+    return courts.map((c) => ({
+      id: c.courtId,
+      name: c.courtName,
+      status: c.status,
+    }));
+  }, [courts]);
+
+  // Customer-facing page: never expose other customers' personal or payment data
+  const boardBookings = useMemo<CourtScheduleBoardBooking[]>(() => {
+    return scheduleItems.map((item) => ({
+      id: item.bookingId,
+      courtId: item.courtId,
+      courtName: item.courtName,
+      bookingDate: item.bookingDate || selectedDate,
+      startTime: item.startTime,
+      endTime: item.endTime,
+      bookingStatus: item.bookingStatus,
+      color: item.color,
+      title: 'Đã được đặt',
+    }));
+  }, [scheduleItems, selectedDate]);
+
+  // Handle cell slot toggle
+  const handleToggleSlot = useCallback(
+    (court: CourtScheduleBoardCourt, slotTime: string) => {
+      toggleSlot({
+        courtId: court.id,
+        courtName: court.name,
+        bookingDate: selectedDate,
+        startTime: slotTime,
+      });
+    },
+    [toggleSlot, selectedDate],
+  );
+
+  // Multi-court booking selection mapped losslessly to CreateBookingDialog
   const bookingSelection = useMemo<MultiCourtBookingSelection | null>(() => {
-    if (!selection || !activeBranchId || selection.durationHours <= 0 || selectedCourts.length === 0) return null;
+    if (normalizedRanges.length === 0 || !activeBranchId) return null;
+
+    const primaryRange = normalizedRanges[0]!;
+    const courtsMap = new Map<string, string>();
+    for (const r of normalizedRanges) {
+      courtsMap.set(r.courtId, r.courtName);
+    }
+    const selectedCourtsList = Array.from(courtsMap.entries()).map(([courtId, courtName]) => ({
+      courtId,
+      courtName,
+    }));
+
     return {
       branchId: activeBranchId,
-      branchName: currentBranch.branchName,
+      branchName: branchName || currentBranch.branchName,
       bookingDate: formatBookingDateToApi(selectedDate),
-      startTime: formatTimeToApi(selection.startTime),
-      endTime: formatTimeToApi(selection.endTime),
-      courts: selectedCourts,
-    };
-  }, [activeBranchId, currentBranch.branchName, selectedDate, selectedCourts, selection]);
-
-  // Customer-facing page: never expose other customers' personal or payment data.
-  const publicScheduleItems = useMemo(
-    () =>
-      scheduleItems.map((item) => ({
-        ...item,
-        customerName: '',
-        phoneNumber: '',
-        paymentStatus: '',
-        title: 'Đã được đặt',
+      startTime: formatTimeToApi(primaryRange.startTime),
+      endTime: formatTimeToApi(primaryRange.endTime),
+      courts: selectedCourtsList,
+      details: normalizedRanges.map((range) => ({
+        courtId: range.courtId,
+        courtName: range.courtName,
+        bookingDate: formatBookingDateToApi(range.bookingDate),
+        startTime: formatTimeToApi(range.startTime),
+        endTime: formatTimeToApi(range.endTime),
       })),
-    [scheduleItems],
-  );
+    };
+  }, [normalizedRanges, activeBranchId, branchName, currentBranch.branchName, selectedDate]);
 
   const invalidateCourtStatus = useCallback(() => {
     if (!activeBranchId) return;
@@ -228,9 +278,9 @@ export const CustomerCourtStatusPage: React.FC = () => {
   }, [activeBranchId, queryClient, selectedDate]);
 
   const handleBookingCreated = useCallback(() => {
-    useCourtSelectionStore.getState().clearSelection();
+    clearSelection();
     invalidateCourtStatus();
-  }, [invalidateCourtStatus]);
+  }, [clearSelection, invalidateCourtStatus]);
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-[#0d6838] text-white">
@@ -274,8 +324,8 @@ export const CustomerCourtStatusPage: React.FC = () => {
         <CustomerNoticeBanner />
       </section>
 
-      {/* 5. MAIN SCHEDULER VIEW: Rendered completely from GET /api/court-status */}
-      <main className="flex w-full flex-1 flex-col overflow-hidden bg-white">
+      {/* 5. MAIN SCHEDULER VIEW */}
+      <main className="relative flex w-full flex-1 flex-col overflow-hidden bg-white">
         {isLoading ? (
           <CustomerCourtStatusSkeleton />
         ) : isError ? (
@@ -290,18 +340,31 @@ export const CustomerCourtStatusPage: React.FC = () => {
             <CustomerCourtStatusEmpty date={selectedDate} />
           </div>
         ) : (
-          <div className="flex h-full w-full flex-1 flex-col overflow-hidden">
-            <CourtStatusBoard
-              courts={courts}
-              scheduleItems={publicScheduleItems}
+          <div className="flex h-full w-full flex-1 flex-col overflow-hidden pb-16">
+            <CourtScheduleBoard
+              courts={boardCourts}
+              bookings={boardBookings}
+              selectedDate={selectedDate}
               openTime={openTime}
               closeTime={closeTime}
-              selectedDate={selectedDate}
-              selectedBranchId={activeBranchId}
               zoomLevel={zoomLevel}
               onZoomChange={setZoomLevel}
-              onConfirmSelection={handleConfirmSelection}
+              selectedSlotKeys={selectedSlotKeys}
+              onToggleSlot={handleToggleSlot}
             />
+
+            {/* Selected Schedule Summary Bar */}
+            {hasSelection && (
+              <SelectedScheduleSummary
+                ranges={normalizedRanges}
+                totalDurationHours={totalDurationHours}
+                totalCourtCount={totalCourtCount}
+                onRemoveRange={removeRange}
+                onClearAll={clearSelection}
+                onConfirm={() => setIsCreateBookingOpen(true)}
+                confirmLabel="Tiếp tục đặt sân"
+              />
+            )}
           </div>
         )}
       </main>

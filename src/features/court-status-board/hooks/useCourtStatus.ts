@@ -57,6 +57,7 @@ function mapScheduleItemToBooking(item: CourtScheduleItem): BookingItem {
     bookingStatus: item.bookingStatus || 'Pending',
     paymentStatus: paymentMap[paymentStatusLower] ?? 'paid',
     notes: item.title,
+    color: item.color,
   };
 }
 

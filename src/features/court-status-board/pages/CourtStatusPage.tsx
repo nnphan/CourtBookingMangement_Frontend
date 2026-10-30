@@ -11,7 +11,13 @@ import { useCourtStatusStore } from '../store/court-status.store';
 import { useMyBranches } from '@/hooks/branches/useMyBranches';
 import { CourtStatusFilters } from '../components/CourtStatusFilters';
 import { LegendBar } from '../components/LegendBar';
-import { CourtScheduler } from '../components/CourtScheduler';
+import {
+  CourtScheduleBoard,
+  type CourtScheduleBoardCourt,
+  type CourtScheduleBoardBooking,
+} from '@/features/court-status/components/CourtScheduleBoard';
+import { SelectedScheduleSummary } from '@/features/court-status/components/SelectedScheduleSummary';
+import { useCourtSlotSelection } from '@/features/court-status/hooks/useCourtSlotSelection';
 import { BookingDetailDrawer } from '../components/BookingDetailDrawer';
 import { CreateBookingDialog } from '@/features/bookings/components/CreateBookingDialog';
 import { EditBookingDialog } from '../components/EditBookingDialog';
@@ -23,6 +29,7 @@ import type { BookingItem } from '../types/booking';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 import { CurrentUserMenu } from '@/shared/components/current-user';
 import { ManagementNavigation } from '@/components/navigation';
+import { formatBookingDateToApi, formatTimeToApi } from '@/features/bookings/utils/booking.mapper';
 
 export const CourtStatusPage: React.FC = () => {
   const { t } = useTranslation();
@@ -44,17 +51,13 @@ export const CourtStatusPage: React.FC = () => {
     selectedCourtGroup,
     slotInterval,
     filterParams,
-    dateLabel,
     handleDateChange,
     handleBranchChange,
     handleGroupChange,
     handleIntervalChange,
-    resetFilters,
   } = useCourtStatusFilters();
 
   // Auto-select branch logic
-  // Case 1 & Case 2: Auto select first branch when branches are loaded and none or invalid branch selected
-  // Case 3: No branches returned -> do not select branch
   useEffect(() => {
     if (myBranches.length === 0) return;
 
@@ -64,7 +67,7 @@ export const CourtStatusPage: React.FC = () => {
     }
   }, [myBranches, selectedBranch, handleBranchChange]);
 
-  // Server state query & mutations (automatically refetches when filterParams.branchId changes)
+  // Server state query & mutations
   const {
     courts,
     bookings,
@@ -93,7 +96,6 @@ export const CourtStatusPage: React.FC = () => {
   const isCreateDialogOpen = useCourtStatusStore((s) => s.isCreateDialogOpen);
   const isDetailDrawerOpen = useCourtStatusStore((s) => s.isDetailDrawerOpen);
   const createDialogDefaultValues = useCourtStatusStore((s) => s.createDialogDefaultValues);
-  const activeSelection = useCourtStatusStore((s) => s.activeSelection);
 
   const openCreateDialog = useCourtStatusStore((s) => s.openCreateDialog);
   const closeCreateDialog = useCourtStatusStore((s) => s.closeCreateDialog);
@@ -101,11 +103,76 @@ export const CourtStatusPage: React.FC = () => {
   const openDetailDrawer = useCourtStatusStore((s) => s.openDetailDrawer);
   const closeDetailDrawer = useCourtStatusStore((s) => s.closeDetailDrawer);
 
+  // Independent multi-court, multi-time-slot selection state
+  const {
+    selectedSlotKeys,
+    normalizedRanges,
+    totalDurationHours,
+    totalCourtCount,
+    hasSelection,
+    toggleSlot,
+    removeRange,
+    removeCourt,
+    clearSelection,
+  } = useCourtSlotSelection({ defaultSlotDurationMinutes: slotInterval || 60 });
+
+  // Clear selections when branch or date changes
+  useEffect(() => {
+    clearSelection();
+  }, [selectedBranch, selectedDate, clearSelection]);
+
   const handleBack = useCallback(() => {
     navigate(-1);
   }, [navigate]);
 
   const isPastDate = useMemo(() => SchedulerService.isPastDate(selectedDate), [selectedDate]);
+
+  const filteredCourts = useMemo(() => {
+    if (!selectedCourtGroup || selectedCourtGroup === 'all') return courts;
+    return courts.filter((c) => c.courtGroupId === selectedCourtGroup);
+  }, [courts, selectedCourtGroup]);
+
+  // Board adapters
+  const boardCourts = useMemo<CourtScheduleBoardCourt[]>(() => {
+    return filteredCourts.map((c) => ({
+      id: c.id,
+      name: c.name,
+      status: c.isActive ? 'active' : 'inactive',
+      pricePerHour: c.pricePerHour,
+    }));
+  }, [filteredCourts]);
+
+  const boardBookings = useMemo<CourtScheduleBoardBooking[]>(() => {
+    return bookings.map((b) => ({
+      id: b.id,
+      courtId: b.courtId,
+      courtName: b.courtName,
+      customerName: b.customerName,
+      phoneNumber: b.phoneNumber,
+      bookingDate: b.date || selectedDate,
+      startTime: b.startTime,
+      endTime: b.endTime,
+      bookingType: b.bookingType,
+      bookingStatus: b.bookingStatus,
+      paymentStatus: b.paymentStatus,
+      color: b.color,
+      notes: b.notes,
+      checkedIn: b.checkedIn,
+      checkedOut: b.checkedOut,
+    }));
+  }, [bookings, selectedDate]);
+
+  const handleToggleSlot = useCallback(
+    (court: CourtScheduleBoardCourt, slotTime: string) => {
+      toggleSlot({
+        courtId: court.id,
+        courtName: court.name,
+        bookingDate: selectedDate,
+        startTime: slotTime,
+      });
+    },
+    [toggleSlot, selectedDate],
+  );
 
   const handleOpenCreateBooking = useCallback(
     (initial?: {
@@ -125,13 +192,6 @@ export const CourtStatusPage: React.FC = () => {
         );
         return;
       }
-      if (initial?.startTime && SchedulerService.isPastSlot(targetDate, initial.startTime)) {
-        toast.error(
-          t('courtStatus.pastSlotTooltip', 'Past time slots cannot be booked.'),
-          'Không thể đặt khung giờ trong quá khứ.',
-        );
-        return;
-      }
       openCreateDialog({
         branchId: initial?.branchId ?? selectedBranch,
         date: targetDate,
@@ -142,24 +202,8 @@ export const CourtStatusPage: React.FC = () => {
     [openCreateDialog, selectedDate, selectedBranch, t],
   );
 
-  const handleOpenCreateEvent = useCallback(() => {
-    if (SchedulerService.isPastDate(selectedDate)) {
-      toast.error(
-        t('courtStatus.pastDateAlert', 'Cannot create bookings for past dates.'),
-        'Không thể tạo sự kiện cho các ngày trong quá khứ.',
-      );
-      return;
-    }
-    openCreateDialog({
-      courtId: courts[0]?.id,
-      date: selectedDate,
-      startTime: '08:00',
-      endTime: '12:00',
-    });
-  }, [openCreateDialog, courts, selectedDate, t]);
-
   const handleCancelBooking = useCallback(
-    async (booking: BookingItem) => {
+    async (booking: CourtScheduleBoardBooking | BookingItem) => {
       if (window.confirm(`Bạn có chắc chắn muốn hủy lịch đặt của ${booking.customerName}?`)) {
         await cancelBooking(booking.id);
         closeDetailDrawer();
@@ -169,21 +213,21 @@ export const CourtStatusPage: React.FC = () => {
   );
 
   const handleCheckIn = useCallback(
-    async (booking: BookingItem) => {
+    async (booking: CourtScheduleBoardBooking | BookingItem) => {
       await checkIn(booking.id);
     },
     [checkIn],
   );
 
   const handleCheckOut = useCallback(
-    async (booking: BookingItem) => {
+    async (booking: CourtScheduleBoardBooking | BookingItem) => {
       await checkOut(booking.id);
     },
     [checkOut],
   );
 
-  const handleCreateInvoice = useCallback((booking: BookingItem) => {
-    alert(`Tạo hóa đơn cho lịch đặt ${booking.bookingNumber} - ${booking.customerName}`);
+  const handleCreateInvoice = useCallback((booking: CourtScheduleBoardBooking | BookingItem) => {
+    alert(`Tạo hóa đơn cho lịch đặt ${booking.customerName}`);
   }, []);
 
   const handleSubmitBooking = useCallback(
@@ -195,23 +239,48 @@ export const CourtStatusPage: React.FC = () => {
     [updateBooking],
   );
 
+  // Multi-court booking selection mapped losslessly to CreateBookingDialog
   const createSelection = useMemo<MultiCourtBookingSelection | null>(() => {
+    if (normalizedRanges.length > 0 && selectedBranch) {
+      const primaryRange = normalizedRanges[0]!;
+      const courtsMap = new Map<string, string>();
+      for (const r of normalizedRanges) {
+        courtsMap.set(r.courtId, r.courtName);
+      }
+      const selectedCourtsList = Array.from(courtsMap.entries()).map(([courtId, courtName]) => ({
+        courtId,
+        courtName,
+      }));
+
+      return {
+        branchId: selectedBranch,
+        bookingDate: formatBookingDateToApi(selectedDate),
+        startTime: formatTimeToApi(primaryRange.startTime),
+        endTime: formatTimeToApi(primaryRange.endTime),
+        courts: selectedCourtsList,
+        details: normalizedRanges.map((range) => ({
+          courtId: range.courtId,
+          courtName: range.courtName,
+          bookingDate: formatBookingDateToApi(range.bookingDate),
+          startTime: formatTimeToApi(range.startTime),
+          endTime: formatTimeToApi(range.endTime),
+        })),
+      };
+    }
+
+    // Fallback if dialog opened without slot selection (e.g. from event button or empty state)
     const defaults = createDialogDefaultValues;
     const court = courts.find((item) => item.id === defaults?.courtId) ?? courts[0];
-    const selectedCourts = activeSelection?.courts?.length
-      ? activeSelection.courts
-      : court
-        ? [{ courtId: court.id, courtName: court.name }]
-        : [];
-    if (!selectedBranch || selectedCourts.length === 0 || !defaults?.startTime && !activeSelection?.startTime) return null;
+    const fallbackCourts = court ? [{ courtId: court.id, courtName: court.name }] : [];
+    if (!selectedBranch || fallbackCourts.length === 0) return null;
     return {
       branchId: selectedBranch,
       bookingDate: defaults?.bookingDate ?? defaults?.date ?? selectedDate,
-      startTime: activeSelection?.startTime ?? defaults?.startTime ?? '',
-      endTime: activeSelection?.endTime ?? defaults?.endTime ?? '',
-      courts: selectedCourts,
+      startTime: defaults?.startTime ? formatTimeToApi(defaults.startTime) : '08:00:00',
+      endTime: defaults?.endTime ? formatTimeToApi(defaults.endTime) : '09:00:00',
+      courts: fallbackCourts,
     };
-  }, [activeSelection, courts, createDialogDefaultValues, selectedBranch, selectedDate]);
+  }, [normalizedRanges, selectedBranch, selectedDate, createDialogDefaultValues, courts]);
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-[#0d6838] text-white">
@@ -274,7 +343,7 @@ export const CourtStatusPage: React.FC = () => {
       </section>
 
       {/* Main Content Area */}
-      <main className="flex h-full w-full flex-1 flex-col overflow-hidden bg-white">
+      <main className="relative flex h-full w-full flex-1 flex-col overflow-hidden bg-white">
         {isBranchesLoading || (isLoading && Boolean(selectedBranch)) ? (
           <CourtStatusBoardSkeleton />
         ) : isBranchesError ? (
@@ -317,26 +386,44 @@ export const CourtStatusPage: React.FC = () => {
             />
           </div>
         ) : (
-          <div className="flex h-full w-full flex-1 flex-col overflow-hidden">
-            <CourtScheduler
-              courts={courts}
-              bookings={bookings}
+          <div className="flex h-full w-full flex-1 flex-col overflow-hidden pb-16">
+            <CourtScheduleBoard
+              courts={boardCourts}
+              bookings={boardBookings}
+              selectedDate={selectedDate}
               openTime={openTime}
               closeTime={closeTime}
               slotInterval={slotInterval}
-              dateLabel={dateLabel}
               zoomLevel={zoomLevel}
               onZoomChange={setZoomLevel}
-              onResetFilters={resetFilters}
-              onOpenCreateBooking={handleOpenCreateBooking}
-              onOpenCreateEvent={handleOpenCreateEvent}
-              onSelectBooking={openDetailDrawer}
-              onEditBooking={openEditDialog}
+              selectedSlotKeys={selectedSlotKeys}
+              onToggleSlot={handleToggleSlot}
+              onSelectBooking={(b) => {
+                const found = bookings.find((item) => item.id === b.id);
+                if (found) openDetailDrawer(found);
+              }}
+              onEditBooking={(b) => {
+                const found = bookings.find((item) => item.id === b.id);
+                if (found) openEditDialog(found);
+              }}
               onCheckIn={handleCheckIn}
               onCheckOut={handleCheckOut}
               onCreateInvoice={handleCreateInvoice}
               onCancelBooking={handleCancelBooking}
             />
+
+            {/* Selected Schedule Summary Bar */}
+            {hasSelection && (
+              <SelectedScheduleSummary
+                ranges={normalizedRanges}
+                totalDurationHours={totalDurationHours}
+                totalCourtCount={totalCourtCount}
+                onRemoveRange={removeRange}
+                onClearAll={clearSelection}
+                onConfirm={() => openCreateDialog()}
+                confirmLabel={t('courtStatus.bottom.book', 'Đặt lịch')}
+              />
+            )}
           </div>
         )}
       </main>
@@ -372,8 +459,10 @@ export const CourtStatusPage: React.FC = () => {
           onClose={closeCreateDialog}
           mode="ADMIN"
           selection={createSelection}
+          onRemoveCourt={removeCourt}
           onBookingCreated={() => {
-            useCourtStatusStore.getState().clearActiveSelection();
+            clearSelection();
+            void refetch();
           }}
         />
       )}

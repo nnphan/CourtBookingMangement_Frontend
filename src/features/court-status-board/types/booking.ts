@@ -35,6 +35,7 @@ export interface BookingItem {
   remainingAmount?: number;
   totalAmount?: number;
   notes?: string;
+  color?: string;
   services?: AdditionalService[];
   checkedIn?: boolean;
   checkedOut?: boolean;

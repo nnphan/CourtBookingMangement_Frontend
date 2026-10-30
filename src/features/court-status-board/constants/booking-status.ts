@@ -13,7 +13,7 @@ export interface BookingStatusConfig {
 export const COURT_BOOKING_STATUSES: readonly BookingStatusConfig[] = [
   {
     id: 'available',
-    name: 'Trắng',
+    name: 'Trống',
     color: STATUS_COLORS.AVAILABLE,
     textColor: '#334155',
     border: '#cbd5e1',
