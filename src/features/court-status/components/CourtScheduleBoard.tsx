@@ -472,12 +472,12 @@ export const CourtScheduleBoard: React.FC<CourtScheduleBoardProps> = memo(
                               >
                                 <BookingContextMenu
                                   booking={fullBooking}
-                                  onViewDetails={onSelectBooking ? () => onSelectBooking(b) : undefined}
-                                  onEdit={onEditBooking ? () => onEditBooking(b) : undefined}
-                                  onCheckIn={onCheckIn ? () => onCheckIn(b) : undefined}
-                                  onCheckOut={onCheckOut ? () => onCheckOut(b) : undefined}
-                                  onCreateInvoice={onCreateInvoice ? () => onCreateInvoice(b) : undefined}
-                                  onCancel={onCancelBooking ? () => onCancelBooking(b) : undefined}
+                                  onViewDetails={onSelectBooking}
+                                  onEdit={onEditBooking}
+                                  onCheckIn={onCheckIn}
+                                  onCheckOut={onCheckOut}
+                                  onCreateInvoice={onCreateInvoice}
+                                  onCancel={onCancelBooking}
                                 >
                                   <div>
                                     <BookingTooltip booking={fullBooking}>

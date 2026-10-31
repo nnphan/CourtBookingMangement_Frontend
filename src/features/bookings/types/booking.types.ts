@@ -155,3 +155,17 @@ export interface MyBookingListItemDto {
   paymentMethod: string;
   totalAmount: number;
 }
+
+
+export type BookingStatusUpdate = 'CHECKED_IN' | 'COMPLETED' | 'CANCELLED';
+
+export interface UpdateBookingStatusRequest {
+  status: BookingStatusUpdate | string;
+}
+
+export interface UpdateBookingStatusResponse {
+  bookingId: string;
+  bookingCode: string;
+  status: string;
+  updatedAt: string;
+}

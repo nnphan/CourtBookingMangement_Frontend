@@ -3,6 +3,7 @@ import dayjs from '@/lib/dayjs';
 import type {
   BookingTypeApi,
   CreateBookingFormValues,
+  CreateBookingDetailRequest,
   CreateBookingRequest,
   MultiCourtBookingSelection,
 } from '../types/booking.types';

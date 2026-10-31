@@ -20,12 +20,12 @@ import type { BookingItem } from '../types/booking';
 interface BookingContextMenuProps {
   booking: BookingItem;
   children: React.ReactNode;
-  onViewDetails: (booking: BookingItem) => void;
-  onEdit: (booking: BookingItem) => void;
-  onCheckIn: (booking: BookingItem) => void;
-  onCheckOut: (booking: BookingItem) => void;
-  onCreateInvoice: (booking: BookingItem) => void;
-  onCancel: (booking: BookingItem) => void;
+  onViewDetails?: (booking: BookingItem) => void;
+  onEdit?: (booking: BookingItem) => void;
+  onCheckIn?: (booking: BookingItem) => void;
+  onCheckOut?: (booking: BookingItem) => void;
+  onCreateInvoice?: (booking: BookingItem) => void;
+  onCancel?: (booking: BookingItem) => void;
 }
 
 export const BookingContextMenu: React.FC<BookingContextMenuProps> = memo(
@@ -46,7 +46,7 @@ export const BookingContextMenu: React.FC<BookingContextMenuProps> = memo(
         <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
         <ContextMenuContent className="w-52 rounded-xl p-1.5 shadow-xl border border-slate-200">
           <ContextMenuItem
-            onClick={() => onViewDetails(booking)}
+            onClick={() => onViewDetails?.(booking)}
             className="flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-slate-800"
           >
             <Eye className="size-4 text-emerald-600" />
@@ -54,7 +54,7 @@ export const BookingContextMenu: React.FC<BookingContextMenuProps> = memo(
           </ContextMenuItem>
 
           <ContextMenuItem
-            onClick={() => onEdit(booking)}
+            onClick={() => onEdit?.(booking)}
             className="flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-slate-800"
           >
             <Edit className="size-4 text-blue-600" />
@@ -64,7 +64,7 @@ export const BookingContextMenu: React.FC<BookingContextMenuProps> = memo(
           <ContextMenuSeparator />
 
           <ContextMenuItem
-            onClick={() => onCheckIn(booking)}
+            onClick={() => onCheckIn?.(booking)}
             disabled={booking.checkedIn}
             className="flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-slate-800 disabled:opacity-40"
           >
@@ -73,7 +73,7 @@ export const BookingContextMenu: React.FC<BookingContextMenuProps> = memo(
           </ContextMenuItem>
 
           <ContextMenuItem
-            onClick={() => onCheckOut(booking)}
+            onClick={() => onCheckOut?.(booking)}
             disabled={!booking.checkedIn || booking.checkedOut}
             className="flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-slate-800 disabled:opacity-40"
           >
@@ -84,7 +84,7 @@ export const BookingContextMenu: React.FC<BookingContextMenuProps> = memo(
           <ContextMenuSeparator />
 
           <ContextMenuItem
-            onClick={() => onCreateInvoice(booking)}
+            onClick={() => onCreateInvoice?.(booking)}
             className="flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-slate-800"
           >
             <Receipt className="size-4 text-purple-600" />
@@ -95,7 +95,7 @@ export const BookingContextMenu: React.FC<BookingContextMenuProps> = memo(
 
           <ContextMenuItem
             variant="danger"
-            onClick={() => onCancel(booking)}
+            onClick={() => onCancel?.(booking)}
             className="flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-red-600"
           >
             <Trash2 className="size-4 text-red-600" />

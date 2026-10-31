@@ -80,6 +80,17 @@ export const COURT_BOOKING_STATUSES: readonly BookingStatusConfig[] = [
   },
 ] as const;
 
+export const PAYMENT_STATUSES = [
+  { id: 'paid', label: 'Đã thanh toán', name: 'Đã thanh toán', color: '#10b981' },
+  { id: 'unpaid', label: 'Chưa thanh toán', name: 'Chưa thanh toán', color: '#ef4444' },
+  { id: 'partially_paid', label: 'Thanh toán một phần', name: 'Thanh toán một phần', color: '#8b5cf6' },
+  { id: 'deposit_pending', label: 'Chờ KH cọc', name: 'Chờ KH cọc', color: STATUS_COLORS.DEPOSIT_PENDING },
+  { id: 'service_unpaid', label: 'Chưa T.T dịch vụ', name: 'Chưa T.T dịch vụ', color: STATUS_COLORS.SERVICE_UNPAID },
+  { id: 'ticket_unpaid', label: 'Chưa T.T tiền vé', name: 'Chưa T.T tiền vé', color: STATUS_COLORS.TICKET_UNPAID },
+] as const;
+
+export const TIMELINE_INTERVALS = [15, 30, 60] as const;
+
 export const getStatusConfig = (statusId: string): BookingStatusConfig => {
   const normId = (statusId || '').toUpperCase();
   if (normId === 'FLEXIBLE' || normId === 'DAILY') {

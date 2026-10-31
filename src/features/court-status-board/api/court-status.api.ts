@@ -6,6 +6,7 @@ import { BookingType } from '@/types/booking-type.enum';
 import type { CourtItem, CourtGroup } from '../types/court';
 import type { CourtScheduleItem, CourtStatusCourt } from '@/types/court-status';
 import { SchedulerService } from '../services/scheduler.service';
+import { bookingApi } from '@/features/bookings/api/booking.api';
 
 const MOCK_GROUPS: CourtGroup[] = [
   { id: 'all', name: 'Tất cả', branchId: 'all' },
@@ -45,6 +46,7 @@ function mapScheduleItemToBooking(item: CourtScheduleItem): BookingItem {
     bookingStatus: item.bookingStatus || 'Pending',
     paymentStatus: paymentMap[paymentStatusLower] ?? 'paid',
     notes: item.title,
+    color: item.color,
   };
 }
 
@@ -132,26 +134,23 @@ export const courtStatusApi = {
   },
 
   /**
-   * Cancel / delete a booking
+   * Cancel a booking via PATCH /api/bookings/{id}
    */
-  cancelBooking: async (id: string): Promise<{ success: boolean }> => {
-    return await request<{ success: boolean }>({
-      url: `/court-status/bookings/${id}`,
-      method: 'DELETE',
-    });
+  cancelBooking: async (id: string): Promise<unknown> => {
+    return await bookingApi.updateBookingStatus(id, 'CANCELLED');
   },
 
   /**
-   * Check in customer
+   * Check in customer via PATCH /api/bookings/{id}
    */
-  checkIn: async (id: string): Promise<BookingItem> => {
-    return courtStatusApi.updateBooking(id, { checkedIn: true, bookingStatus: 'checked_in' });
+  checkIn: async (id: string): Promise<unknown> => {
+    return await bookingApi.updateBookingStatus(id, 'CHECKED_IN');
   },
 
   /**
-   * Check out customer
+   * Check out customer via PATCH /api/bookings/{id}
    */
-  checkOut: async (id: string): Promise<BookingItem> => {
-    return courtStatusApi.updateBooking(id, { checkedOut: true, bookingStatus: 'completed' });
+  checkOut: async (id: string): Promise<unknown> => {
+    return await bookingApi.updateBookingStatus(id, 'COMPLETED');
   },
 };

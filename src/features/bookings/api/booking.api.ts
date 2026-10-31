@@ -1,6 +1,12 @@
 import { http } from '@/lib/axios';
-import type { CreateBookingRequest, CreateBookingResponse } from '../types/booking.types';
-import type { MyBookingListItemDto } from '../types/booking.types';
+import type {
+  CreateBookingRequest,
+  CreateBookingResponse,
+  MyBookingListItemDto,
+  BookingStatusUpdate,
+  UpdateBookingStatusRequest,
+  UpdateBookingStatusResponse,
+} from '../types/booking.types';
 import type { ApiSuccessResponse } from '@/types/api';
 import { calculateBookingPrice } from './booking-pricing.api';
 
@@ -71,6 +77,28 @@ export const bookingApi = {
 
       throw error;
     }
+  },
+
+  /**
+   * Update booking status (e.g. CHECKED_IN, CANCELLED)
+   * PATCH /api/bookings/{id}
+   */
+  updateBookingStatus: async (
+    bookingId: string,
+    status: BookingStatusUpdate | string,
+  ): Promise<UpdateBookingStatusResponse> => {
+    const payload: UpdateBookingStatusRequest = { status };
+    const response = await http.patch<ApiSuccessResponse<UpdateBookingStatusResponse>>(
+      `/api/bookings/${bookingId}`,
+      payload,
+    );
+
+    const body = response.data;
+    if (body && typeof body === 'object' && 'data' in body && (body as { data: unknown }).data) {
+      return (body as ApiSuccessResponse<UpdateBookingStatusResponse>).data;
+    }
+
+    return body as unknown as UpdateBookingStatusResponse;
   },
 
   /**

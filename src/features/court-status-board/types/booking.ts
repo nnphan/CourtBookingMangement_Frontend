@@ -32,6 +32,7 @@ export interface BookingItem {
   bookingStatus: string;
   paymentStatus: PaymentStatus;
   depositAmount?: number;
+  paidAmount?: number;
   remainingAmount?: number;
   totalAmount?: number;
   notes?: string;

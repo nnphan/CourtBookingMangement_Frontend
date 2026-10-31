@@ -16,7 +16,7 @@ export interface UseCourtStatusReturn {
   isFetching: boolean;
   isError: boolean;
   error: Error | null;
-  refetch: () => ReturnType<typeof query.refetch>;
+  refetch: () => Promise<unknown>;
   invalidateCourtStatus: () => Promise<void>;
 }
 
