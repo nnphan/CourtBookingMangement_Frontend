@@ -80,6 +80,39 @@ export const COURT_BOOKING_STATUSES: readonly BookingStatusConfig[] = [
   },
 ] as const;
 
+export const COURT_BOOKING_STATUS_LEGEND: readonly BookingStatusConfig[] = [
+  {
+    id: 'available',
+    name: 'Trống',
+    color: STATUS_COLORS.AVAILABLE,
+    textColor: '#334155',
+    border: '#cbd5e1',
+    description: 'Sân trống / Chưa có lịch đặt',
+  },
+  {
+    id: 'recurring',
+    name: 'Lịch cố định',
+    color: STATUS_COLORS.RECURRING_BOOKING,
+    textColor: '#ffffff',
+    description: 'Lịch đặt cố định hàng tuần / tháng',
+  },
+  {
+    id: 'daily',
+    name: 'Lịch linh hoạt',
+    color: STATUS_COLORS.DAILY_BOOKING,
+    textColor: '#ffffff',
+    description: 'Lịch đặt vãng lai theo ngày',
+  },
+  {
+    id: 'ticket_unpaid',
+    name: 'Chưa T.T tiền vé',
+    color: STATUS_COLORS.TICKET_UNPAID,
+    textColor: '#ffffff',
+    icon: 'dollar',
+    description: 'Chưa thanh toán tiền giờ thuê sân',
+  },
+] as const;
+
 export const PAYMENT_STATUSES = [
   { id: 'paid', label: 'Đã thanh toán', name: 'Đã thanh toán', color: '#10b981' },
   { id: 'unpaid', label: 'Chưa thanh toán', name: 'Chưa thanh toán', color: '#ef4444' },

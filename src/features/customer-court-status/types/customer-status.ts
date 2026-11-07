@@ -30,7 +30,7 @@ export const CUSTOMER_COURT_STATUS: Record<CustomerCourtStatusType, CustomerCour
   BOOKED: {
     id: 'BOOKED',
     name: 'Đã đặt',
-    color: '#FF6666',
+    color: '#EF4444',
     textColor: '#FFFFFF',
     borderColor: '#EF4444',
     tooltip: 'Sân đã có người đặt',

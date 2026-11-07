@@ -8,9 +8,7 @@ export const StatusLegend: React.FC = memo(() => {
   const statuses = [
     CUSTOMER_COURT_STATUS.AVAILABLE,
     CUSTOMER_COURT_STATUS.BOOKED,
-    CUSTOMER_COURT_STATUS.LOCKED,
-    CUSTOMER_COURT_STATUS.EVENT,
-    CUSTOMER_COURT_STATUS.PAST,
+
   ];
 
   return (

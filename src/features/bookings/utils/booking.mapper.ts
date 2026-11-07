@@ -240,7 +240,7 @@ export const toCreateBookingRequest = (
 
   return {
     branchId: selection.branchId,
-    bookingType: 'FLEXIBLE',
+    bookingType: values.bookingType ?? 'FLEXIBLE',
     paymentMethod: values.paymentMethod,
     notes: values.notes?.trim() ?? '',
     customerName: contact.customerName?.trim() || undefined,

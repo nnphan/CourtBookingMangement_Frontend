@@ -301,8 +301,13 @@
     "fields": {
       "customerName": "Họ và tên",
       "phoneNumber": "Số điện thoại",
+      "bookingType": "Loại đặt sân",
       "paymentMethod": "Phương thức thanh toán",
       "notes": "Ghi chú"
+    },
+    "bookingTypes": {
+      "FLEXIBLE": "Vãng lai",
+      "FIXED": "Cố định"
     },
     "paymentMethods": {
       "CASH": "Tiền mặt"
@@ -818,15 +823,14 @@
       "label": "Chú thích trạng thái"
     },
     "statuses": {
-      "available": "Trắng",
+      "available": "Còn trống",
       "recurring": "Lịch cố định",
-      "daily": "Lịch ngày",
       "flexible": "Lịch linh hoạt",
       "event": "Sự kiện",
       "deposit_pending": "Chờ KH cọc",
       "maintenance": "Khóa",
-      "service_unpaid": "Chưa T.T dịch vụ",
-      "ticket_unpaid": "Chưa T.T tiền vé"
+      "service_unpaid": "Chưa T.T",
+      "ticket_unpaid": "Chưa T.T"
     },
     "actions": {
       "viewDetails": "Xem chi tiết",

@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { COURT_BOOKING_STATUSES } from '../constants/booking-status';
+import { COURT_BOOKING_STATUS_LEGEND } from '../constants/booking-status';
 import { Info, AlertCircle, DollarSign } from 'lucide-react';
 
 export const LegendBar: React.FC = memo(() => {
@@ -12,7 +12,7 @@ export const LegendBar: React.FC = memo(() => {
       aria-label={t('courtStatus.legend.label', 'Bảng chú thích trạng thái')}
       className="flex flex-wrap items-center justify-start gap-x-4 gap-y-2 py-2 px-3 text-xs text-white"
     >
-      {COURT_BOOKING_STATUSES.map((status) => {
+      {COURT_BOOKING_STATUS_LEGEND.map((status) => {
         const isCircleIcon = status.id === 'service_unpaid' || status.id === 'ticket_unpaid';
 
         return (

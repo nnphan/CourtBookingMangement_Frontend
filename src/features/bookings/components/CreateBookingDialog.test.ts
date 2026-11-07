@@ -75,6 +75,7 @@ describe('Guest Booking & CreateBookingDialog Validation', () => {
     const formValues: CreateBookingFormValues = {
       customerName: 'Guest User',
       phoneNumber: '+84 912 345 678',
+      bookingType: 'FLEXIBLE',
       paymentMethod: 'CASH',
       notes: 'Bring balls',
     };
@@ -128,11 +129,13 @@ describe('Guest Booking & CreateBookingDialog Validation', () => {
     const formValues: CreateBookingFormValues = {
       customerName: 'Guest User',
       phoneNumber: '0987654321',
+      bookingType: 'FIXED',
       paymentMethod: 'CASH',
     };
 
     const payload = toCreateBookingRequest(selection, formValues, formValues);
 
+    assert.strictEqual(payload.bookingType, 'FIXED');
     assert.strictEqual(payload.details.length, 2);
     assert.strictEqual(payload.details[0]?.courtId, 'court-1');
     assert.strictEqual(payload.details[0]?.startTime, '09:00:00');

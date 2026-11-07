@@ -287,6 +287,7 @@ export const CourtScheduleBoard: React.FC<CourtScheduleBoardProps> = memo(
                   normalizedStatus === 'maintenance' || normalizedStatus === 'inactive';
 
                 const courtBookings = bookings.filter((b) => b.courtId === court.id);
+                console.log(courtBookings);
 
                 return (
                   <div
@@ -535,14 +536,14 @@ export const CourtScheduleBoard: React.FC<CourtScheduleBoardProps> = memo(
                                 left={0}
                                 width={width}
                                 height={42}
-                                backgroundColor={b.color || '#FF6666'}
+                                backgroundColor={'#FF6666'}
                                 color="#ffffff"
                                 ariaLabel={`Khung giờ đã được đặt: ${b.startTime} - ${b.endTime}`}
                                 className="cursor-default text-white font-medium shadow-xs"
                               >
                                 <div className="flex flex-col items-center justify-center truncate text-[11px] leading-tight">
                                   <span className="font-semibold">{b.title || 'Đã được đặt'}</span>
-                                  <span className="text-[10px] text-blue-100">
+                                  <span className="text-[10px] text-slate-50">
                                     {b.startTime.slice(0, 5)} - {b.endTime.slice(0, 5)}
                                   </span>
                                 </div>

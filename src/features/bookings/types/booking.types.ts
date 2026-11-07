@@ -101,6 +101,7 @@ export type CreateBookingResponse = CreateBookingResponseData;
 export interface CreateBookingFormValues {
   customerName?: string;
   phoneNumber?: string;
+  bookingType: BookingTypeApi;
   paymentMethod: PaymentMethodApi;
   notes?: string;
 }

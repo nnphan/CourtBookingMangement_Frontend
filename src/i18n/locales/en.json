@@ -301,8 +301,13 @@
     "fields": {
       "customerName": "Full name",
       "phoneNumber": "Phone number",
+      "bookingType": "Booking type",
       "paymentMethod": "Payment method",
       "notes": "Notes"
+    },
+    "bookingTypes": {
+      "FLEXIBLE": "Flexible",
+      "FIXED": "Fixed"
     },
     "paymentMethods": {
       "CASH": "Cash"

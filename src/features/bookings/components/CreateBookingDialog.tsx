@@ -38,6 +38,7 @@ import { buildCreateBookingFormSchema } from '../schemas/create-booking.schema';
 import { useCreateBooking } from '../hooks/useCreateBooking';
 import { useCalculateBookingPrice } from '../hooks/useCalculateBookingPrice';
 import { useBookingCaller } from '../hooks/useBookingCaller';
+import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 import {
   formatBookingTime,
   formatCurrency,
@@ -60,6 +61,7 @@ export interface CreateBookingDialogProps {
 const DEFAULT_VALUES: CreateBookingFormValues = {
   customerName: '',
   phoneNumber: '',
+  bookingType: 'FLEXIBLE',
   paymentMethod: 'CASH',
   notes: '',
 };
@@ -67,6 +69,7 @@ const DEFAULT_VALUES: CreateBookingFormValues = {
 const FIELD_MAP: Record<string, keyof CreateBookingFormValues> = {
   customername: 'customerName',
   phonenumber: 'phoneNumber',
+  bookingtype: 'bookingType',
   paymentmethod: 'paymentMethod',
   notes: 'notes',
 };
@@ -106,8 +109,27 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
   }) => {
     const { t } = useTranslation();
     const caller = useBookingCaller();
+    const { user } = useCurrentUser();
     const isAuthenticatedMode = mode === 'CUSTOMER' && caller.mode === 'authenticated';
     const requireContact = !isAuthenticatedMode;
+
+    const canSelectBookingType = useMemo(() => {
+      if (mode === 'ADMIN') return true;
+      if (!user) return false;
+      const roleValues: unknown[] = [user.role, ...(Array.isArray(user.roles) ? user.roles : [])];
+      const roles = new Set(
+        roleValues
+          .filter((r): r is string => typeof r === 'string')
+          .map((r) => r.trim().toUpperCase())
+          .filter(Boolean),
+      );
+      return (
+        roles.has('ADMIN') ||
+        roles.has('SUPER_ADMIN') ||
+        roles.has('BRANCH_OWNER') ||
+        roles.has('OWNER')
+      );
+    }, [user, mode]);
 
     const inFlightRef = useRef(false);
     const alertRef = useRef<HTMLDivElement | null>(null);
@@ -203,7 +225,14 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
       const contact = isAuthenticatedMode
         ? { customerName: caller.customerName, phoneNumber: caller.phoneNumber }
         : values;
-      const payload = toCreateBookingRequest({ ...selection, courts }, values, contact);
+      const effectiveBookingType = canSelectBookingType
+        ? (values.bookingType ?? 'FLEXIBLE')
+        : 'FLEXIBLE';
+      const payload = toCreateBookingRequest(
+        { ...selection, courts },
+        { ...values, bookingType: effectiveBookingType },
+        contact,
+      );
 
       inFlightRef.current = true;
       try {
@@ -283,7 +312,16 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
               </DialogHeader>
 
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
-                <p className="font-semibold text-slate-800">{result.customerName}</p>
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold text-slate-800">{result.customerName}</p>
+                  {canSelectBookingType && (
+                    <span className="rounded border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-700">
+                      {result.bookingType === 'FIXED'
+                        ? t('booking.bookingTypes.FIXED', 'Cố định')
+                        : t('booking.bookingTypes.FLEXIBLE', 'Vãng lai')}
+                    </span>
+                  )}
+                </div>
                 <p className="text-slate-600 font-mono text-xs">{result.phoneNumber}</p>
               </div>
 
@@ -540,6 +578,27 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
 
                 {/* 3. Booking Options Section */}
                 <div className="space-y-2.5">
+                  {canSelectBookingType && (
+                    <div className="space-y-1">
+                      <label htmlFor="booking-type" className="text-xs font-semibold text-slate-700">
+                        {t('booking.fields.bookingType', 'Loại đặt sân')}
+                      </label>
+                      <select
+                        id="booking-type"
+                        disabled={isPending}
+                        className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-xs shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                        {...register('bookingType')}
+                      >
+                        <option value="FLEXIBLE">
+                          {t('booking.bookingTypes.FLEXIBLE', 'Vãng lai (Linh hoạt)')}
+                        </option>
+                        <option value="FIXED">
+                          {t('booking.bookingTypes.FIXED', 'Cố định')}
+                        </option>
+                      </select>
+                    </div>
+                  )}
+
                   <div className="space-y-1">
                     <label htmlFor="booking-payment-method" className="text-xs font-semibold text-slate-700">
                       {t('booking.fields.paymentMethod', 'Phương thức thanh toán')}
