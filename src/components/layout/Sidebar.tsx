@@ -20,6 +20,8 @@ import {
   Building2,
   KeyRound,
   Shield,
+  ShoppingBag,
+  PackageOpen,
 } from 'lucide-react';
 import { useLogout } from '@/features/auth/hooks/useLogout';
 import { useAuthStore } from '@/features/auth/store/auth.store';
@@ -64,6 +66,12 @@ const menuItems = [
     adminOnly: true,
   },
   { icon: Users, label: 'Quản lý khách hàng', path: paths.customers },
+  { icon: ShoppingBag, label: 'POS / Bán hàng', path: paths.posSales },
+  {
+    icon: PackageOpen,
+    label: 'Kho và danh mục',
+    path: `${paths.posSales}?tab=inventory`,
+  },
   { icon: Globe, label: 'Chuyển đổi ngôn ngữ' },
   { icon: Home, label: 'Đổi trang chủ: Trang chủ cũ', path: paths.dashboard },
   {

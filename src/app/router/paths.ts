@@ -4,6 +4,7 @@ export const paths = {
   register: '/uRegister',
   forgotPassword: '/uForgotPassword',
   dashboard: '/dashboard',
+  posSales: '/pos-sales',
   courts: '/courts',
   courtStatus: '/court-status',
   bookings: '/bookings',

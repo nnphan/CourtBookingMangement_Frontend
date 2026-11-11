@@ -24,12 +24,12 @@ const cards = [
     gradient: 'bg-gradient-social',
     path: paths.adminBranches,
   },
-  { title: 'Bán hàng', icon: ShoppingBag, gradient: 'bg-gradient-sales', path: '#' },
+  { title: 'Bán hàng', icon: ShoppingBag, gradient: 'bg-gradient-sales', path: paths.posSales },
   {
     title: 'Quản lý kho và dịch vụ',
     icon: PackageOpen,
     gradient: 'bg-gradient-inventory',
-    path: '#',
+    path: `${paths.posSales}?tab=inventory`,
   },
   {
     title: 'Doanh thu & lợi nhuận',
@@ -37,7 +37,12 @@ const cards = [
     gradient: 'bg-gradient-revenue',
     path: paths.dashboard,
   },
-  { title: 'Quản lý chi nhánh', icon: GitBranch, gradient: 'bg-gradient-branch', path: '#' },
+  {
+    title: 'Sản phẩm & danh mục',
+    icon: GitBranch,
+    gradient: 'bg-gradient-branch',
+    path: `${paths.posSales}?tab=catalog`,
+  },
   {
     title: 'Quản lý khách hàng',
     icon: Users,
