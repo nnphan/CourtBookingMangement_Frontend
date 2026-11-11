@@ -22,6 +22,8 @@ import {
   Shield,
   ShoppingBag,
   PackageOpen,
+  BarChart3,
+  Tags,
 } from 'lucide-react';
 import { useLogout } from '@/features/auth/hooks/useLogout';
 import { useAuthStore } from '@/features/auth/store/auth.store';
@@ -66,11 +68,14 @@ const menuItems = [
     adminOnly: true,
   },
   { icon: Users, label: 'Quản lý khách hàng', path: paths.customers },
-  { icon: ShoppingBag, label: 'POS / Bán hàng', path: paths.posSales },
+  { icon: ShoppingBag, label: 'POS / Bán hàng', path: paths.posSales, posOnly: true },
+  { icon: BarChart3, label: 'Quản trị POS & kho', path: paths.posDashboard, posOnly: true },
+  { icon: Tags, label: 'Danh mục sản phẩm', path: paths.posCategories, posOnly: true },
   {
     icon: PackageOpen,
     label: 'Kho và danh mục',
-    path: `${paths.posSales}?tab=inventory`,
+    path: paths.posInventory,
+    posOnly: true,
   },
   { icon: Globe, label: 'Chuyển đổi ngôn ngữ' },
   { icon: Home, label: 'Đổi trang chủ: Trang chủ cũ', path: paths.dashboard },
@@ -100,6 +105,11 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const authenticated = useAuthStore((s) => s.isAuthenticated());
   const canAccessAdminRoutes =
     hasHydrated && authenticated && hasCurrentUserRole(user, USER_ROLES.ADMIN);
+  const posRoles = [...(user?.roles ?? []), user?.role ?? ''].map((role) => role.toUpperCase());
+  const canAccessPosRoutes =
+    hasHydrated &&
+    authenticated &&
+    posRoles.some((role) => ['ADMIN', 'SUPER_ADMIN', 'BRANCH_ADMIN', 'STAFF'].includes(role));
   const isAdmin = hasHydrated && authenticated && getCurrentUserRole(user) === 'admin';
   const navigate = useNavigate();
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -164,6 +174,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                 (item) =>
                   !('adminOnly' in item) || !item.adminOnly || canAccessAdminRoutes,
               )
+              .filter((item) => !('posOnly' in item) || !item.posOnly || canAccessPosRoutes)
               .filter((item) => item.path !== paths.dashboard || isAdmin)
               .map((item, i) => (
                 <button

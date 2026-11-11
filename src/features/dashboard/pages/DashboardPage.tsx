@@ -29,7 +29,7 @@ const cards = [
     title: 'Quản lý kho và dịch vụ',
     icon: PackageOpen,
     gradient: 'bg-gradient-inventory',
-    path: `${paths.posSales}?tab=inventory`,
+    path: paths.posInventory,
   },
   {
     title: 'Doanh thu & lợi nhuận',
@@ -41,7 +41,7 @@ const cards = [
     title: 'Sản phẩm & danh mục',
     icon: GitBranch,
     gradient: 'bg-gradient-branch',
-    path: `${paths.posSales}?tab=catalog`,
+    path: paths.posProducts,
   },
   {
     title: 'Quản lý khách hàng',

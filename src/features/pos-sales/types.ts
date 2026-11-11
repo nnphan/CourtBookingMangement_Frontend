@@ -26,6 +26,23 @@ export interface Product {
   defaultSellingPrice: number;
   trackInventory: boolean;
   isActive: boolean;
+  description?: string | null;
+  updatedAt?: string;
+}
+
+export interface ProductCategoryDetail extends ProductCategory {
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CustomerLookup {
+  id: string;
+  fullName: string;
+  email: string | null;
+  phoneNumber: string;
+  isGuest: boolean;
+  isActive: boolean;
+  membershipLevelName: string | null;
 }
 
 export interface BranchProduct {
@@ -78,6 +95,7 @@ export interface GoodsReceipt {
   status: string;
   totalCost: number;
   createdAt: string;
+  notes: string | null;
   items?: Array<{
     productId: string;
     sku: string;
@@ -85,6 +103,33 @@ export interface GoodsReceipt {
     unit: string;
     quantity: number;
     unitCost: number;
+    lineTotal: number;
+  }>;
+}
+
+export interface InvoiceSnapshot {
+  id: string;
+  branchId: string;
+  salesOrderId: string;
+  invoiceNumber: string;
+  branchName: string;
+  branchAddress: string | null;
+  branchPhone: string | null;
+  customerName: string | null;
+  customerPhone: string | null;
+  cashierName: string;
+  subtotalAmount: number;
+  discountAmount: number;
+  totalAmount: number;
+  paymentMethodCode: string;
+  paymentStatus: string;
+  issuedAt: string;
+  items: Array<{
+    sku: string;
+    productName: string;
+    unit: string;
+    quantity: number;
+    unitPrice: number;
     lineTotal: number;
   }>;
 }

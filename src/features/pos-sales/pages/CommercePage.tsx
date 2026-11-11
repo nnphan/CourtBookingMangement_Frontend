@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router';
 import {
@@ -21,8 +21,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardBody } from '@/components/ui/card';
 import { queryClient } from '@/lib/query-client';
 import { toast } from '@/lib/toast';
+import { useAuthStore } from '@/features/auth/store/auth.store';
 import { posSalesApi } from '../api';
-import type { BranchProduct, CheckoutRequest } from '../types';
+import type { BranchProduct, CheckoutRequest, CustomerLookup, SalesOrder } from '../types';
 
 type CommerceTab = 'pos' | 'catalog' | 'inventory' | 'orders';
 const tabs: Array<{ id: CommerceTab; label: string; icon: typeof ShoppingCart }> = [
@@ -131,10 +132,15 @@ const EmptyPanel = ({ children }: { children: string }) => (
 );
 
 const CommercePage = () => {
+  const user = useAuthStore((state) => state.user);
+  const roles = [...(user?.roles ?? []), user?.role ?? ''].map((role) => role.toUpperCase());
+  const isBranchAdmin = roles.some((role) => ['ADMIN', 'SUPER_ADMIN', 'BRANCH_ADMIN'].includes(role));
+  const canUsePos = isBranchAdmin || roles.includes('STAFF');
   const [searchParams, setSearchParams] = useSearchParams();
   const [branchId, setBranchId] = useState(() => localStorage.getItem('pos-sales.branchId') ?? '');
   const selectedTab = searchParams.get('tab');
-  const activeTab: CommerceTab = tabs.some((tab) => tab.id === selectedTab)
+  const activeTab: CommerceTab = tabs.some((tab) => tab.id === selectedTab) &&
+    (selectedTab !== 'catalog' || isBranchAdmin)
     ? (selectedTab as CommerceTab)
     : 'pos';
 
@@ -142,6 +148,12 @@ const CommercePage = () => {
     setBranchId(nextBranchId);
     localStorage.setItem('pos-sales.branchId', nextBranchId);
   };
+
+  if (!canUsePos) {
+    return (
+      <Card><CardBody><p role="alert" className="py-8 text-center text-sm font-semibold text-red-700">Bạn không có quyền truy cập chức năng POS.</p></CardBody></Card>
+    );
+  }
 
   return (
     <div className="space-y-5 py-5 sm:py-8">
@@ -162,7 +174,9 @@ const CommercePage = () => {
       </div>
 
       <div className="grid grid-cols-2 gap-2 rounded-2xl bg-white p-2 shadow-sm sm:grid-cols-4">
-        {tabs.map(({ id, label, icon: Icon }) => (
+        {tabs
+          .filter((tab) => tab.id !== 'catalog' || isBranchAdmin)
+          .map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             type="button"
@@ -178,7 +192,7 @@ const CommercePage = () => {
             <Icon className="size-4" />
             {label}
           </button>
-        ))}
+          ))}
       </div>
 
       {!branchId ? (
@@ -191,8 +205,8 @@ const CommercePage = () => {
         <>
           {activeTab === 'pos' && <PosPanel key={branchId} branchId={branchId} />}
           {activeTab === 'catalog' && <CatalogPanel key={branchId} branchId={branchId} />}
-          {activeTab === 'inventory' && <InventoryPanel key={branchId} branchId={branchId} />}
-          {activeTab === 'orders' && <OrdersPanel key={branchId} branchId={branchId} />}
+          {activeTab === 'inventory' && <InventoryPanel key={branchId} branchId={branchId} canManage={isBranchAdmin} />}
+          {activeTab === 'orders' && <OrdersPanel key={branchId} branchId={branchId} canCancel={isBranchAdmin} canViewReport={isBranchAdmin} />}
         </>
       )}
     </div>
@@ -201,55 +215,124 @@ const CommercePage = () => {
 
 const PosPanel = ({ branchId }: { branchId: string }) => {
   const [search, setSearch] = useState('');
+  const [categoryId, setCategoryId] = useState('');
   const [cart, setCart] = useState<Record<string, number>>({});
+  const [cartProductSnapshots, setCartProductSnapshots] = useState<Record<string, BranchProduct>>({});
   const [paymentMethodCode, setPaymentMethodCode] = useState<CheckoutRequest['paymentMethodCode']>('CASH');
-  const [customerId, setCustomerId] = useState('');
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [debouncedCustomerSearch, setDebouncedCustomerSearch] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerLookup | null>(null);
+  const [activeCustomerIndex, setActiveCustomerIndex] = useState(-1);
   const [bookingId, setBookingId] = useState('');
   const [notes, setNotes] = useState('');
-  const [lastInvoiceId, setLastInvoiceId] = useState<string | null>(null);
+  const [completedOrder, setCompletedOrder] = useState<SalesOrder | null>(null);
+  const [completedOrderBranchId, setCompletedOrderBranchId] = useState<string | null>(null);
+  const [invoicePreviewUrl, setInvoicePreviewUrl] = useState<string | null>(null);
 
+  useEffect(() => {
+    setCart({});
+    setCartProductSnapshots({});
+    setCustomerSearch('');
+    setDebouncedCustomerSearch('');
+    setSelectedCustomer(null);
+    setActiveCustomerIndex(-1);
+    setBookingId('');
+    setNotes('');
+    setCompletedOrder(null);
+    setCompletedOrderBranchId(null);
+    setInvoicePreviewUrl(null);
+  }, [branchId]);
   const productsQuery = useQuery({
     queryKey: queryKeys.products(branchId),
     queryFn: () => posSalesApi.getBranchProducts(branchId, true),
+  });
+  const categoriesQuery = useQuery({
+    queryKey: queryKeys.catalog,
+    queryFn: () => posSalesApi.getCategories(true),
   });
   const inventoryQuery = useQuery({
     queryKey: queryKeys.inventory(branchId),
     queryFn: () => posSalesApi.getInventory(branchId),
   });
+  const customerQuery = useQuery({
+    queryKey: ['pos-sales', 'customer-search', debouncedCustomerSearch],
+    queryFn: () => posSalesApi.searchCustomers(debouncedCustomerSearch),
+    enabled: debouncedCustomerSearch.trim().length >= 2 && !selectedCustomer,
+  });
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedCustomerSearch(customerSearch.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [customerSearch]);
+  useEffect(() => () => {
+    if (invoicePreviewUrl) URL.revokeObjectURL(invoicePreviewUrl);
+  }, [invoicePreviewUrl]);
   const products = useMemo(() => productsQuery.data ?? [], [productsQuery.data]);
+  const categories = categoriesQuery.data ?? [];
   const stockByProduct = useMemo(
     () => new Map((inventoryQuery.data?.items ?? []).map((item) => [item.productId, item])),
     [inventoryQuery.data],
   );
-  const filteredProducts = useMemo(
-    () =>
-      products.filter((product) =>
-        `${product.name} ${product.sku} ${product.barcode ?? ''}`
-          .toLowerCase()
-          .includes(search.trim().toLowerCase()),
-      ),
-    [products, search],
+  const filteredProducts = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    return products.filter((product) => {
+      const matchesSearch = `${product.name} ${product.sku} ${product.barcode ?? ''}`
+        .toLowerCase()
+        .includes(normalizedSearch);
+      return matchesSearch && (!categoryId || product.categoryId === categoryId);
+    });
+  }, [products, search, categoryId]);
+  const cartProducts: BranchProduct[] = Object.entries(cart).flatMap(([productId, quantity]) => {
+    if (quantity <= 0) return [];
+    const product = products.find((candidate) => candidate.productId === productId) ?? cartProductSnapshots[productId];
+    return product ? [product] : [];
+  });
+  const customerOptions = customerQuery.data?.items ?? [];
+  const estimatedTotal = cartProducts.reduce(
+    (sum, product) => sum + product.sellingPrice * (cart[product.productId] ?? 0), 0,
   );
-  const cartProducts = products.filter((product) => (cart[product.productId] ?? 0) > 0);
-  const total = cartProducts.reduce(
-    (sum, product) => sum + product.sellingPrice * (cart[product.productId] ?? 0),
-    0,
-  );
+  const cartQuantity = cartProducts.reduce((sum, product) => sum + (cart[product.productId] ?? 0), 0);
 
   const checkoutMutation = useMutation({
-    mutationFn: (input: CheckoutRequest) => posSalesApi.checkout(branchId, input),
-    onSuccess: (order) => {
-      setCart({});
-      setCustomerId('');
-      setBookingId('');
-      setNotes('');
-      setLastInvoiceId(order.invoiceId);
+    mutationFn: ({ orderBranchId, input }: { orderBranchId: string; input: CheckoutRequest }) =>
+      posSalesApi.checkout(orderBranchId, input),
+    onSuccess: (order, { orderBranchId }) => {
+      if (orderBranchId === branchId) {
+        setCart({});
+        setCartProductSnapshots({});
+        setCustomerSearch('');
+        setSelectedCustomer(null);
+        setBookingId('');
+        setNotes('');
+      }
+      setCompletedOrder(order);
+      setCompletedOrderBranchId(orderBranchId);
+      setInvoicePreviewUrl(null);
       toast.success('Thanh toán thành công', `Mã đơn ${order.orderCode}`);
-      void queryClient.invalidateQueries({ queryKey: queryKeys.products(branchId) });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.inventory(branchId) });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.orders(branchId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.products(orderBranchId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.inventory(orderBranchId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.orders(orderBranchId) });
+      void queryClient.invalidateQueries({ queryKey: ['pos-sales', 'management', 'branch-products', orderBranchId] });
+      void queryClient.invalidateQueries({ queryKey: ['pos-sales', 'management', 'inventory', orderBranchId] });
+      void queryClient.invalidateQueries({ queryKey: ['pos-sales', 'management', 'movements', orderBranchId] });
+      void queryClient.invalidateQueries({ queryKey: ['pos-sales', 'management', 'orders', orderBranchId] });
+      void queryClient.invalidateQueries({ queryKey: ['pos-sales', 'management', 'report', orderBranchId] });
     },
-    onError: notifyError,
+    onError: (error, { orderBranchId }) => {
+      const code =
+        error && typeof error === 'object' && 'code' in error && typeof error.code === 'string'
+          ? error.code
+          : '';
+      if (code === 'Sales.InsufficientStock' || code === 'Sales.ProductNotAvailable') {
+        toast.error(
+          'Số lượng tồn kho đã thay đổi',
+          'Giỏ hàng vẫn được giữ nguyên. Tồn kho và danh sách sản phẩm đang được làm mới để bạn kiểm tra lại.',
+        );
+        void queryClient.invalidateQueries({ queryKey: queryKeys.inventory(orderBranchId) });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.products(orderBranchId) });
+        return;
+      }
+      notifyError(error);
+    },
   });
 
   const setQuantity = (product: BranchProduct, quantity: number) => {
@@ -261,27 +344,62 @@ const PosPanel = ({ branchId }: { branchId: string }) => {
       else next[product.productId] = Math.min(quantity, max);
       return next;
     });
+    setCartProductSnapshots((current) => {
+      const next = { ...current };
+      if (quantity <= 0) delete next[product.productId];
+      else next[product.productId] = product;
+      return next;
+    });
   };
 
   const checkout = () => {
     if (cartProducts.length === 0) return;
+    const booking = bookingId.trim();
+    if (booking && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(booking)) {
+      toast.error('Mã Booking không hợp lệ', 'Nhập UUID của booking thuộc chi nhánh này.');
+      return;
+    }
     checkoutMutation.mutate({
-      customerId: customerId.trim() || undefined,
-      bookingId: bookingId.trim() || undefined,
-      paymentMethodCode,
-      notes: notes.trim() || undefined,
-      items: cartProducts.map((product) => ({
-        productId: product.productId,
-        quantity: cart[product.productId] ?? 0,
-      })),
+      orderBranchId: branchId,
+      input: {
+        customerId: selectedCustomer?.id,
+        bookingId: booking || undefined,
+        paymentMethodCode,
+        notes: notes.trim() || undefined,
+        items: cartProducts.map((product) => ({
+          productId: product.productId,
+          quantity: cart[product.productId] ?? 0,
+        })),
+      },
     });
   };
+  const hasInsufficientTrackedStock = cartProducts.some((product) => {
+    if (!product.trackInventory) return false;
+    return (cart[product.productId] ?? 0) > (stockByProduct.get(product.productId)?.availableQuantity ?? 0);
+  });
+  const hasUnavailableCartProduct = cartProducts.some(
+    (product) => !products.some((currentProduct) => currentProduct.productId === product.productId),
+  );
+  const selectCustomer = (customer: CustomerLookup) => {
+    setSelectedCustomer(customer);
+    setCustomerSearch(customer.fullName);
+    setDebouncedCustomerSearch('');
+  };
+  const clearCustomer = () => {
+    setSelectedCustomer(null);
+    setCustomerSearch('');
+    setDebouncedCustomerSearch('');
+  };
 
-  const openInvoice = async (invoiceId: string, download = false) => {
-    const popup = download ? null : window.open('about:blank', '_blank');
+  const openInvoice = async (
+    invoiceId: string,
+    action: 'preview' | 'download' | 'print' = 'preview',
+  ) => {
+    const download = action === 'download';
+    const popup = action === 'preview' || action === 'print' ? window.open('about:blank', '_blank') : null;
     if (popup) popup.opener = null;
     try {
-      const blob = await posSalesApi.getInvoicePdf(branchId, invoiceId, download);
+      const blob = await posSalesApi.getInvoicePdf(completedOrderBranchId ?? branchId, invoiceId, download);
       const url = URL.createObjectURL(blob);
       if (download) {
         const anchor = document.createElement('a');
@@ -289,24 +407,31 @@ const PosPanel = ({ branchId }: { branchId: string }) => {
         anchor.download = `invoice-${invoiceId}.pdf`;
         anchor.click();
       } else if (popup) {
+        if (action === 'print') {
+          popup.onload = () => popup.print();
+        }
         popup.location.href = url;
+        if (action === 'preview') {
+          setInvoicePreviewUrl(url);
+        }
       } else {
-        throw new Error('Cho phép mở cửa sổ mới để xem hóa đơn.');
+        throw new Error('Trình duyệt đã chặn cửa sổ hóa đơn. Hãy cho phép cửa sổ bật lên rồi thử lại.');
       }
-      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      if (action !== 'preview') window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (error) {
       popup?.close();
       notifyError(error);
     }
   };
 
-  if (productsQuery.isError || inventoryQuery.isError) {
-    const error = productsQuery.error ?? inventoryQuery.error;
+  if (productsQuery.isError || categoriesQuery.isError || inventoryQuery.isError) {
+    const error = productsQuery.error ?? categoriesQuery.error ?? inventoryQuery.error;
     return (
       <ErrorPanel
         error={error}
         retry={() => {
           void productsQuery.refetch();
+          void categoriesQuery.refetch();
           void inventoryQuery.refetch();
         }}
       />
@@ -330,9 +455,24 @@ const PosPanel = ({ branchId }: { branchId: string }) => {
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Tìm tên, SKU hoặc mã vạch"
                 aria-label="Tìm sản phẩm"
+                autoComplete="off"
               />
             </label>
           </div>
+          <label className="block sm:max-w-xs">
+            <span className={labelClass}>Danh mục</span>
+            <select
+              className={inputClass}
+              value={categoryId}
+              onChange={(event) => setCategoryId(event.target.value)}
+              aria-label="Lọc sản phẩm theo danh mục"
+            >
+              <option value="">Tất cả danh mục</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>{category.name}</option>
+              ))}
+            </select>
+          </label>
           {productsQuery.isLoading ? (
             <EmptyPanel>Đang tải sản phẩm...</EmptyPanel>
           ) : filteredProducts.length === 0 ? (
@@ -342,12 +482,18 @@ const PosPanel = ({ branchId }: { branchId: string }) => {
               {filteredProducts.map((product) => {
                 const stock = stockByProduct.get(product.productId);
                 const unavailable =
-                  product.trackInventory && (stock?.availableQuantity ?? 0) <= 0;
+                  product.trackInventory &&
+                  (inventoryQuery.isLoading || (stock?.availableQuantity ?? 0) <= 0);
+                const lowStock =
+                  product.trackInventory &&
+                  stock !== undefined &&
+                  stock.availableQuantity > 0 &&
+                  stock.availableQuantity <= stock.reorderLevel;
                 return (
                   <button
                     key={product.productId}
                     type="button"
-                    disabled={unavailable}
+                    disabled={unavailable || checkoutMutation.isPending}
                     onClick={() => setQuantity(product, (cart[product.productId] ?? 0) + 1)}
                     className="rounded-xl border border-slate-200 p-4 text-left transition hover:border-emerald-500 hover:bg-emerald-50/50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
@@ -358,9 +504,18 @@ const PosPanel = ({ branchId }: { branchId: string }) => {
                     <span className="mt-3 block font-extrabold text-emerald-800">
                       {amount(product.sellingPrice)}
                     </span>
-                    {product.trackInventory && (
-                      <span className="mt-1 block text-xs text-slate-500">
-                        Còn {stock?.availableQuantity ?? 0} {product.unit}
+                    <span className={`mt-1 block text-xs ${unavailable ? 'font-semibold text-red-700' : lowStock ? 'font-semibold text-amber-700' : 'text-slate-500'}`}>
+                      {product.trackInventory
+                        ? inventoryQuery.isLoading
+                          ? 'Đang kiểm tra tồn kho...'
+                          : unavailable
+                          ? 'Hết hàng'
+                          : `Còn ${stock?.availableQuantity ?? 0} ${product.unit}${lowStock ? ' · Sắp hết' : ''}`
+                        : 'Không theo dõi tồn kho'}
+                    </span>
+                    {(cart[product.productId] ?? 0) > 0 && (
+                      <span className="mt-2 inline-flex rounded-full bg-emerald-100 px-2 py-1 text-xs font-bold text-emerald-900">
+                        Trong giỏ: {cart[product.productId]}
                       </span>
                     )}
                   </button>
@@ -376,7 +531,7 @@ const PosPanel = ({ branchId }: { branchId: string }) => {
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-extrabold text-slate-900">Giỏ hàng</h2>
             <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-bold text-emerald-800">
-              {cartProducts.length} mặt hàng
+              {cartProducts.length} mặt hàng · {cartQuantity} sản phẩm
             </span>
           </div>
           <div className="max-h-64 space-y-3 overflow-y-auto">
@@ -387,12 +542,13 @@ const PosPanel = ({ branchId }: { branchId: string }) => {
                 <div key={product.productId} className="flex items-center gap-3 border-b pb-3">
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-bold text-slate-800">{product.name}</p>
-                    <p className="text-xs text-slate-500">{amount(product.sellingPrice)}</p>
+                    <p className="text-xs text-slate-500">{amount(product.sellingPrice)} · {product.unit}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      className="grid size-8 place-items-center rounded-lg border"
+                      className="grid size-10 place-items-center rounded-lg border"
+                      disabled={checkoutMutation.isPending}
                       onClick={() => setQuantity(product, (cart[product.productId] ?? 0) - 1)}
                       aria-label={`Giảm số lượng ${product.name}`}
                     >
@@ -401,7 +557,13 @@ const PosPanel = ({ branchId }: { branchId: string }) => {
                     <span className="w-8 text-center font-bold">{cart[product.productId]}</span>
                     <button
                       type="button"
-                      className="grid size-8 place-items-center rounded-lg border"
+                      className="grid size-10 place-items-center rounded-lg border"
+                      disabled={
+                        checkoutMutation.isPending ||
+                        (product.trackInventory &&
+                          (cart[product.productId] ?? 0) >=
+                            (stockByProduct.get(product.productId)?.availableQuantity ?? 0))
+                      }
                       onClick={() => setQuantity(product, (cart[product.productId] ?? 0) + 1)}
                       aria-label={`Tăng số lượng ${product.name}`}
                     >
@@ -409,7 +571,8 @@ const PosPanel = ({ branchId }: { branchId: string }) => {
                     </button>
                     <button
                       type="button"
-                      className="grid size-8 place-items-center rounded-lg text-red-600 hover:bg-red-50"
+                      className="grid size-10 place-items-center rounded-lg text-red-600 hover:bg-red-50"
+                      disabled={checkoutMutation.isPending}
                       onClick={() => setQuantity(product, 0)}
                       aria-label={`Xóa ${product.name}`}
                     >
@@ -430,37 +593,154 @@ const PosPanel = ({ branchId }: { branchId: string }) => {
               <option value="MOMO">MoMo</option>
               <option value="BANK_TRANSFER">Chuyển khoản</option>
             </SelectField>
-            <Field label="Mã khách hàng (không bắt buộc)" value={customerId} onChange={setCustomerId} />
-            <Field label="Mã đặt sân (không bắt buộc)" value={bookingId} onChange={setBookingId} />
+            <div className="relative block sm:col-span-2">
+              <label className="block">
+                <span className={labelClass}>Khách hàng (không bắt buộc)</span>
+                <input
+                  className={inputClass}
+                  role="combobox"
+                  aria-label="Tìm khách hàng"
+                  aria-autocomplete="list"
+                  aria-expanded={
+                    !selectedCustomer &&
+                    customerSearch.trim() === debouncedCustomerSearch &&
+                    debouncedCustomerSearch.length >= 2
+                  }
+                  aria-controls="pos-customer-results"
+                  aria-activedescendant={
+                    activeCustomerIndex >= 0 ? `pos-customer-option-${activeCustomerIndex}` : undefined
+                  }
+                  value={customerSearch}
+                  onChange={(event) => {
+                    setSelectedCustomer(null);
+                    setActiveCustomerIndex(-1);
+                    setCustomerSearch(event.target.value);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'ArrowDown' && customerOptions.length > 0) {
+                      event.preventDefault();
+                      setActiveCustomerIndex((index) => Math.min(index + 1, customerOptions.length - 1));
+                    } else if (event.key === 'ArrowUp' && customerOptions.length > 0) {
+                      event.preventDefault();
+                      setActiveCustomerIndex((index) => Math.max(index - 1, 0));
+                    } else if (event.key === 'Enter' && activeCustomerIndex >= 0) {
+                      event.preventDefault();
+                      const customer = customerOptions[activeCustomerIndex];
+                      if (customer) selectCustomer(customer);
+                    } else if (event.key === 'Escape') {
+                      setActiveCustomerIndex(-1);
+                      setDebouncedCustomerSearch('');
+                    }
+                  }}
+                  placeholder="Tìm theo tên hoặc số điện thoại"
+                  autoComplete="off"
+                  disabled={checkoutMutation.isPending}
+                />
+              </label>
+              {selectedCustomer && (
+                <div className="mt-1 flex items-center justify-between gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+                  <span>Đã chọn: {selectedCustomer.fullName} · {selectedCustomer.phoneNumber}</span>
+                  <button type="button" className="font-bold underline" onClick={clearCustomer} disabled={checkoutMutation.isPending}>Bỏ chọn</button>
+                </div>
+              )}
+              {!selectedCustomer &&
+                customerSearch.trim() === debouncedCustomerSearch &&
+                debouncedCustomerSearch.length >= 2 && (
+                <ul id="pos-customer-results" role="listbox" className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
+                  {customerQuery.isLoading ? <li role="status" className="p-3 text-sm text-slate-500">Đang tìm khách hàng...</li>
+                    : customerQuery.isError ? <li className="p-3"><ErrorPanel error={customerQuery.error} retry={() => void customerQuery.refetch()} /></li>
+                      : customerOptions.length ? customerOptions.map((customer, index) => (
+                        <li
+                          key={customer.id}
+                          id={`pos-customer-option-${index}`}
+                          role="option"
+                          aria-selected={activeCustomerIndex === index}
+                          className={`cursor-pointer px-3 py-2 text-sm hover:bg-emerald-50 ${activeCustomerIndex === index ? 'bg-emerald-50' : ''}`}
+                          onMouseDown={(event) => event.preventDefault()}
+                          onMouseEnter={() => setActiveCustomerIndex(index)}
+                          onClick={() => selectCustomer(customer)}
+                        >
+                          <span className="block font-semibold text-slate-800">{customer.fullName}</span>
+                          <span className="block text-xs text-slate-500">{customer.phoneNumber}{customer.membershipLevelName ? ` · ${customer.membershipLevelName}` : ''}{customer.isGuest ? ' · Khách vãng lai' : ''}</span>
+                        </li>
+                      )) : <li className="p-3 text-sm text-slate-500">Không tìm thấy khách hàng.</li>}
+                </ul>
+              )}
+            </div>
+            <label className="block">
+              <span className={labelClass}>Mã Booking (không bắt buộc)</span>
+              <input
+                className={inputClass}
+                value={bookingId}
+                onChange={(event) => setBookingId(event.target.value.trim())}
+                placeholder="UUID booking cùng chi nhánh"
+                pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}"
+                title="Nhập mã UUID của booking thuộc chi nhánh này."
+                disabled={checkoutMutation.isPending}
+              />
+              <span className="mt-1 block text-xs text-slate-500">
+                Máy chủ xác nhận booking thuộc chi nhánh và khách hàng đã chọn.
+              </span>
+            </label>
             <Field label="Ghi chú" value={notes} onChange={setNotes} />
           </div>
           <div className="flex items-center justify-between border-t pt-4">
-            <span className="font-bold text-slate-600">Tổng thanh toán</span>
-            <span className="text-xl font-black text-slate-950">{amount(total)}</span>
+            <span className="font-bold text-slate-600">Tạm tính (máy chủ xác nhận giá cuối)</span>
+            <span className="text-xl font-black text-slate-950">{amount(estimatedTotal)}</span>
           </div>
+          {(hasInsufficientTrackedStock || hasUnavailableCartProduct) && (
+            <p role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              {hasUnavailableCartProduct
+                ? 'Một sản phẩm trong giỏ không còn được bán tại chi nhánh này. Hãy xóa sản phẩm đó trước khi thanh toán.'
+                : 'Số lượng trong giỏ đang cao hơn tồn kho khả dụng mới nhất. Hãy giảm số lượng trước khi thanh toán.'}
+            </p>
+          )}
           <Button
             block
             onClick={checkout}
             loading={checkoutMutation.isPending}
-            disabled={cartProducts.length === 0}
+            disabled={
+              cartProducts.length === 0 ||
+              checkoutMutation.isPending ||
+              hasInsufficientTrackedStock ||
+              hasUnavailableCartProduct ||
+              productsQuery.isLoading ||
+              inventoryQuery.isLoading
+            }
           >
             <Check className="size-5" />
             Thanh toán
           </Button>
-          {lastInvoiceId && (
+          {completedOrder && (
             <div className="flex flex-wrap gap-2 rounded-xl bg-emerald-50 p-3">
-              <span className="w-full text-sm font-semibold text-emerald-900">Hóa đơn đã tạo</span>
-              <Button size="sm" variant="outline" onClick={() => void openInvoice(lastInvoiceId)}>
-                <Printer className="size-4" /> Xem / In
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => void openInvoice(lastInvoiceId, true)}
-              >
-                <Download className="size-4" /> Tải PDF
-              </Button>
+              <div className="w-full text-sm text-emerald-950" role="status" aria-live="polite">
+                <p className="font-bold">
+                  Thanh toán hoàn tất · {completedOrder.orderCode}
+                  {completedOrderBranchId !== branchId && ` · Chi nhánh ${completedOrderBranchId}`}
+                </p>
+                <p className="mt-1">Tổng tiền do máy chủ xác nhận: <strong>{amount(completedOrder.totalAmount)}</strong></p>
+                <p>Đã thanh toán: {amount(completedOrder.paidAmount)} · {completedOrder.paymentMethodCode}</p>
+              </div>
+              {completedOrder.invoiceId ? (
+                <>
+                  <Button size="sm" variant="outline" onClick={() => void openInvoice(completedOrder.invoiceId!, 'preview')}>
+                    <Printer className="size-4" /> Xem hóa đơn
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => void openInvoice(completedOrder.invoiceId!, 'download')}>
+                    <Download className="size-4" /> Tải PDF
+                  </Button>
+                  <Button size="sm" onClick={() => void openInvoice(completedOrder.invoiceId!, 'print')}>
+                    <Printer className="size-4" /> In hóa đơn
+                  </Button>
+                </>
+              ) : <p className="text-sm text-amber-800">Đơn hàng đã hoàn tất nhưng chưa có mã hóa đơn để in.</p>}
             </div>
+          )}
+          {invoicePreviewUrl && (
+            <section aria-label="Xem trước PDF hóa đơn" className="space-y-2">
+              <h3 className="font-bold text-slate-800">Xem trước hóa đơn</h3>
+              <iframe title="Xem trước PDF hóa đơn" src={invoicePreviewUrl} className="h-[55vh] min-h-80 w-full rounded-lg border border-slate-200" />
+            </section>
           )}
         </CardBody>
       </Card>
@@ -496,6 +776,9 @@ const CatalogPanel = ({ branchId }: { branchId: string }) => {
   const invalidateCatalog = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.catalog });
     void queryClient.invalidateQueries({ queryKey: queryKeys.products(branchId) });
+    void queryClient.invalidateQueries({ queryKey: ['pos-sales', 'management', 'categories'] });
+    void queryClient.invalidateQueries({ queryKey: ['pos-sales', 'management', 'catalog-products'] });
+    void queryClient.invalidateQueries({ queryKey: ['pos-sales', 'management', 'branch-products', branchId] });
   };
   const createCategory = useMutation({
     mutationFn: () =>
@@ -751,7 +1034,7 @@ const CatalogPanel = ({ branchId }: { branchId: string }) => {
   );
 };
 
-const InventoryPanel = ({ branchId }: { branchId: string }) => {
+const InventoryPanel = ({ branchId, canManage }: { branchId: string; canManage: boolean }) => {
   const inventoryQuery = useQuery({
     queryKey: queryKeys.inventory(branchId),
     queryFn: () => posSalesApi.getInventory(branchId),
@@ -778,6 +1061,9 @@ const InventoryPanel = ({ branchId }: { branchId: string }) => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.inventory(branchId) });
     void queryClient.invalidateQueries({ queryKey: queryKeys.receipts(branchId) });
     void queryClient.invalidateQueries({ queryKey: queryKeys.movements(branchId) });
+    void queryClient.invalidateQueries({ queryKey: ['pos-sales', 'management', 'inventory', branchId] });
+    void queryClient.invalidateQueries({ queryKey: ['pos-sales', 'management', 'receipts', branchId] });
+    void queryClient.invalidateQueries({ queryKey: ['pos-sales', 'management', 'movements', branchId] });
   };
   const adjustmentMutation = useMutation({
     mutationFn: () =>
@@ -840,7 +1126,7 @@ const InventoryPanel = ({ branchId }: { branchId: string }) => {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 xl:grid-cols-2">
+      {canManage && <div className="grid gap-4 xl:grid-cols-2">
         <Card>
           <CardBody>
             <h2 className="mb-4 text-lg font-extrabold">Điều chỉnh tồn kho</h2>
@@ -994,7 +1280,7 @@ const InventoryPanel = ({ branchId }: { branchId: string }) => {
             </form>
           </CardBody>
         </Card>
-      </div>
+      </div>}
 
       <Card>
         <CardBody>
@@ -1007,7 +1293,7 @@ const InventoryPanel = ({ branchId }: { branchId: string }) => {
                 <tr>
                   <th className="py-3">Sản phẩm</th><th>Danh mục</th><th className="text-right">Tồn</th>
                   <th className="text-right">Đã giữ</th><th className="text-right">Có thể bán</th>
-                  <th className="text-right">Mức đặt lại</th><th />
+                  {canManage && <><th className="text-right">Mức đặt lại</th><th /></>}
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -1020,7 +1306,7 @@ const InventoryPanel = ({ branchId }: { branchId: string }) => {
                     <td className={`text-right font-bold ${item.availableQuantity <= item.reorderLevel ? 'text-amber-700' : ''}`}>
                       {item.availableQuantity}
                     </td>
-                    <td className="text-right">
+                    {canManage && <><td className="text-right">
                       <input
                         aria-label={`Mức đặt lại ${item.productName}`}
                         className="h-9 w-20 rounded border px-2 text-right"
@@ -1054,7 +1340,7 @@ const InventoryPanel = ({ branchId }: { branchId: string }) => {
                       >
                         Lưu
                       </Button>
-                    </td>
+                    </td></>}
                   </tr>
                 ))}
               </tbody>
@@ -1080,7 +1366,7 @@ const InventoryPanel = ({ branchId }: { branchId: string }) => {
                       {receipt.supplierName || 'Không rõ nhà cung cấp'} · {receipt.status} · {amount(receipt.totalCost)}
                     </p>
                   </div>
-                  {receipt.status === 'DRAFT' && (
+                  {canManage && receipt.status === 'DRAFT' && (
                     <Button
                       size="sm"
                       onClick={() => postReceiptMutation.mutate(receipt.id)}
@@ -1119,7 +1405,15 @@ const InventoryPanel = ({ branchId }: { branchId: string }) => {
   );
 };
 
-const OrdersPanel = ({ branchId }: { branchId: string }) => {
+const OrdersPanel = ({
+  branchId,
+  canCancel,
+  canViewReport,
+}: {
+  branchId: string;
+  canCancel: boolean;
+  canViewReport: boolean;
+}) => {
   const today = new Date().toISOString().slice(0, 10);
   const [from, setFrom] = useState(today);
   const [to, setTo] = useState(today);
@@ -1130,6 +1424,7 @@ const OrdersPanel = ({ branchId }: { branchId: string }) => {
   const reportQuery = useQuery({
     queryKey: queryKeys.report(branchId, from, to),
     queryFn: () => posSalesApi.getReport(branchId, from, to),
+    enabled: canViewReport,
   });
   const [reason, setReason] = useState('');
   const cancelMutation = useMutation({
@@ -1141,6 +1436,11 @@ const OrdersPanel = ({ branchId }: { branchId: string }) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.orders(branchId) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.report(branchId, from, to) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.inventory(branchId) });
+      void queryClient.invalidateQueries({ queryKey: ['pos-sales', 'management', 'orders', branchId] });
+      void queryClient.invalidateQueries({ queryKey: ['pos-sales', 'management', 'order', branchId] });
+      void queryClient.invalidateQueries({ queryKey: ['pos-sales', 'management', 'report', branchId] });
+      void queryClient.invalidateQueries({ queryKey: ['pos-sales', 'management', 'inventory', branchId] });
+      void queryClient.invalidateQueries({ queryKey: ['pos-sales', 'management', 'movements', branchId] });
     },
     onError: notifyError,
   });
@@ -1168,7 +1468,7 @@ const OrdersPanel = ({ branchId }: { branchId: string }) => {
     }
   };
 
-  if (ordersQuery.isError || reportQuery.isError) {
+  if (ordersQuery.isError || (canViewReport && reportQuery.isError)) {
     const error = ordersQuery.error ?? reportQuery.error ?? new Error();
     return (
       <ErrorPanel
@@ -1184,7 +1484,7 @@ const OrdersPanel = ({ branchId }: { branchId: string }) => {
 
   return (
     <div className="space-y-4">
-      <Card>
+      {canViewReport && <Card>
         <CardBody>
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
@@ -1236,7 +1536,7 @@ const OrdersPanel = ({ branchId }: { branchId: string }) => {
           )}
           {reportQuery.isLoading && <EmptyPanel>Đang tải báo cáo...</EmptyPanel>}
         </CardBody>
-      </Card>
+      </Card>}
 
       <Card>
         <CardBody>
@@ -1244,10 +1544,10 @@ const OrdersPanel = ({ branchId }: { branchId: string }) => {
             <h2 className="flex items-center gap-2 text-lg font-extrabold">
               <ClipboardList className="size-5 text-emerald-700" /> Đơn hàng gần đây
             </h2>
-            <label className="w-full sm:w-80">
+            {canCancel && <label className="w-full sm:w-80">
               <span className={labelClass}>Lý do hủy đơn (nếu cần)</span>
               <input className={inputClass} value={reason} onChange={(event) => setReason(event.target.value)} />
-            </label>
+            </label>}
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] text-left text-sm">
@@ -1287,7 +1587,7 @@ const OrdersPanel = ({ branchId }: { branchId: string }) => {
                             </Button>
                           </>
                         )}
-                        {order.status === 'COMPLETED' && (
+                        {canCancel && order.status === 'COMPLETED' && (
                           <Button
                             size="sm"
                             variant="danger"

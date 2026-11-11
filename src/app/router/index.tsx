@@ -11,6 +11,9 @@ const RegisterPage = lazy(() => import('@/features/auth/pages/RegisterPage'));
 const ForgotPasswordPage = lazy(() => import('@/features/auth/pages/ForgotPasswordPage'));
 const DashboardPage = lazy(() => import('@/features/dashboard/pages/DashboardPage'));
 const CommercePage = lazy(() => import('@/features/pos-sales/pages/CommercePage'));
+const CommerceManagementPage = lazy(
+  () => import('@/features/pos-sales/pages/CommerceManagementPage'),
+);
 const CourtsPage = lazy(() => import('@/features/courts/pages/CourtsPage'));
 const BookingsPage = lazy(() => import('@/features/booking/pages/BookingsPage'));
 const CourtStatusPage = lazy(() => import('@/features/court-status-board/pages/CourtStatusPage'));
@@ -112,6 +115,58 @@ export const router = createBrowserRouter([
           { path: paths.courts, element: withSuspense(<CourtsPage />) },
           { path: paths.bookings, element: withSuspense(<BookingsPage />) },
           { path: paths.posSales, element: withSuspense(<CommercePage />) },
+          {
+            path: paths.posCategories,
+            element: withSuspense(<CommerceManagementPage section="categories" />),
+          },
+          {
+            path: paths.posProducts,
+            element: withSuspense(<CommerceManagementPage section="products" />),
+          },
+          {
+            path: paths.posBranchProducts,
+            element: withSuspense(<CommerceManagementPage section="branch-products" />),
+          },
+          {
+            path: paths.posInventory,
+            element: withSuspense(<CommerceManagementPage section="inventory" />),
+          },
+          {
+            path: paths.posMovements,
+            element: withSuspense(<CommerceManagementPage section="movements" />),
+          },
+          {
+            path: paths.posReceipts,
+            element: withSuspense(<CommerceManagementPage section="receipts" />),
+          },
+          {
+            path: paths.posReceiptCreate,
+            element: withSuspense(<CommerceManagementPage section="receipt-edit" />),
+          },
+          {
+            path: paths.posReceiptEdit(),
+            element: withSuspense(<CommerceManagementPage section="receipt-edit" />),
+          },
+          {
+            path: paths.posReceiptDetail(),
+            element: withSuspense(<CommerceManagementPage section="receipt-detail" />),
+          },
+          {
+            path: paths.posOrders,
+            element: withSuspense(<CommerceManagementPage section="orders" />),
+          },
+          {
+            path: paths.posOrderDetail(),
+            element: withSuspense(<CommerceManagementPage section="order-detail" />),
+          },
+          {
+            path: paths.posDashboard,
+            element: withSuspense(<CommerceManagementPage section="dashboard" />),
+          },
+          {
+            path: paths.posInvoice(),
+            element: withSuspense(<CommerceManagementPage section="invoice" />),
+          },
         ],
       },
       { path: paths.courtStatus, element: withSuspense(<CourtStatusPage />) },

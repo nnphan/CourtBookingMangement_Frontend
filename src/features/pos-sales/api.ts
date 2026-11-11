@@ -2,11 +2,14 @@ import { http } from '@/lib/axios';
 import type {
   BranchProduct,
   CheckoutRequest,
+  CustomerLookup,
   GoodsReceipt,
   InventoryBalance,
+  InvoiceSnapshot,
   PagedResult,
   Product,
   ProductCategory,
+  ProductCategoryDetail,
   SalesOrder,
   SalesOrderListItem,
   SalesReport,
@@ -41,9 +44,9 @@ export const posSalesApi = {
     return dataOf(response);
   },
 
-  async getCategories() {
+  async getCategories(isActive?: boolean) {
     const response = await http.get<SuccessEnvelope<ProductCategory[]>>('/product-categories', {
-      params: { isActive: true },
+      params: isActive === undefined ? undefined : { isActive },
     });
     return dataOf(response);
   },
@@ -53,6 +56,26 @@ export const posSalesApi = {
       params: { page: 1, pageSize: 100, isActive: true },
     });
     return dataOf(response);
+  },
+
+  async searchCatalogProducts(params: {
+    search?: string;
+    categoryId?: string;
+    isActive?: boolean;
+    page?: number;
+    pageSize?: number;
+  } = {}) {
+    const response = await http.get<SuccessEnvelope<Product[]>>('/products', {
+      params: { page: 1, pageSize: 50, ...params },
+    });
+    return pagedOf(response);
+  },
+
+  async searchCustomers(keyword: string) {
+    const response = await http.get<SuccessEnvelope<CustomerLookup[]>>('/customers', {
+      params: { keyword, isActive: true, pageNumber: 1, pageSize: 8, sortBy: 'latest' },
+    });
+    return pagedOf(response);
   },
 
   async createCategory(input: {
@@ -66,11 +89,28 @@ export const posSalesApi = {
     return dataOf(response);
   },
 
+  async updateCategory(
+    categoryId: string,
+    input: { code: string; name: string; description?: string; displayOrder: number; isActive: boolean },
+  ) {
+    const response = await http.put<SuccessEnvelope<ProductCategoryDetail>>(
+      `/product-categories/${categoryId}`,
+      input,
+    );
+    return dataOf(response);
+  },
+
+  async deactivateCategory(categoryId: string) {
+    const response = await http.delete<SuccessEnvelope<unknown>>(`/product-categories/${categoryId}`);
+    return dataOf(response);
+  },
+
   async createProduct(input: {
     categoryId: string;
     sku: string;
     barcode?: string;
     name: string;
+    description?: string;
     unit: string;
     defaultCostPrice?: number;
     defaultSellingPrice: number;
@@ -78,6 +118,30 @@ export const posSalesApi = {
     isActive: boolean;
   }) {
     const response = await http.post<SuccessEnvelope<Product>>('/products', input);
+    return dataOf(response);
+  },
+
+  async updateProduct(
+    productId: string,
+    input: {
+      categoryId: string;
+      sku: string;
+      barcode?: string;
+      name: string;
+      description?: string;
+      unit: string;
+      defaultCostPrice?: number;
+      defaultSellingPrice: number;
+      trackInventory: boolean;
+      isActive: boolean;
+    },
+  ) {
+    const response = await http.put<SuccessEnvelope<Product>>(`/products/${productId}`, input);
+    return dataOf(response);
+  },
+
+  async deactivateProduct(productId: string) {
+    const response = await http.delete<SuccessEnvelope<unknown>>(`/products/${productId}`);
     return dataOf(response);
   },
 
@@ -98,18 +162,31 @@ export const posSalesApi = {
     return dataOf(response);
   },
 
-  async getInventory(branchId: string, lowStockOnly = false) {
+  async getInventory(
+    branchId: string,
+    params: { lowStockOnly?: boolean; page?: number; pageSize?: number } = {},
+  ) {
     const response = await http.get<SuccessEnvelope<InventoryBalance[]>>(
       `/branches/${branchId}/inventory`,
-      { params: { page: 1, pageSize: 100, lowStockOnly } },
+      { params: { page: 1, pageSize: 100, ...params } },
     );
     return pagedOf(response);
   },
 
-  async getMovements(branchId: string) {
+  async getMovements(
+    branchId: string,
+    params: {
+      productId?: string;
+      movementType?: string;
+      from?: string;
+      to?: string;
+      page?: number;
+      pageSize?: number;
+    } = {},
+  ) {
     const response = await http.get<SuccessEnvelope<StockMovement[]>>(
       `/branches/${branchId}/inventory/movements`,
-      { params: { page: 1, pageSize: 50 } },
+      { params: { page: 1, pageSize: 50, ...params } },
     );
     return pagedOf(response);
   },
@@ -133,12 +210,22 @@ export const posSalesApi = {
     return dataOf(response);
   },
 
-  async getReceipts(branchId: string) {
+  async getReceipts(
+    branchId: string,
+    params: { status?: string; search?: string; page?: number; pageSize?: number } = {},
+  ) {
     const response = await http.get<SuccessEnvelope<GoodsReceipt[]>>(
       `/branches/${branchId}/inventory/goods-receipts`,
-      { params: { page: 1, pageSize: 50 } },
+      { params: { page: 1, pageSize: 50, ...params } },
     );
     return pagedOf(response);
+  },
+
+  async getReceipt(branchId: string, receiptId: string) {
+    const response = await http.get<SuccessEnvelope<GoodsReceipt>>(
+      `/branches/${branchId}/inventory/goods-receipts/${receiptId}`,
+    );
+    return dataOf(response);
   },
 
   async createReceipt(
@@ -153,6 +240,30 @@ export const posSalesApi = {
     const response = await http.post<SuccessEnvelope<GoodsReceipt>>(
       `/branches/${branchId}/inventory/goods-receipts`,
       input,
+    );
+    return dataOf(response);
+  },
+
+  async updateReceipt(
+    branchId: string,
+    receiptId: string,
+    input: {
+      supplierName?: string;
+      supplierReference?: string;
+      notes?: string;
+      items: Array<{ productId: string; quantity: number; unitCost: number }>;
+    },
+  ) {
+    const response = await http.put<SuccessEnvelope<GoodsReceipt>>(
+      `/branches/${branchId}/inventory/goods-receipts/${receiptId}`,
+      input,
+    );
+    return dataOf(response);
+  },
+
+  async cancelReceipt(branchId: string, receiptId: string) {
+    const response = await http.post<SuccessEnvelope<unknown>>(
+      `/branches/${branchId}/inventory/goods-receipts/${receiptId}/cancel`,
     );
     return dataOf(response);
   },
@@ -172,6 +283,24 @@ export const posSalesApi = {
     return pagedOf(response);
   },
 
+  async searchOrders(
+    branchId: string,
+    params: { search?: string; status?: string; from?: string; to?: string; page?: number; pageSize?: number } = {},
+  ) {
+    const response = await http.get<SuccessEnvelope<SalesOrderListItem[]>>(
+      `/branches/${branchId}/sales/orders`,
+      { params: { page: 1, pageSize: 20, ...params } },
+    );
+    return pagedOf(response);
+  },
+
+  async getOrder(branchId: string, orderId: string) {
+    const response = await http.get<SuccessEnvelope<SalesOrder>>(
+      `/branches/${branchId}/sales/orders/${orderId}`,
+    );
+    return dataOf(response);
+  },
+
   async checkout(branchId: string, input: CheckoutRequest) {
     const response = await http.post<SuccessEnvelope<SalesOrder>>(
       `/branches/${branchId}/sales/orders`,
@@ -184,6 +313,13 @@ export const posSalesApi = {
     const response = await http.post<SuccessEnvelope<unknown>>(
       `/branches/${branchId}/sales/orders/${orderId}/cancel`,
       { reason },
+    );
+    return dataOf(response);
+  },
+
+  async getInvoice(branchId: string, invoiceId: string) {
+    const response = await http.get<SuccessEnvelope<InvoiceSnapshot>>(
+      `/branches/${branchId}/sales/invoices/${invoiceId}`,
     );
     return dataOf(response);
   },
