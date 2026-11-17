@@ -37,6 +37,7 @@ const CustomerCourtStatusPage = lazy(
   () => import('@/features/customer-court-status/pages/CustomerCourtStatusPage'),
 );
 const MyBookingPage = lazy(() => import('@/features/bookings/pages/MyBookingPage'));
+const MomoReturnPage = lazy(() => import('@/features/payments/pages/MomoReturnPage'));
 const DiscoverMatchesPage = lazy(
   () => import('@/features/player-matching/pages/DiscoverMatchesPage'),
 );
@@ -72,6 +73,11 @@ export const router = createBrowserRouter([
   {
     path: paths.customerCourtStatus,
     element: withSuspense(<CustomerCourtStatusPage />),
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: paths.momoReturn,
+    element: withSuspense(<MomoReturnPage />),
     errorElement: <RouteErrorBoundary />,
   },
   {

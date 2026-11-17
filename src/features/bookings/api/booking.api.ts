@@ -39,6 +39,7 @@ export const bookingApi = {
       const response = await http.post<ApiSuccessResponse<CreateBookingResponse>>(
         '/api/bookings',
         payload,
+        { headers: { 'Idempotency-Key': requestDebugId } },
       );
 
       if (import.meta.env.DEV) {

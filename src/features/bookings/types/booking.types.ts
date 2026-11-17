@@ -1,7 +1,7 @@
 export type BookingTypeApi = 'FLEXIBLE' | 'FIXED';
 export type BookingDialogMode = 'ADMIN' | 'CUSTOMER';
 
-export type PaymentMethodApi = 'CASH';
+export type PaymentMethodApi = 'CASH' | 'MOMO';
 
 export interface SelectedBookingCourt {
   courtId: string;
@@ -72,12 +72,14 @@ export interface CalculateBookingPriceResponse {
 }
 
 export interface CreateBookingDetailResponse {
+  bookingDetailId?: string;
   courtId: string;
   courtName: string;
   bookingDate: string;
   startTime: string;
   endTime: string;
   price: number;
+  status?: string;
 }
 
 export interface CreateBookingResponseData {
@@ -89,10 +91,15 @@ export interface CreateBookingResponseData {
   phoneNumber: string;
   bookingType: string;
   bookingStatus: string;
+  status?: string;
   paymentMethod: string;
   totalAmount: number;
   notes: string | null;
   details: CreateBookingDetailResponse[];
+  expiresAt?: string | null;
+  serverTime?: string;
+  remainingSeconds?: number;
+  holdToken?: string | null;
 }
 
 export type CreateBookingResponse = CreateBookingResponseData;

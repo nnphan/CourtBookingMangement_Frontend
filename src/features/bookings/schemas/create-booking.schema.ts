@@ -65,7 +65,7 @@ export const buildCreateBookingFormSchema = (requireContact: boolean) =>
       customerName: z.string().trim().optional(),
       phoneNumber: z.string().trim().optional(),
       bookingType: z.enum(['FLEXIBLE', 'FIXED']).default('FLEXIBLE'),
-      paymentMethod: z.enum(['CASH']),
+      paymentMethod: z.enum(['CASH', 'MOMO']),
       notes: z.string().optional(),
     })
     .superRefine((data, ctx) => {

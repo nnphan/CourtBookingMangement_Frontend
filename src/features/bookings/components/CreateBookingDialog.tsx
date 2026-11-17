@@ -36,6 +36,10 @@ import type {
 } from '../types/booking.types';
 import { buildCreateBookingFormSchema } from '../schemas/create-booking.schema';
 import { useCreateBooking } from '../hooks/useCreateBooking';
+import {
+  useBookingPaymentStatus,
+  useCreateMomoPayment,
+} from '@/features/payments/api/payment.query';
 import { useCalculateBookingPrice } from '../hooks/useCalculateBookingPrice';
 import { useBookingCaller } from '../hooks/useBookingCaller';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
@@ -132,13 +136,23 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
     }, [user, mode]);
 
     const inFlightRef = useRef(false);
+    const idempotencyRef = useRef<{ fingerprint: string; key: string } | null>(null);
     const alertRef = useRef<HTMLDivElement | null>(null);
     const [result, setResult] = useState<CreateBookingResponse | null>(null);
     const [alertMessage, setAlertMessage] = useState<string | null>(null);
     const [conflictKey, setConflictKey] = useState<string | null>(null);
     const [selectionError, setSelectionError] = useState<string | null>(null);
+    const [paymentId, setPaymentId] = useState<string | null>(null);
+    const [paymentError, setPaymentError] = useState<string | null>(null);
+    const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
 
     const { mutateAsync, isPending } = useCreateBooking();
+    const createMomoPayment = useCreateMomoPayment();
+    const paymentStatus = useBookingPaymentStatus(
+      result?.bookingId ?? '',
+      result?.holdToken ?? null,
+      Boolean(paymentId),
+    );
 
     const schema = useMemo(() => buildCreateBookingFormSchema(requireContact), [requireContact]);
     const {
@@ -174,7 +188,27 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
       setAlertMessage(null);
       setConflictKey(null);
       setSelectionError(null);
+      setPaymentId(null);
+      setPaymentError(null);
     }, [isOpen, reset]);
+
+    useEffect(() => {
+      if (!result?.expiresAt || !result.serverTime) {
+        setRemainingSeconds(null);
+        return;
+      }
+
+      const expiresAtMs = new Date(result.expiresAt).getTime();
+      const serverOffsetMs = new Date(result.serverTime).getTime() - Date.now();
+      const updateCountdown = () => {
+        const serverNow = Date.now() + serverOffsetMs;
+        setRemainingSeconds(Math.max(0, Math.ceil((expiresAtMs - serverNow) / 1000)));
+      };
+
+      updateCountdown();
+      const timer = window.setInterval(updateCountdown, 1000);
+      return () => window.clearInterval(timer);
+    }, [result]);
 
     // Fill authenticated contact automatically
     useEffect(() => {
@@ -233,11 +267,21 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
         { ...values, bookingType: effectiveBookingType },
         contact,
       );
+      const fingerprint = JSON.stringify(payload);
+      if (idempotencyRef.current?.fingerprint !== fingerprint) {
+        idempotencyRef.current = { fingerprint, key: crypto.randomUUID() };
+      }
 
       inFlightRef.current = true;
       try {
-        const data = await mutateAsync({ payload });
+        const data = await mutateAsync({
+          payload,
+          requestDebugId: idempotencyRef.current.key,
+        });
         setResult(data);
+        if (data.holdToken) {
+          sessionStorage.setItem(`booking-hold:${data.bookingId}`, data.holdToken);
+        }
         reset(DEFAULT_VALUES);
         onBookingCreated?.(data);
       } catch (error: unknown) {
@@ -277,6 +321,33 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
       }
     };
 
+    const startMomoPayment = async () => {
+      if (!result?.holdToken || remainingSeconds === 0) {
+        setPaymentError(t('booking.payment.holdExpired', 'Thời gian giữ sân đã hết.'));
+        return;
+      }
+
+      setPaymentError(null);
+      try {
+        const payment = await createMomoPayment.mutateAsync({
+          bookingId: result.bookingId,
+          holdToken: result.holdToken,
+        });
+        setPaymentId(payment.paymentId);
+        const paymentUrl = payment.payUrl || payment.deeplink || payment.qrCodeUrl;
+        if (!paymentUrl) {
+          throw new Error(t('booking.payment.missingUrl', 'Không nhận được liên kết thanh toán.'));
+        }
+        window.location.assign(paymentUrl);
+      } catch (error: unknown) {
+        const message =
+          error && typeof error === 'object' && 'message' in error
+            ? String((error as { message?: unknown }).message ?? '')
+            : '';
+        setPaymentError(message || t('booking.payment.createFailed', 'Không thể khởi tạo thanh toán.'));
+      }
+    };
+
     const dateLabel = selection?.bookingDate
       ? dayjs(selection.bookingDate).format('DD/MM/YYYY')
       : '';
@@ -304,7 +375,9 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 text-emerald-700">
                   <CheckCircle2 className="size-5" aria-hidden />
-                  {t('booking.multiCourt.success', { count: result.details.length })}
+                  {result.paymentMethod.toUpperCase() === 'MOMO'
+                    ? t('booking.payment.holdCreated', 'Đã giữ sân, vui lòng thanh toán')
+                    : t('booking.multiCourt.success', { count: result.details.length })}
                 </DialogTitle>
                 <DialogDescription id="booking-dialog-description">
                   {t('booking.success.bookingCode', { code: result.bookingCode })}
@@ -356,6 +429,61 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                   {formatCurrency(result.totalAmount)}
                 </span>
               </div>
+
+              {result.paymentMethod.toUpperCase() === 'MOMO' && (
+                <section className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="font-semibold text-amber-950">
+                      {paymentStatus.data?.status.toUpperCase() === 'PAID'
+                        ? t('booking.payment.confirmed', 'Thanh toán đã được xác nhận')
+                        : t('booking.payment.timeRemaining', 'Thời gian giữ sân còn lại')}
+                    </span>
+                    {remainingSeconds !== null && paymentStatus.data?.status.toUpperCase() !== 'PAID' && (
+                      <span className="font-mono font-bold text-amber-900" aria-live="polite">
+                        {Math.floor(remainingSeconds / 60)}:
+                        {String(remainingSeconds % 60).padStart(2, '0')}
+                      </span>
+                    )}
+                  </div>
+                  {paymentError && (
+                    <p role="alert" className="text-xs font-medium text-red-700">
+                      {paymentError}
+                    </p>
+                  )}
+                  {paymentStatus.data?.status.toUpperCase() === 'PAYMENT_REVIEW' && (
+                    <p role="status" className="text-xs text-amber-900">
+                      {t(
+                        'booking.payment.review',
+                        'Giao dịch đang được kiểm tra. Không thanh toán lại.',
+                      )}
+                    </p>
+                  )}
+                  {paymentStatus.data?.status.toUpperCase() !== 'PAID' &&
+                    paymentStatus.data?.status.toUpperCase() !== 'PAYMENT_REVIEW' && (
+                      <Button
+                        type="button"
+                        className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
+                        onClick={startMomoPayment}
+                        disabled={
+                          createMomoPayment.isPending ||
+                          remainingSeconds === 0 ||
+                          paymentStatus.data?.status.toUpperCase() === 'EXPIRED'
+                        }
+                      >
+                        {createMomoPayment.isPending
+                          ? t('booking.payment.starting', 'Đang kết nối MoMo...')
+                          : paymentStatus.data?.status.toUpperCase() === 'PROCESSING'
+                            ? t('booking.payment.continue', 'Mở lại trang thanh toán MoMo')
+                            : t('booking.payment.pay', 'Thanh toán với MoMo')}
+                      </Button>
+                    )}
+                  {paymentStatus.isError && (
+                    <p role="status" className="text-xs text-slate-600">
+                      {t('booking.payment.statusPolling', 'Đang thử kiểm tra trạng thái thanh toán...')}
+                    </p>
+                  )}
+                </section>
+              )}
 
               <DialogFooter className="mt-4 gap-2">
                 {isAuthenticatedMode && (
@@ -610,6 +738,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                       {...register('paymentMethod')}
                     >
                       <option value="CASH">{t('booking.paymentMethods.CASH', 'Tiền mặt tại sân')}</option>
+                      <option value="MOMO">{t('booking.paymentMethods.MOMO', 'Thanh toán trực tuyến MoMo')}</option>
                     </select>
                   </div>
 

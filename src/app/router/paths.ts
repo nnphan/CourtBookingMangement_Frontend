@@ -23,6 +23,7 @@ export const paths = {
   courtStatus: '/court-status',
   bookings: '/bookings',
   myBooking: '/my-booking',
+  momoReturn: '/payments/momo/return',
   customers: '/customers',
   customerDetail: (id: string = ':id') => `/customers/${id}`,
   customerCreate: '/customers/new',
