@@ -310,7 +310,8 @@
       "FIXED": "Fixed"
     },
     "paymentMethods": {
-      "CASH": "Cash"
+      "CASH": "Cash",
+      "SEPAY": "Bank transfer (SePay)"
     },
     "validation": {
       "customerNameRequired": "Full name is required when booking as a guest.",
@@ -325,6 +326,31 @@
     "success": {
       "bookingCode": "Booking code: {{code}}",
       "total": "Total"
+    },
+    "payment": {
+      "holdCreated": "Court held; complete your bank transfer",
+      "timeRemaining": "Hold time remaining",
+      "confirmed": "Payment confirmed",
+      "needsAttention": "Transaction needs attention",
+      "starting": "Creating payment QR...",
+      "pay": "Create payment QR",
+      "holdExpired": "The booking hold has expired.",
+      "createFailed": "Unable to initialize payment.",
+      "missingUrl": "The payment QR could not be loaded.",
+      "statusPolling": "Checking payment status...",
+      "bank": "Bank",
+      "accountNumber": "Account number",
+      "accountHolder": "Account holder",
+      "transferAmount": "Exact transfer amount",
+      "transferContent": "Transfer description",
+      "copyContent": "Copy transfer description",
+      "copied": "Copied",
+      "copyFailed": "Could not copy. Select and copy the transfer description.",
+      "awaitingPayment": "Waiting for the bank to confirm your transfer.",
+      "underpaid": "The amount received was too low. Contact the branch for assistance.",
+      "overpaid": "The amount received exceeds the request. The branch must review it.",
+      "expired": "The booking hold expired. The booking was not confirmed.",
+      "review": "The transaction is under review. Do not pay again."
     }
   },
   "account": {

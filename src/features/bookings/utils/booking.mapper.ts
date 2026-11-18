@@ -67,7 +67,8 @@ export const mapBookingStatus = (status?: string | null): { label: string; badge
 /**
  * Maps payment method code to Vietnamese display label
  * CASH -> Tiền mặt
- * MOMO -> MoMo
+ * SEPAY -> SePay
+ * MOMO -> MoMo (historical bookings)
  * BANK_TRANSFER -> Chuyển khoản
  */
 export const mapPaymentMethod = (method?: string | null): string => {
@@ -77,6 +78,8 @@ export const mapPaymentMethod = (method?: string | null): string => {
       return 'Tiền mặt';
     case 'MOMO':
       return 'MoMo';
+    case 'SEPAY':
+      return 'SePay';
     case 'BANK_TRANSFER':
       return 'Chuyển khoản';
     default:

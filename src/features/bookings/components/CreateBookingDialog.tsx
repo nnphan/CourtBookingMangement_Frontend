@@ -7,6 +7,7 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock,
+  Copy,
   Loader2,
   LogIn,
   MapPin,
@@ -38,8 +39,9 @@ import { buildCreateBookingFormSchema } from '../schemas/create-booking.schema';
 import { useCreateBooking } from '../hooks/useCreateBooking';
 import {
   useBookingPaymentStatus,
-  useCreateMomoPayment,
+  useCreateSePayPayment,
 } from '@/features/payments/api/payment.query';
+import type { CreateSePayPaymentResponse } from '@/features/payments/api/payment.api';
 import { useCalculateBookingPrice } from '../hooks/useCalculateBookingPrice';
 import { useBookingCaller } from '../hooks/useBookingCaller';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
@@ -143,11 +145,13 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
     const [conflictKey, setConflictKey] = useState<string | null>(null);
     const [selectionError, setSelectionError] = useState<string | null>(null);
     const [paymentId, setPaymentId] = useState<string | null>(null);
+    const [sePayPayment, setSePayPayment] = useState<CreateSePayPaymentResponse | null>(null);
     const [paymentError, setPaymentError] = useState<string | null>(null);
+    const [paymentCodeCopied, setPaymentCodeCopied] = useState(false);
     const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
 
     const { mutateAsync, isPending } = useCreateBooking();
-    const createMomoPayment = useCreateMomoPayment();
+    const createSePayPayment = useCreateSePayPayment();
     const paymentStatus = useBookingPaymentStatus(
       result?.bookingId ?? '',
       result?.holdToken ?? null,
@@ -189,17 +193,21 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
       setConflictKey(null);
       setSelectionError(null);
       setPaymentId(null);
+      setSePayPayment(null);
       setPaymentError(null);
+      setPaymentCodeCopied(false);
     }, [isOpen, reset]);
 
     useEffect(() => {
-      if (!result?.expiresAt || !result.serverTime) {
+      const expiresAt = sePayPayment?.expiresAt ?? result?.expiresAt;
+      const serverTime = sePayPayment?.serverTime ?? result?.serverTime;
+      if (!expiresAt || !serverTime) {
         setRemainingSeconds(null);
         return;
       }
 
-      const expiresAtMs = new Date(result.expiresAt).getTime();
-      const serverOffsetMs = new Date(result.serverTime).getTime() - Date.now();
+      const expiresAtMs = new Date(expiresAt).getTime();
+      const serverOffsetMs = new Date(serverTime).getTime() - Date.now();
       const updateCountdown = () => {
         const serverNow = Date.now() + serverOffsetMs;
         setRemainingSeconds(Math.max(0, Math.ceil((expiresAtMs - serverNow) / 1000)));
@@ -208,7 +216,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
       updateCountdown();
       const timer = window.setInterval(updateCountdown, 1000);
       return () => window.clearInterval(timer);
-    }, [result]);
+    }, [result, sePayPayment]);
 
     // Fill authenticated contact automatically
     useEffect(() => {
@@ -321,32 +329,53 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
       }
     };
 
-    const startMomoPayment = async () => {
-      if (!result?.holdToken || remainingSeconds === 0) {
+    const startSePayPayment = async () => {
+      const booking = result;
+      if (!booking || (!isAuthenticatedMode && !booking.holdToken) || remainingSeconds === 0) {
         setPaymentError(t('booking.payment.holdExpired', 'Thời gian giữ sân đã hết.'));
         return;
       }
 
       setPaymentError(null);
       try {
-        const payment = await createMomoPayment.mutateAsync({
-          bookingId: result.bookingId,
-          holdToken: result.holdToken,
+        const payment = await createSePayPayment.mutateAsync({
+          bookingId: booking.bookingId,
+          holdToken: booking.holdToken ?? null,
         });
+        setSePayPayment(payment);
         setPaymentId(payment.paymentId);
-        const paymentUrl = payment.payUrl || payment.deeplink || payment.qrCodeUrl;
-        if (!paymentUrl) {
-          throw new Error(t('booking.payment.missingUrl', 'Không nhận được liên kết thanh toán.'));
-        }
-        window.location.assign(paymentUrl);
       } catch (error: unknown) {
         const message =
           error && typeof error === 'object' && 'message' in error
             ? String((error as { message?: unknown }).message ?? '')
             : '';
-        setPaymentError(message || t('booking.payment.createFailed', 'Không thể khởi tạo thanh toán.'));
+        setPaymentError(
+          message || t('booking.payment.createFailed', 'Không thể khởi tạo thanh toán.'),
+        );
       }
     };
+
+    const copyPaymentCode = async () => {
+      const paymentCode = paymentStatus.data?.paymentCode ?? sePayPayment?.paymentCode;
+      if (!paymentCode) return;
+      try {
+        await navigator.clipboard.writeText(paymentCode);
+        setPaymentCodeCopied(true);
+      } catch {
+        setPaymentError(
+          t(
+            'booking.payment.copyFailed',
+            'Không thể sao chép. Vui lòng chọn và sao chép nội dung chuyển khoản.',
+          ),
+        );
+      }
+    };
+
+    const currentPaymentStatus = paymentStatus.data?.status.toUpperCase();
+    const paymentCode = paymentStatus.data?.paymentCode ?? sePayPayment?.paymentCode;
+    const qrUrl = paymentStatus.data?.qrCodeUrl ?? sePayPayment?.qrUrl;
+    const transferIsOpen =
+      !currentPaymentStatus || ['PENDING', 'PROCESSING'].includes(currentPaymentStatus);
 
     const dateLabel = selection?.bookingDate
       ? dayjs(selection.bookingDate).format('DD/MM/YYYY')
@@ -375,7 +404,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 text-emerald-700">
                   <CheckCircle2 className="size-5" aria-hidden />
-                  {result.paymentMethod.toUpperCase() === 'MOMO'
+                  {result.paymentMethod.toUpperCase() === 'SEPAY'
                     ? t('booking.payment.holdCreated', 'Đã giữ sân, vui lòng thanh toán')
                     : t('booking.multiCourt.success', { count: result.details.length })}
                 </DialogTitle>
@@ -395,7 +424,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                     </span>
                   )}
                 </div>
-                <p className="text-slate-600 font-mono text-xs">{result.phoneNumber}</p>
+                <p className="font-mono text-xs text-slate-600">{result.phoneNumber}</p>
               </div>
 
               <div className="space-y-1.5">
@@ -412,7 +441,8 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                         <span className="font-medium text-slate-900">{detail.courtName}</span>
                         <span className="text-xs text-slate-500">
                           {dayjs(detail.bookingDate).format('DD/MM/YYYY')} ·{' '}
-                          {formatBookingTime(detail.startTime)} - {formatBookingTime(detail.endTime)}
+                          {formatBookingTime(detail.startTime)} -{' '}
+                          {formatBookingTime(detail.endTime)}
                         </span>
                       </div>
                       <span className="font-mono font-semibold text-slate-900">
@@ -430,15 +460,18 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                 </span>
               </div>
 
-              {result.paymentMethod.toUpperCase() === 'MOMO' && (
+              {result.paymentMethod.toUpperCase() === 'SEPAY' && (
                 <section className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="font-semibold text-amber-950">
-                      {paymentStatus.data?.status.toUpperCase() === 'PAID'
+                      {currentPaymentStatus === 'PAID'
                         ? t('booking.payment.confirmed', 'Thanh toán đã được xác nhận')
-                        : t('booking.payment.timeRemaining', 'Thời gian giữ sân còn lại')}
+                        : currentPaymentStatus &&
+                            !['PENDING', 'PROCESSING'].includes(currentPaymentStatus)
+                          ? t('booking.payment.needsAttention', 'Giao dịch cần được xử lý')
+                          : t('booking.payment.timeRemaining', 'Thời gian giữ sân còn lại')}
                     </span>
-                    {remainingSeconds !== null && paymentStatus.data?.status.toUpperCase() !== 'PAID' && (
+                    {remainingSeconds !== null && currentPaymentStatus !== 'PAID' && (
                       <span className="font-mono font-bold text-amber-900" aria-live="polite">
                         {Math.floor(remainingSeconds / 60)}:
                         {String(remainingSeconds % 60).padStart(2, '0')}
@@ -450,7 +483,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                       {paymentError}
                     </p>
                   )}
-                  {paymentStatus.data?.status.toUpperCase() === 'PAYMENT_REVIEW' && (
+                  {currentPaymentStatus === 'PAYMENT_REVIEW' && (
                     <p role="status" className="text-xs text-amber-900">
                       {t(
                         'booking.payment.review',
@@ -458,28 +491,140 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                       )}
                     </p>
                   )}
-                  {paymentStatus.data?.status.toUpperCase() !== 'PAID' &&
-                    paymentStatus.data?.status.toUpperCase() !== 'PAYMENT_REVIEW' && (
-                      <Button
-                        type="button"
-                        className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
-                        onClick={startMomoPayment}
-                        disabled={
-                          createMomoPayment.isPending ||
-                          remainingSeconds === 0 ||
-                          paymentStatus.data?.status.toUpperCase() === 'EXPIRED'
-                        }
-                      >
-                        {createMomoPayment.isPending
-                          ? t('booking.payment.starting', 'Đang kết nối MoMo...')
-                          : paymentStatus.data?.status.toUpperCase() === 'PROCESSING'
-                            ? t('booking.payment.continue', 'Mở lại trang thanh toán MoMo')
-                            : t('booking.payment.pay', 'Thanh toán với MoMo')}
-                      </Button>
-                    )}
+                  {currentPaymentStatus === 'FAILED' && (
+                    <p role="status" className="text-xs text-amber-900">
+                      {t(
+                        'booking.payment.expired',
+                        'Thời gian giữ sân đã hết. Đặt sân chưa được xác nhận.',
+                      )}
+                    </p>
+                  )}
+                  {currentPaymentStatus === 'UNDERPAID' && (
+                    <p role="status" className="text-xs text-amber-900">
+                      {t(
+                        'booking.payment.underpaid',
+                        'Số tiền nhận được chưa đủ. Vui lòng liên hệ chi nhánh để được hỗ trợ.',
+                      )}
+                    </p>
+                  )}
+                  {currentPaymentStatus === 'OVERPAID' && (
+                    <p role="status" className="text-xs text-amber-900">
+                      {t(
+                        'booking.payment.overpaid',
+                        'Số tiền nhận được cao hơn yêu cầu. Giao dịch cần được chi nhánh kiểm tra.',
+                      )}
+                    </p>
+                  )}
+                  {currentPaymentStatus === 'EXPIRED' && (
+                    <p role="status" className="text-xs text-amber-900">
+                      {t(
+                        'booking.payment.expired',
+                        'Thời gian giữ sân đã hết. Đặt sân chưa được xác nhận.',
+                      )}
+                    </p>
+                  )}
+                  {!paymentId && (
+                    <Button
+                      type="button"
+                      className="min-h-11 w-full bg-emerald-600 text-white hover:bg-emerald-700"
+                      onClick={startSePayPayment}
+                      disabled={createSePayPayment.isPending || remainingSeconds === 0}
+                    >
+                      {createSePayPayment.isPending
+                        ? t('booking.payment.starting', 'Đang tạo mã QR...')
+                        : t('booking.payment.pay', 'Thanh toán')}
+                    </Button>
+                  )}
+                  {paymentId && transferIsOpen && (
+                    <>
+                      {qrUrl && (
+                        <img
+                          src={qrUrl}
+                          alt={t('booking.payment.qrAlt', 'Mã QR chuyển khoản SePay')}
+                          className="mx-auto size-52 max-w-full rounded-lg border border-slate-200 bg-white p-2"
+                          onError={() =>
+                            setPaymentError(
+                              t('booking.payment.missingUrl', 'Không nhận được mã QR thanh toán.'),
+                            )
+                          }
+                        />
+                      )}
+                      <dl className="grid gap-2 rounded-md bg-white p-3 text-sm sm:grid-cols-2">
+                        <div>
+                          <dt className="text-xs text-slate-500">
+                            {t('booking.payment.bank', 'Ngân hàng')}
+                          </dt>
+                          <dd className="font-medium text-slate-900">
+                            {paymentStatus.data?.bankCode ?? sePayPayment?.bankCode}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-slate-500">
+                            {t('booking.payment.accountNumber', 'Số tài khoản')}
+                          </dt>
+                          <dd className="font-mono font-medium text-slate-900">
+                            {paymentStatus.data?.bankAccountNumber ??
+                              sePayPayment?.bankAccountNumber}
+                          </dd>
+                        </div>
+                        <div className="sm:col-span-2">
+                          <dt className="text-xs text-slate-500">
+                            {t('booking.payment.accountHolder', 'Chủ tài khoản')}
+                          </dt>
+                          <dd className="font-medium text-slate-900">
+                            {paymentStatus.data?.accountHolderName ??
+                              sePayPayment?.accountHolderName}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-slate-500">
+                            {t('booking.payment.transferAmount', 'Số tiền chuyển khoản chính xác')}
+                          </dt>
+                          <dd className="font-mono font-semibold text-slate-900">
+                            {formatCurrency(sePayPayment?.amount ?? result.totalAmount)}
+                          </dd>
+                        </div>
+                        <div className="sm:col-span-2">
+                          <dt className="text-xs text-slate-500">
+                            {t('booking.payment.transferContent', 'Nội dung chuyển khoản')}
+                          </dt>
+                          <dd className="flex flex-wrap items-center gap-2">
+                            <code className="font-mono font-semibold break-all text-slate-900 select-all">
+                              {paymentCode}
+                            </code>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="min-h-11"
+                              onClick={copyPaymentCode}
+                              aria-label={t(
+                                'booking.payment.copyContent',
+                                'Sao chép nội dung chuyển khoản',
+                              )}
+                            >
+                              <Copy className="size-4" aria-hidden />
+                              {paymentCodeCopied
+                                ? t('booking.payment.copied', 'Đã sao chép')
+                                : t('booking.payment.copyContent', 'Sao chép nội dung')}
+                            </Button>
+                          </dd>
+                        </div>
+                      </dl>
+                      <p role="status" className="text-xs text-slate-700">
+                        {t(
+                          'booking.payment.awaitingPayment',
+                          'Đang chờ ngân hàng xác nhận giao dịch.',
+                        )}
+                      </p>
+                    </>
+                  )}
                   {paymentStatus.isError && (
                     <p role="status" className="text-xs text-slate-600">
-                      {t('booking.payment.statusPolling', 'Đang thử kiểm tra trạng thái thanh toán...')}
+                      {t(
+                        'booking.payment.statusPolling',
+                        'Đang thử kiểm tra trạng thái thanh toán...',
+                      )}
                     </p>
                   )}
                 </section>
@@ -552,7 +697,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                             <span className="font-medium text-slate-800">
                               {detail.courtName || detail.courtId}
                             </span>
-                            <span className="text-slate-600 font-mono text-[11px]">
+                            <span className="font-mono text-[11px] text-slate-600">
                               {formatBookingTime(detail.startTime)} -{' '}
                               {formatBookingTime(detail.endTime)}
                             </span>
@@ -708,37 +853,45 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                 <div className="space-y-2.5">
                   {canSelectBookingType && (
                     <div className="space-y-1">
-                      <label htmlFor="booking-type" className="text-xs font-semibold text-slate-700">
+                      <label
+                        htmlFor="booking-type"
+                        className="text-xs font-semibold text-slate-700"
+                      >
                         {t('booking.fields.bookingType', 'Loại đặt sân')}
                       </label>
                       <select
                         id="booking-type"
                         disabled={isPending}
-                        className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-xs shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                        className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-xs shadow-2xs focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
                         {...register('bookingType')}
                       >
                         <option value="FLEXIBLE">
                           {t('booking.bookingTypes.FLEXIBLE', 'Vãng lai (Linh hoạt)')}
                         </option>
-                        <option value="FIXED">
-                          {t('booking.bookingTypes.FIXED', 'Cố định')}
-                        </option>
+                        <option value="FIXED">{t('booking.bookingTypes.FIXED', 'Cố định')}</option>
                       </select>
                     </div>
                   )}
 
                   <div className="space-y-1">
-                    <label htmlFor="booking-payment-method" className="text-xs font-semibold text-slate-700">
+                    <label
+                      htmlFor="booking-payment-method"
+                      className="text-xs font-semibold text-slate-700"
+                    >
                       {t('booking.fields.paymentMethod', 'Phương thức thanh toán')}
                     </label>
                     <select
                       id="booking-payment-method"
                       disabled={isPending}
-                      className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-xs shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                      className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-xs shadow-2xs focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
                       {...register('paymentMethod')}
                     >
-                      <option value="CASH">{t('booking.paymentMethods.CASH', 'Tiền mặt tại sân')}</option>
-                      <option value="MOMO">{t('booking.paymentMethods.MOMO', 'Thanh toán trực tuyến MoMo')}</option>
+                      <option value="CASH">
+                        {t('booking.paymentMethods.CASH', 'Tiền mặt tại sân')}
+                      </option>
+                      <option value="SEPAY">
+                        {t('booking.paymentMethods.SEPAY', 'Chuyển khoản ngân hàng (SePay)')}
+                      </option>
                     </select>
                   </div>
 
@@ -750,8 +903,11 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                       id="booking-notes"
                       rows={2}
                       disabled={isPending}
-                      placeholder={t('booking.placeholders.notes', 'Ví dụ: Cần mượn vợt, nước uống...')}
-                      className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-xs shadow-2xs placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                      placeholder={t(
+                        'booking.placeholders.notes',
+                        'Ví dụ: Cần mượn vợt, nước uống...',
+                      )}
+                      className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-xs shadow-2xs placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
                       {...register('notes')}
                     />
                   </div>
@@ -776,7 +932,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                 )}
 
                 {/* Sticky Action Footer */}
-                <DialogFooter className="sticky bottom-0 -mx-4 -mb-4 mt-6 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-xs sm:-mx-6 sm:-mb-6 sm:px-6">
+                <DialogFooter className="sticky bottom-0 -mx-4 mt-6 -mb-4 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-xs sm:-mx-6 sm:-mb-6 sm:px-6">
                   <Button
                     type="button"
                     variant="outline"
@@ -797,7 +953,9 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                     {isPending ? (
                       <>
                         <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
-                        <span role="status">{t('booking.actions.submitting', 'Đang đặt sân...')}</span>
+                        <span role="status">
+                          {t('booking.actions.submitting', 'Đang đặt sân...')}
+                        </span>
                       </>
                     ) : (
                       t('booking.actions.confirm', 'Xác nhận đặt sân')

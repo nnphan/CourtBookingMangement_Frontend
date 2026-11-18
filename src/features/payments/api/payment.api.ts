@@ -11,6 +11,22 @@ export interface CreateMomoPaymentResponse {
   qrCodeUrl: string | null;
 }
 
+export interface CreateSePayPaymentResponse {
+  paymentId: string;
+  bookingId: string;
+  bookingCode: string;
+  paymentCode: string;
+  amount: number;
+  status: string;
+  qrUrl: string;
+  bankCode: string;
+  bankAccountNumber: string;
+  accountHolderName: string;
+  expiresAt: string;
+  serverTime: string;
+  remainingSeconds: number;
+}
+
 export interface BookingPaymentStatus {
   paymentId: string;
   bookingId: string;
@@ -18,9 +34,32 @@ export interface BookingPaymentStatus {
   amount: number;
   payUrl: string | null;
   paidAt: string | null;
+  bookingStatus?: string | null;
+  bookingCode?: string | null;
+  paymentCode?: string | null;
+  qrCodeUrl?: string | null;
+  bankCode?: string | null;
+  bankAccountNumber?: string | null;
+  accountHolderName?: string | null;
+  receivedAmount?: number | null;
+  expiresAt?: string | null;
+  serverTime?: string | null;
+  remainingSeconds?: number | null;
 }
 
 export const paymentApi = {
+  createSePayPayment: async (
+    bookingId: string,
+    holdToken: string | null,
+  ): Promise<CreateSePayPaymentResponse> => {
+    const response = await http.post<ApiSuccessResponse<CreateSePayPaymentResponse>>(
+      '/api/payments/sepay',
+      { bookingId },
+      { headers: holdToken ? { 'X-Booking-Hold-Token': holdToken } : undefined },
+    );
+    return response.data.data;
+  },
+
   createMomoPayment: async (
     bookingId: string,
     holdToken: string,

@@ -6,8 +6,17 @@ const TERMINAL_PAYMENT_STATUSES = new Set([
   'FAILED',
   'EXPIRED',
   'PAYMENT_REVIEW',
+  'UNDERPAID',
+  'OVERPAID',
   'REFUNDED',
 ]);
+
+export const useCreateSePayPayment = () =>
+  useMutation({
+    mutationFn: ({ bookingId, holdToken }: { bookingId: string; holdToken: string | null }) =>
+      paymentApi.createSePayPayment(bookingId, holdToken),
+    retry: false,
+  });
 
 export const useCreateMomoPayment = () =>
   useMutation({

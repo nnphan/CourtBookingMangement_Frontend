@@ -1,7 +1,7 @@
 export type BookingTypeApi = 'FLEXIBLE' | 'FIXED';
 export type BookingDialogMode = 'ADMIN' | 'CUSTOMER';
 
-export type PaymentMethodApi = 'CASH' | 'MOMO';
+export type PaymentMethodApi = 'CASH' | 'SEPAY';
 
 export interface SelectedBookingCourt {
   courtId: string;

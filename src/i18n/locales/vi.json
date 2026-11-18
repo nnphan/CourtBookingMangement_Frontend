@@ -310,7 +310,8 @@
       "FIXED": "Cố định"
     },
     "paymentMethods": {
-      "CASH": "Tiền mặt"
+      "CASH": "Tiền mặt",
+      "SEPAY": "Chuyển khoản ngân hàng (SePay)"
     },
     "validation": {
       "customerNameRequired": "Họ và tên là bắt buộc khi đặt sân với tư cách khách.",
@@ -325,6 +326,31 @@
     "success": {
       "bookingCode": "Mã booking: {{code}}",
       "total": "Tổng tiền"
+    },
+    "payment": {
+      "holdCreated": "Đã giữ sân, vui lòng chuyển khoản",
+      "timeRemaining": "Thời gian giữ sân còn lại",
+      "confirmed": "Thanh toán đã được xác nhận",
+      "needsAttention": "Giao dịch cần được xử lý",
+      "starting": "Đang tạo mã QR...",
+      "pay": "Thanh toán",
+      "holdExpired": "Thời gian giữ sân đã hết.",
+      "createFailed": "Không thể khởi tạo thanh toán.",
+      "missingUrl": "Không nhận được mã QR thanh toán.",
+      "statusPolling": "Đang kiểm tra trạng thái thanh toán...",
+      "bank": "Ngân hàng",
+      "accountNumber": "Số tài khoản",
+      "accountHolder": "Chủ tài khoản",
+      "transferAmount": "Số tiền chuyển khoản chính xác",
+      "transferContent": "Nội dung chuyển khoản",
+      "copyContent": "Sao chép nội dung",
+      "copied": "Đã sao chép",
+      "copyFailed": "Không thể sao chép. Vui lòng chọn và sao chép nội dung chuyển khoản.",
+      "awaitingPayment": "Đang chờ ngân hàng xác nhận giao dịch.",
+      "underpaid": "Số tiền nhận được chưa đủ. Vui lòng liên hệ chi nhánh để được hỗ trợ.",
+      "overpaid": "Số tiền nhận được cao hơn yêu cầu. Giao dịch cần được chi nhánh kiểm tra.",
+      "expired": "Thời gian giữ sân đã hết. Đặt sân chưa được xác nhận.",
+      "review": "Giao dịch đang được kiểm tra. Không thanh toán lại."
     }
   },
   "account": {
