@@ -5,10 +5,12 @@ export type SkillLevel =
 
 export type MatchGender = 'All' | 'Male' | 'Female' | 'Mixed' | 'Any';
 
-export type MatchStatus = 'OPEN' | 'FULL' | 'CANCELLED' | 'EXPIRED';
+export type MatchStatus = 'DRAFT' | 'OPEN' | 'FULL' | 'CANCELLED' | 'EXPIRED';
 
 export type PlayerMatchSkillLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'PROFESSIONAL';
 export type PlayerMatchGenderPreference = 'MALE' | 'FEMALE' | 'BOTH';
+export type PlayerMatchGameType = 'SINGLES' | 'DOUBLES';
+export type PlayerMatchGenderPolicy = 'ANY' | 'SPECIFIC';
 
 export interface CreatePlayerMatchRequest {
   bookingId: string;
@@ -24,6 +26,50 @@ export interface CreatePlayerMatchRequest {
   maxPlayers: number;
   currentPlayers: number;
   feePerPlayer: number;
+}
+
+export interface PlayerMatchDraftRequest {
+  bookingId: string | null;
+  branchId: string;
+  courtId: string | null;
+  title: string;
+  description: string | null;
+  matchDate: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  gameType: PlayerMatchGameType;
+  minimumRating: number;
+  maximumRating: number;
+  requiredPlayerCount: number;
+  genderPolicy: PlayerMatchGenderPolicy;
+  requiredGender: PlayerMatchingGender | null;
+  participationFee: number;
+}
+
+export interface PlayerMatchDraftDetails {
+  id: string;
+  title: string;
+  description: string | null;
+  branchId: string;
+  branchName: string;
+  bookingId: string | null;
+  matchDate: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  gameType: string | null;
+  minimumRating: number | null;
+  maximumRating: number | null;
+  genderPolicy: string | null;
+  requiredGender: PlayerMatchingGender | null;
+  maxPlayers: number;
+  feePerPlayer: number;
+  status: string;
+}
+
+export interface PlayerMatchLifecycleResponse {
+  id: string;
+  status: string;
+  message: string;
 }
 
 export type PlayerMatchSort = 'latest' | 'oldest' | 'match_date_asc' | 'match_date_desc';
@@ -71,6 +117,11 @@ export interface JoinPlayerMatchResponse {
   message: string;
 }
 
+export interface JoinPlayerMatchVariables {
+  matchId: string;
+  message?: string;
+}
+
 export interface HostedPlayerMatch {
   id: string;
   title: string;
@@ -78,9 +129,9 @@ export interface HostedPlayerMatch {
   branchName: string;
   courtId: string | null;
   courtName: string | null;
-  matchDate: string;
-  startTime: string;
-  endTime: string;
+  matchDate: string | null;
+  startTime: string | null;
+  endTime: string | null;
   skillLevel: string;
   genderPreference: string;
   maxPlayers: number;
@@ -96,10 +147,12 @@ export interface PlayerMatchJoinRequest {
   requestId: string;
   matchId: string;
   userId: string;
-  fullName: string;
+  fullName: string | null;
   skillLevel?: PlayerMatchSkillLevel | null;
   status: string;
   requestedAt: string;
+  message?: string | null;
+  rejectionReason?: string | null;
 }
 
 export interface ProcessJoinRequestVariables {
@@ -156,6 +209,112 @@ export interface PlayerMatchParticipant {
   joinedAt: string;
 }
 
+export type PlayerMatchingGender = 'MALE' | 'FEMALE' | 'OTHER';
+
+export interface PlayerMatchingProfile {
+  currentRating: number;
+  ratingBand: string;
+  ratingConfidence: number;
+  ratingSource: string;
+  matchesPlayed: number;
+  gender: PlayerMatchingGender | null;
+  isProfilePublic: boolean;
+  isMatchingEnabled: boolean;
+}
+
+export interface UpdatePlayerMatchingProfileRequest {
+  currentRating: number;
+  gender: PlayerMatchingGender | null;
+  isProfilePublic: boolean;
+  isMatchingEnabled: boolean;
+}
+
+export interface PlayerMatchPreferenceWeights {
+  skillWeight: number;
+  timeWeight: number;
+  branchWeight: number;
+  genderWeight: number;
+}
+
+export interface PlayerMatchPreferences {
+  preferences: PlayerMatchPreferenceWeights;
+  branchIds: string[];
+  preferredStartTime: string | null;
+  preferredEndTime: string | null;
+  minimumTimeOverlapMinutes: number;
+  maximumParticipationFee: number | null;
+}
+
+export interface PlayerMatchScoringCriteria {
+  branchIds: string[];
+  matchDate?: string;
+  preferredStartTime: string;
+  preferredEndTime: string;
+  minimumTimeOverlapMinutes: number;
+  gameTypes: PlayerMatchGameType[];
+  maximumParticipationFee: number | null;
+  preferences: PlayerMatchPreferenceWeights;
+}
+
+export interface PersonalizedPlayerMatchSearchRequest extends PlayerMatchScoringCriteria {
+  saveAsDefault: boolean;
+  page: number;
+  pageSize: number;
+}
+
+export interface PlayerMatchScoreBreakdown {
+  skillScore: number;
+  timeScore: number;
+  branchScore: number;
+  genderScore: number;
+}
+
+export interface PersonalizedPlayerMatch {
+  roomId: string;
+  roomCode: string;
+  title: string;
+  branchId: string;
+  branchName: string;
+  courtName: string;
+  courtReservationStatus: string;
+  matchDate: string;
+  startTime: string;
+  endTime: string;
+  gameType: PlayerMatchGameType;
+  minimumRating: number;
+  maximumRating: number;
+  currentPlayerCount: number;
+  requiredPlayerCount: number;
+  availableSlots: number;
+  participationFee: number;
+  matchScore: number;
+  matchLevel: string;
+  scoreBreakdown: PlayerMatchScoreBreakdown;
+  reasons: string[];
+  warnings: string[];
+  joinRequestStatus: string | null;
+}
+
+export interface PersonalizedPlayerMatchSearchResponse {
+  items: PersonalizedPlayerMatch[];
+  appliedWeights: PlayerMatchPreferenceWeights;
+  candidateLimitReached: boolean;
+}
+
+export interface PlayerMatchJoinPreview {
+  id: string;
+  title: string;
+  branchName: string;
+  courtName: string | null;
+  matchDate: string;
+  startTime: string;
+  endTime: string;
+  matchLabel: string;
+  currentPlayers: number;
+  maxPlayers: number;
+  feePerPlayer: number;
+}
+
 export interface PlayerMatchDetail {
   id: string;
   title: string;
@@ -166,11 +325,16 @@ export interface PlayerMatchDetail {
   city: string;
   district: string;
   courtName: string | null;
-  matchDate: string;
-  startTime: string;
-  endTime: string;
+  matchDate: string | null;
+  startTime: string | null;
+  endTime: string | null;
   skillLevel: string;
   genderPreference: string;
+  gameType?: string | null;
+  minimumRating?: number | null;
+  maximumRating?: number | null;
+  genderPolicy?: string | null;
+  requiredGender?: PlayerMatchingGender | null;
   maxPlayers: number;
   currentPlayers: number;
   remainingSlots: number;

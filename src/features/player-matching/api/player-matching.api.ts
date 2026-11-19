@@ -4,6 +4,7 @@ import type {
   HostedPlayerMatch,
   HostedPlayerMatchesParams,
   JoinPlayerMatchResponse,
+  JoinPlayerMatchVariables,
   ProcessJoinRequestVariables,
   PlayerMatchJoinRequest,
   PlayerMatchDetail,
@@ -14,6 +15,14 @@ import type {
   PlayerMatchingFilterParams,
   PlayerMatchingResponse,
   PlayerMatchingStatsResponse,
+  PlayerMatchingProfile,
+  PlayerMatchPreferences,
+  UpdatePlayerMatchingProfileRequest,
+  PlayerMatchDraftDetails,
+  PlayerMatchDraftRequest,
+  PlayerMatchLifecycleResponse,
+  PersonalizedPlayerMatchSearchRequest,
+  PersonalizedPlayerMatchSearchResponse,
 } from '../types/player-matching.types';
 import type { ApiResponse, ApiSuccessResponse } from '@/types/api';
 import { formatTimeToApi } from '@/features/bookings/utils/booking.mapper';
@@ -34,6 +43,63 @@ export const buildPlayerMatchSearchParams = (filters: PlayerMatchSearchParams) =
 });
 
 export const playerMatchingApi = {
+  getPlayerMatchingProfile: async (signal?: AbortSignal): Promise<PlayerMatchingProfile> => {
+    const response = await http.get<ApiResponse<PlayerMatchingProfile>>(
+      '/api/me/player-matching-profile',
+      { signal },
+    );
+    if (!response.data.success) throw new Error(response.data.message);
+    return response.data.data;
+  },
+
+  updatePlayerMatchingProfile: async (
+    payload: UpdatePlayerMatchingProfileRequest,
+  ): Promise<PlayerMatchingProfile> => {
+    const response = await http.put<ApiResponse<PlayerMatchingProfile>>(
+      '/api/me/player-matching-profile',
+      payload,
+    );
+    if (!response.data.success) throw new Error(response.data.message);
+    return response.data.data;
+  },
+
+  getPlayerMatchPreferences: async (signal?: AbortSignal): Promise<PlayerMatchPreferences> => {
+    const response = await http.get<ApiResponse<PlayerMatchPreferences>>(
+      '/api/me/match-preferences',
+      { signal },
+    );
+    if (!response.data.success) throw new Error(response.data.message);
+    return response.data.data;
+  },
+
+  updatePlayerMatchPreferences: async (
+    payload: PlayerMatchPreferences,
+  ): Promise<PlayerMatchPreferences> => {
+    const response = await http.put<ApiResponse<PlayerMatchPreferences>>(
+      '/api/me/match-preferences',
+      payload,
+    );
+    if (!response.data.success) throw new Error(response.data.message);
+    return response.data.data;
+  },
+
+  searchPersonalizedPlayerMatches: async (
+    request: PersonalizedPlayerMatchSearchRequest,
+    signal?: AbortSignal,
+  ): Promise<ApiSuccessResponse<PersonalizedPlayerMatchSearchResponse>> => {
+    const response = await http.post<ApiResponse<PersonalizedPlayerMatchSearchResponse>>(
+      '/api/player-matches/search',
+      {
+        ...request,
+        preferredStartTime: formatTimeToApi(request.preferredStartTime),
+        preferredEndTime: formatTimeToApi(request.preferredEndTime),
+      },
+      { signal },
+    );
+    if (!response.data.success) throw new Error(response.data.message);
+    return response.data;
+  },
+
   getHostedPlayerMatches: async (
     params: HostedPlayerMatchesParams,
     signal?: AbortSignal,
@@ -108,7 +174,9 @@ export const playerMatchingApi = {
       '/api/player-matches/participating',
       {
         params: {
-          ...(params.participationStatus ? { participationStatus: params.participationStatus } : {}),
+          ...(params.participationStatus
+            ? { participationStatus: params.participationStatus }
+            : {}),
           ...(params.matchStatus ? { matchStatus: params.matchStatus } : {}),
           ...(params.fromDate ? { fromDate: params.fromDate } : {}),
           page: params.page,
@@ -145,12 +213,90 @@ export const playerMatchingApi = {
     return response.data.data;
   },
 
-  joinPlayerMatch: async (id: string): Promise<JoinPlayerMatchResponse> => {
+  getPlayerMatchDraftDetails: async (
+    id: string,
+    signal?: AbortSignal,
+  ): Promise<PlayerMatchDraftDetails> => {
+    const matchId = id.trim();
+    if (!matchId) throw new Error('A player match id is required.');
+
+    const response = await http.get<ApiResponse<PlayerMatchDraftDetails>>(
+      `/api/player-matches/${encodeURIComponent(matchId)}`,
+      { signal },
+    );
+    if (!response.data.success) throw new Error(response.data.message);
+    return response.data.data;
+  },
+
+  createPlayerMatchDraft: async (
+    payload: PlayerMatchDraftRequest,
+  ): Promise<PlayerMatchLifecycleResponse> => {
+    const response = await http.post<ApiResponse<PlayerMatchLifecycleResponse>>(
+      '/api/player-matches/drafts',
+      payload,
+    );
+    if (!response.data.success) throw new Error(response.data.message);
+    return response.data.data;
+  },
+
+  updatePlayerMatchDraft: async (
+    id: string,
+    payload: PlayerMatchDraftRequest,
+  ): Promise<PlayerMatchLifecycleResponse> => {
+    const matchId = id.trim();
+    if (!matchId) throw new Error('A player match id is required.');
+
+    const response = await http.put<ApiResponse<PlayerMatchLifecycleResponse>>(
+      `/api/player-matches/${encodeURIComponent(matchId)}`,
+      payload,
+    );
+    if (!response.data.success) throw new Error(response.data.message);
+    return response.data.data;
+  },
+
+  publishPlayerMatchDraft: async (id: string): Promise<PlayerMatchLifecycleResponse> => {
+    const matchId = id.trim();
+    if (!matchId) throw new Error('A player match id is required.');
+
+    const response = await http.post<ApiResponse<PlayerMatchLifecycleResponse>>(
+      `/api/player-matches/${encodeURIComponent(matchId)}/publish`,
+    );
+    if (!response.data.success) throw new Error(response.data.message);
+    return response.data.data;
+  },
+
+  cancelPlayerMatch: async (id: string): Promise<PlayerMatchLifecycleResponse> => {
+    const matchId = id.trim();
+    if (!matchId) throw new Error('A player match id is required.');
+
+    const response = await http.post<ApiResponse<PlayerMatchLifecycleResponse>>(
+      `/api/player-matches/${encodeURIComponent(matchId)}/cancel`,
+    );
+    if (!response.data.success) throw new Error(response.data.message);
+    return response.data.data;
+  },
+
+  joinPlayerMatch: async ({
+    matchId: id,
+    message,
+  }: JoinPlayerMatchVariables): Promise<JoinPlayerMatchResponse> => {
     const matchId = id.trim();
     if (!matchId) throw new Error('A player match id is required.');
 
     const response = await http.post<ApiResponse<JoinPlayerMatchResponse>>(
-      `/api/player-matches/${encodeURIComponent(matchId)}/join`,
+      `/api/player-matches/${encodeURIComponent(matchId)}/join-requests`,
+      message?.trim() ? { message: message.trim() } : {},
+    );
+    if (!response.data.success) throw new Error(response.data.message);
+    return response.data.data;
+  },
+
+  cancelPlayerMatchJoinRequest: async (id: string): Promise<JoinPlayerMatchResponse> => {
+    const matchId = id.trim();
+    if (!matchId) throw new Error('A player match id is required.');
+
+    const response = await http.delete<ApiResponse<JoinPlayerMatchResponse>>(
+      `/api/player-matches/${encodeURIComponent(matchId)}/join-requests/me`,
     );
     if (!response.data.success) throw new Error(response.data.message);
     return response.data.data;

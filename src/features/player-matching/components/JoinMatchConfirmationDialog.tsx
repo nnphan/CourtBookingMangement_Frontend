@@ -1,4 +1,5 @@
 import { Banknote, CalendarDays, Clock3, Loader2, MapPin, UsersRound } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,15 +15,15 @@ import {
   formatBookingTime,
   formatCurrency,
 } from '@/features/bookings/utils/booking.mapper';
-import type { PlayerMatchListItem } from '../types/player-matching.types';
+import type { PlayerMatchJoinPreview } from '../types/player-matching.types';
 
 interface JoinMatchConfirmationDialogProps {
-  match: PlayerMatchListItem | null;
+  match: PlayerMatchJoinPreview | null;
   open: boolean;
   isPending: boolean;
   errorMessage?: string;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => Promise<void>;
+  onConfirm: (message: string) => Promise<void>;
 }
 
 export const JoinMatchConfirmationDialog = ({
@@ -34,17 +35,18 @@ export const JoinMatchConfirmationDialog = ({
   onConfirm,
 }: JoinMatchConfirmationDialogProps) => {
   const { t } = useTranslation();
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    if (!open) setMessage('');
+  }, [open]);
 
   if (!match) return null;
-
-  const skillLabel = t(`playerMatch.skill.${match.skillLevel.toLowerCase()}`, {
-    defaultValue: match.skillLevel,
-  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] overflow-y-auto border-line bg-surface sm:w-full"
+        className="border-line bg-surface max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] overflow-y-auto sm:w-full"
         onEscapeKeyDown={(event) => {
           if (isPending) event.preventDefault();
         }}
@@ -81,7 +83,7 @@ export const JoinMatchConfirmationDialog = ({
           <div className="text-content-secondary flex items-center gap-2 text-sm">
             <UsersRound aria-hidden="true" className="text-brand-600 size-4 shrink-0" />
             <span>
-              {skillLabel} · {match.currentPlayers}/{match.maxPlayers}{' '}
+              {match.matchLabel} · {match.currentPlayers}/{match.maxPlayers}{' '}
               {t('playerMatch.card.players')}
             </span>
           </div>
@@ -96,6 +98,32 @@ export const JoinMatchConfirmationDialog = ({
         <p className="text-content-primary text-sm">
           {t('playerMatch.join.confirmDescriptionSecondary')}
         </p>
+
+        <div className="space-y-1.5">
+          <label
+            htmlFor="player-match-join-message"
+            className="text-content-primary text-sm font-semibold"
+          >
+            {t('playerMatch.join.messageLabel')}
+          </label>
+          <textarea
+            id="player-match-join-message"
+            value={message}
+            maxLength={500}
+            rows={3}
+            disabled={isPending}
+            onChange={(event) => setMessage(event.target.value)}
+            aria-describedby="player-match-join-message-hint"
+            className="border-line bg-surface text-content-primary focus-visible:ring-brand-500 w-full rounded-lg border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
+          />
+          <p
+            id="player-match-join-message-hint"
+            className="text-content-secondary text-xs"
+            aria-live="polite"
+          >
+            {t('playerMatch.join.messageHint', { remaining: 500 - message.length })}
+          </p>
+        </div>
 
         {errorMessage && (
           <p role="alert" className="text-danger text-sm">
@@ -116,7 +144,7 @@ export const JoinMatchConfirmationDialog = ({
             type="button"
             disabled={isPending}
             aria-busy={isPending}
-            onClick={() => void onConfirm()}
+            onClick={() => void onConfirm(message.trim())}
           >
             {isPending && <Loader2 aria-hidden="true" className="size-4 animate-spin" />}
             {isPending ? t('playerMatch.join.sending') : t('playerMatch.join.confirm')}

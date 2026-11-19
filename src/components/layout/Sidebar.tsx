@@ -24,6 +24,7 @@ import {
   PackageOpen,
   BarChart3,
   Tags,
+  UsersRound,
 } from 'lucide-react';
 import { useLogout } from '@/features/auth/hooks/useLogout';
 import { useAuthStore } from '@/features/auth/store/auth.store';
@@ -68,6 +69,12 @@ const menuItems = [
     adminOnly: true,
   },
   { icon: Users, label: 'Quản lý khách hàng', path: paths.customers },
+  {
+    icon: UsersRound,
+    label: 'Player matching profile',
+    translationKey: 'playerMatchingProfile.nav',
+    path: paths.playerMatchingProfile,
+  },
   { icon: ShoppingBag, label: 'POS / Bán hàng', path: paths.posSales, posOnly: true },
   { icon: BarChart3, label: 'Quản trị POS & kho', path: paths.posDashboard, posOnly: true },
   { icon: Tags, label: 'Danh mục sản phẩm', path: paths.posCategories, posOnly: true },

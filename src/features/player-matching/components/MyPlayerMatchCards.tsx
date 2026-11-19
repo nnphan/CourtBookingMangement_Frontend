@@ -7,7 +7,9 @@ import {
   CircleX,
   Clock3,
   MapPin,
+  Pencil,
   UsersRound,
+  X,
   type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -48,6 +50,8 @@ const MatchCardDetails = ({
   const genderLabel = t(`playerMatch.gender.${match.genderPreference.toLowerCase()}`, {
     defaultValue: match.genderPreference,
   });
+  const status = 'status' in match ? match.status : match.matchStatus;
+  const isDraft = status.toUpperCase() === 'DRAFT';
 
   return (
     <article className="border-line bg-surface flex min-w-0 flex-col justify-between rounded-2xl border p-5 shadow-xs">
@@ -67,19 +71,27 @@ const MatchCardDetails = ({
           <div className="text-content-secondary flex flex-wrap gap-x-4 gap-y-2">
             <p className="flex items-center gap-2">
               <CalendarDays aria-hidden="true" className="text-brand-600 size-4 shrink-0" />
-              <span>{formatBookingDate(match.matchDate)}</span>
-            </p>
-            <p className="flex items-center gap-2">
-              <Clock3 aria-hidden="true" className="text-brand-600 size-4 shrink-0" />
               <span>
-                {formatBookingTime(match.startTime)} - {formatBookingTime(match.endTime)}
+                {match.matchDate
+                  ? formatBookingDate(match.matchDate)
+                  : t('playerMatch.drafts.scheduleNotSet')}
               </span>
             </p>
+            {match.startTime && match.endTime && (
+              <p className="flex items-center gap-2">
+                <Clock3 aria-hidden="true" className="text-brand-600 size-4 shrink-0" />
+                <span>
+                  {formatBookingTime(match.startTime)} - {formatBookingTime(match.endTime)}
+                </span>
+              </p>
+            )}
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="secondary">{skillLabel}</Badge>
-            <Badge variant="secondary">{genderLabel}</Badge>
-          </div>
+          {!isDraft && (
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary">{skillLabel}</Badge>
+              <Badge variant="secondary">{genderLabel}</Badge>
+            </div>
+          )}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-content-secondary flex items-center gap-2">
               <UsersRound aria-hidden="true" className="text-brand-600 size-4 shrink-0" />
@@ -154,6 +166,7 @@ const MatchStatusBadge = ({ status }: { status: string }) => {
   const { t } = useTranslation();
   const statusKey = status.toLowerCase();
   const variants: Record<string, 'info' | 'secondary' | 'muted' | 'destructive'> = {
+    DRAFT: 'muted',
     OPEN: 'info',
     FULL: 'secondary',
     COMPLETED: 'muted',
@@ -239,12 +252,50 @@ export const HostedPlayerMatchCard = ({
   match,
   onViewDetails,
   onReviewRequests,
+  onEditDraft,
+  onRequestLifecycleAction,
 }: {
   match: HostedPlayerMatch;
   onViewDetails: (matchId: string) => void;
   onReviewRequests: (match: HostedPlayerMatch) => void;
+  onEditDraft: (matchId: string) => void;
+  onRequestLifecycleAction: (match: HostedPlayerMatch) => void;
 }) => {
   const { t } = useTranslation();
+  const isDraft = match.status.toUpperCase() === 'DRAFT';
+  const canCancel = ['DRAFT', 'OPEN', 'FULL'].includes(match.status.toUpperCase());
+  const lifecycleActions = isDraft ? (
+    <div className="grid gap-2 sm:grid-cols-2">
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full"
+        onClick={() => onEditDraft(match.id)}
+      >
+        <Pencil aria-hidden="true" className="size-4" />
+        {t('playerMatch.drafts.edit')}
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full text-danger"
+        onClick={() => onRequestLifecycleAction(match)}
+      >
+        <X aria-hidden="true" className="size-4" />
+        {t('playerMatch.drafts.cancel')}
+      </Button>
+    </div>
+  ) : canCancel ? (
+    <Button
+      type="button"
+      variant="outline"
+      className="w-full text-danger"
+      onClick={() => onRequestLifecycleAction(match)}
+    >
+      <X aria-hidden="true" className="size-4" />
+      {t('playerMatch.drafts.cancel')}
+    </Button>
+  ) : null;
 
   return (
     <MatchCardDetails
@@ -254,30 +305,37 @@ export const HostedPlayerMatchCard = ({
       statusBadge={<MatchStatusBadge status={match.status} />}
       viewDetailsPrimary={match.pendingRequestCount <= 0}
       additionalAction={
-        match.pendingRequestCount > 0 ? (
-          <Button
-            type="button"
-            className="w-full"
-            aria-label={t('playerMatch.joinRequests.review', {
-              count: match.pendingRequestCount,
-              title: match.title,
-            })}
-            onClick={() => onReviewRequests(match)}
-          >
-            {t('playerMatch.joinRequests.reviewCount', {
-              count: match.pendingRequestCount,
-            })}
-          </Button>
+        match.pendingRequestCount > 0 || lifecycleActions ? (
+          <div className="space-y-2">
+            {match.pendingRequestCount > 0 && !isDraft && (
+              <Button
+                type="button"
+                className="w-full"
+                aria-label={t('playerMatch.joinRequests.review', {
+                  count: match.pendingRequestCount,
+                  title: match.title,
+                })}
+                onClick={() => onReviewRequests(match)}
+              >
+                {t('playerMatch.joinRequests.reviewCount', {
+                  count: match.pendingRequestCount,
+                })}
+              </Button>
+            )}
+            {lifecycleActions}
+          </div>
         ) : undefined
       }
     >
       <div className="border-line mt-4 space-y-3 border-t pt-3 text-sm">
-        <p className="text-content-primary font-semibold">
-          {match.isFull
-            ? t('playerMatch.myMatches.full')
-            : t('playerMatch.myMatches.remainingSlots', { count: match.remainingSlots })}
-        </p>
-        {match.pendingRequestCount > 0 && (
+        {!isDraft && (
+          <p className="text-content-primary font-semibold">
+            {match.isFull
+              ? t('playerMatch.myMatches.full')
+              : t('playerMatch.myMatches.remainingSlots', { count: match.remainingSlots })}
+          </p>
+        )}
+        {!isDraft && match.pendingRequestCount > 0 && (
           <p
             role="status"
             aria-label={t('playerMatch.myMatches.pendingRequests', {
@@ -299,9 +357,11 @@ export const HostedPlayerMatchCard = ({
 export const ParticipatingPlayerMatchCard = ({
   match,
   onViewDetails,
+  onCancelRequest,
 }: {
   match: ParticipatingPlayerMatch;
   onViewDetails: (matchId: string) => void;
+  onCancelRequest: (match: ParticipatingPlayerMatch) => void;
 }) => {
   const { t } = useTranslation();
   const matchStatus = match.matchStatus.toUpperCase();
@@ -319,6 +379,19 @@ export const ParticipatingPlayerMatchCard = ({
         isApproved ? t('playerMatch.myMatches.viewMatch') : t('playerMatch.myMatches.viewDetails')
       }
       viewDetailsPrimary
+      additionalAction={
+        match.canCancelRequest && participationStatus === 'PENDING' && !hasEnded ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full text-danger"
+            onClick={() => onCancelRequest(match)}
+          >
+            <X aria-hidden="true" className="size-4" />
+            {t('playerMatch.myMatches.cancelRequest')}
+          </Button>
+        ) : undefined
+      }
     >
       {hasEnded ? (
         <MatchLifecycleCard status={matchStatus} />

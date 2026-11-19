@@ -21,7 +21,12 @@ import {
 } from '../hooks/usePlayerMatching';
 
 interface JoinRequestsDialogProps {
-  match: HostedPlayerMatch | null;
+  match:
+    | Pick<
+        HostedPlayerMatch,
+        'id' | 'title' | 'branchName' | 'courtName' | 'matchDate' | 'startTime' | 'endTime'
+      >
+    | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -41,6 +46,7 @@ const RequestCard = ({
 }) => {
   const { t, i18n } = useTranslation();
   const requestedAt = dayjs(request.requestedAt);
+  const fullName = request.fullName?.trim() || t('playerMatch.joinRequests.unknownApplicant');
   const skillLabel = request.skillLevel
     ? t(`playerMatch.skill.${request.skillLevel.toLowerCase()}`, {
         defaultValue: request.skillLevel,
@@ -51,7 +57,7 @@ const RequestCard = ({
     <article className="border-line bg-surface rounded-xl border p-4">
       <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h3 className="text-content-primary truncate font-semibold">{request.fullName}</h3>
+          <h3 className="text-content-primary truncate font-semibold">{fullName}</h3>
           {skillLabel && <p className="text-content-secondary mt-1 text-sm">{skillLabel}</p>}
           <p className="text-content-secondary mt-1 text-xs">
             {t('playerMatch.joinRequests.requestedAt', {
@@ -62,6 +68,16 @@ const RequestCard = ({
                 : request.requestedAt,
             })}
           </p>
+          {request.message?.trim() && (
+            <div className="mt-2">
+              <p className="text-content-secondary text-xs font-semibold">
+                {t('playerMatch.joinRequests.applicantMessage')}
+              </p>
+              <p className="text-content-secondary mt-1 whitespace-pre-wrap text-sm">
+                {request.message}
+              </p>
+            </div>
+          )}
         </div>
         <div className="grid shrink-0 grid-cols-1 gap-2 sm:grid-cols-2">
           <Button
@@ -70,7 +86,7 @@ const RequestCard = ({
             disabled={Boolean(activeAction)}
             aria-busy={activeAction === 'reject'}
             aria-label={t('playerMatch.joinRequests.rejectApplicant', {
-              name: request.fullName,
+              name: fullName,
             })}
             onClick={() => onReject(request)}
           >
@@ -83,7 +99,7 @@ const RequestCard = ({
             disabled={Boolean(activeAction)}
             aria-busy={activeAction === 'approve'}
             aria-label={t('playerMatch.joinRequests.approveApplicant', {
-              name: request.fullName,
+              name: fullName,
             })}
             onClick={() => onApprove(request)}
           >
@@ -127,10 +143,13 @@ export const JoinRequestsDialog = ({
   const requestListRef = useRef<HTMLElement>(null);
   const focusListOnRejectClose = useRef(false);
   const [actionErrors, setActionErrors] = useState<Record<string, string>>({});
+  const [approveRequest, setApproveRequest] = useState<PlayerMatchJoinRequest | null>(null);
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [rejectRequest, setRejectRequest] = useState<PlayerMatchJoinRequest | null>(null);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const date = match ? dayjs(match.matchDate) : null;
   const isProcessing = Object.keys(activeActions).length > 0;
+  const focusListOnApproveClose = useRef(false);
 
   const processAction = async (
     action: 'approve' | 'reject',
@@ -150,7 +169,7 @@ export const JoinRequestsDialog = ({
       const variables = {
         matchId: match.id,
         requestId: request.requestId,
-        fullName: request.fullName,
+        fullName: request.fullName?.trim() || t('playerMatch.joinRequests.unknownApplicant'),
       };
       if (action === 'approve') {
         await approveMutation.mutateAsync(variables);
@@ -161,12 +180,9 @@ export const JoinRequestsDialog = ({
       toast.success(
         t(`playerMatch.joinRequests.${action}Success`),
         t(`playerMatch.joinRequests.${action}SuccessDescription`, {
-          fullName: request.fullName,
+          fullName: request.fullName?.trim() || t('playerMatch.joinRequests.unknownApplicant'),
         }),
       );
-      if (action === 'approve') {
-        window.requestAnimationFrame(() => requestListRef.current?.focus());
-      }
       return true;
     } catch (error) {
       const status =
@@ -177,16 +193,20 @@ export const JoinRequestsDialog = ({
         typeof error === 'object' && error !== null && 'message' in error
           ? error.message
           : undefined;
+      const code =
+        typeof error === 'object' && error !== null && 'code' in error
+          ? error.code
+          : undefined;
       const message =
         status === 403
           ? t('playerMatch.joinRequests.forbidden')
-          : status === 404 || status === 409
-            ? typeof serverMessage === 'string' && serverMessage !== 'error.network'
-              ? serverMessage
-              : t('playerMatch.joinRequests.requestChanged')
-            : typeof serverMessage === 'string' && serverMessage !== 'error.network'
-              ? serverMessage
-              : t('playerMatch.joinRequests.processFailed');
+          : code === 'MATCH_ROOM_FULL'
+            ? t('playerMatch.joinRequests.capacityConflict')
+            : status === 404 || status === 409
+              ? t('playerMatch.joinRequests.requestChanged')
+              : typeof serverMessage === 'string' && serverMessage !== 'error.network'
+                ? serverMessage
+                : t('playerMatch.joinRequests.processFailed');
 
       setActionErrors((current) => ({ ...current, [request.requestId]: message }));
       toast.error(t('playerMatch.joinRequests.processErrorTitle'), message);
@@ -198,6 +218,16 @@ export const JoinRequestsDialog = ({
         delete next[request.requestId];
         return next;
       });
+    }
+  };
+
+  const handleConfirmApprove = async () => {
+    if (!approveRequest) return;
+    const succeeded = await processAction('approve', approveRequest);
+    if (succeeded) {
+      focusListOnApproveClose.current = true;
+      setApproveDialogOpen(false);
+      setApproveRequest(null);
     }
   };
 
@@ -295,7 +325,8 @@ export const JoinRequestsDialog = ({
                   activeAction={activeActions[request.requestId]}
                   error={actionErrors[request.requestId]}
                   onApprove={(selectedRequest) => {
-                    void processAction('approve', selectedRequest);
+                    setApproveRequest(selectedRequest);
+                    setApproveDialogOpen(true);
                   }}
                   onReject={(selectedRequest) => {
                     setRejectRequest(selectedRequest);
@@ -307,6 +338,85 @@ export const JoinRequestsDialog = ({
           )}
         </section>
       </DialogContent>
+      <Dialog
+        open={approveDialogOpen}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen && approveRequest && activeActions[approveRequest.requestId] === 'approve') {
+            return;
+          }
+          setApproveDialogOpen(nextOpen);
+          if (!nextOpen) setApproveRequest(null);
+        }}
+      >
+        <DialogContent
+          className="border-line bg-surface text-content-primary w-[calc(100%-1rem)] max-w-md"
+          closeDisabled={
+            Boolean(approveRequest && activeActions[approveRequest.requestId] === 'approve')
+          }
+          onEscapeKeyDown={(event) => {
+            if (approveRequest && activeActions[approveRequest.requestId] === 'approve') {
+              event.preventDefault();
+            }
+          }}
+          onPointerDownOutside={(event) => {
+            if (approveRequest && activeActions[approveRequest.requestId] === 'approve') {
+              event.preventDefault();
+            }
+          }}
+          onCloseAutoFocus={(event) => {
+            if (focusListOnApproveClose.current) {
+              event.preventDefault();
+              focusListOnApproveClose.current = false;
+              requestListRef.current?.focus();
+            }
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>{t('playerMatch.joinRequests.approveConfirmTitle')}</DialogTitle>
+            <DialogDescription>
+              {t('playerMatch.joinRequests.approveConfirmDescription', {
+                fullName:
+                  approveRequest?.fullName?.trim() ||
+                  t('playerMatch.joinRequests.unknownApplicant'),
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          {approveRequest && actionErrors[approveRequest.requestId] && (
+            <p role="alert" className="text-danger text-sm">
+              {actionErrors[approveRequest.requestId]}
+            </p>
+          )}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={
+                Boolean(approveRequest && activeActions[approveRequest.requestId] === 'approve')
+              }
+              onClick={() => {
+                setApproveDialogOpen(false);
+                setApproveRequest(null);
+              }}
+            >
+              {t('playerMatch.joinRequests.cancel')}
+            </Button>
+            <Button
+              type="button"
+              disabled={
+                Boolean(approveRequest && activeActions[approveRequest.requestId] === 'approve')
+              }
+              aria-busy={
+                Boolean(approveRequest && activeActions[approveRequest.requestId] === 'approve')
+              }
+              onClick={() => void handleConfirmApprove()}
+            >
+              {approveRequest && activeActions[approveRequest.requestId] === 'approve'
+                ? t('playerMatch.joinRequests.approving')
+                : t('playerMatch.joinRequests.approve')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog
         open={rejectDialogOpen}
         onOpenChange={(nextOpen) => {

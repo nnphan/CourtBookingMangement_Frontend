@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { CalendarDays, Clock3, MapPin, UsersRound } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -9,12 +10,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { formatBookingTime, formatCurrency } from '@/features/bookings/utils/booking.mapper';
+import { useAuthStore } from '@/features/auth/store/auth.store';
 import dayjs from '@/lib/dayjs';
 import { usePlayerMatchDetail } from '../hooks/usePlayerMatching';
-import type { PlayerMatchDetail } from '../types/player-matching.types';
+import { JoinRequestsDialog } from './JoinRequestsDialog';
+import type { PlayerMatchDetail, PlayerMatchJoinPreview } from '../types/player-matching.types';
 
 interface PlayerMatchDetailDialogProps {
   matchId?: string;
+  joinRequestStatus?: string | null;
+  onRequestJoin?: (match: PlayerMatchJoinPreview) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -38,15 +43,42 @@ const DetailSkeleton = () => {
   );
 };
 
-const MatchDetailContent = ({ match }: { match: PlayerMatchDetail }) => {
+const MatchDetailContent = ({
+  match,
+  currentUserId,
+  joinRequestStatus,
+  onRequestJoin,
+  onManageRequests,
+}: {
+  match: PlayerMatchDetail;
+  currentUserId?: string;
+  joinRequestStatus?: string | null;
+  onRequestJoin?: (match: PlayerMatchJoinPreview) => void;
+  onManageRequests: () => void;
+}) => {
   const { t } = useTranslation();
-  const date = dayjs(match.matchDate);
+  const date = match.matchDate ? dayjs(match.matchDate) : null;
   const skillLabel = t(`playerMatch.skill.${match.skillLevel.toLowerCase()}`, {
     defaultValue: match.skillLevel,
   });
-  const genderLabel = t(`playerMatch.gender.${match.genderPreference.toLowerCase()}`, {
-    defaultValue: match.genderPreference,
-  });
+  const gameTypeLabel = match.gameType
+    ? t(`playerMatch.drafts.${match.gameType.toLowerCase()}`, { defaultValue: match.gameType })
+    : skillLabel;
+  const genderLabel = match.genderPolicy
+    ? match.genderPolicy === 'SPECIFIC' && match.requiredGender
+      ? `${t('playerMatch.drafts.specificGender')}: ${t(
+          `playerMatch.drafts.gender.${match.requiredGender.toLowerCase()}`,
+          { defaultValue: match.requiredGender },
+        )}`
+      : t('playerMatch.drafts.anyGender')
+    : t(`playerMatch.gender.${match.genderPreference.toLowerCase()}`, {
+        defaultValue: match.genderPreference,
+      });
+  const isHost = Boolean(currentUserId && match.createdBy === currentUserId);
+  const isParticipant = Boolean(
+      currentUserId && match.participants.some((participant) => participant.userId === currentUserId),
+  );
+  const requestStatus = joinRequestStatus?.toUpperCase();
 
   return (
     <div className="space-y-5">
@@ -58,7 +90,9 @@ const MatchDetailContent = ({ match }: { match: PlayerMatchDetail }) => {
           </p>
         </div>
         <span className="bg-surface-muted text-content-secondary border-line rounded-full border px-3 py-1 text-xs font-bold">
-          {match.status}
+          {t(`playerMatch.myMatches.status.${match.status.toLowerCase()}`, {
+            defaultValue: match.status,
+          })}
         </span>
       </div>
 
@@ -84,30 +118,49 @@ const MatchDetailContent = ({ match }: { match: PlayerMatchDetail }) => {
           <div>
             <p className="text-content-secondary text-xs">{t('playerMatch.detail.schedule')}</p>
             <p className="text-content-primary text-sm font-semibold">
-              {date.isValid() ? date.format('DD/MM/YYYY') : match.matchDate}
+              {date?.isValid()
+                ? date.format('DD/MM/YYYY')
+                : t('playerMatch.drafts.scheduleNotSet')}
             </p>
-            <p className="text-content-secondary flex items-center gap-1 text-xs tabular-nums">
-              <Clock3 aria-hidden="true" className="size-3" />
-              {formatBookingTime(match.startTime)} - {formatBookingTime(match.endTime)}
-            </p>
+            {match.startTime && match.endTime && (
+              <p className="text-content-secondary flex items-center gap-1 text-xs tabular-nums">
+                <Clock3 aria-hidden="true" className="size-3" />
+                {formatBookingTime(match.startTime)} - {formatBookingTime(match.endTime)}
+              </p>
+            )}
           </div>
         </div>
       </section>
 
       <section
         aria-label={t('playerMatch.detail.requirements')}
-        className="grid gap-3 sm:grid-cols-3"
+        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
       >
         <div className="border-line rounded-lg border p-3">
-          <p className="text-content-secondary text-xs">{t('playerMatch.detail.skillLevel')}</p>
-          <p className="text-content-primary mt-1 text-sm font-semibold">{skillLabel}</p>
+          <p className="text-content-secondary text-xs">
+            {match.gameType ? t('playerMatch.drafts.gameType') : t('playerMatch.detail.skillLevel')}
+          </p>
+          <p className="text-content-primary mt-1 text-sm font-semibold">{gameTypeLabel}</p>
         </div>
         <div className="border-line rounded-lg border p-3">
           <p className="text-content-secondary text-xs">
-            {t('playerMatch.detail.genderPreference')}
+            {match.genderPolicy
+              ? t('playerMatch.drafts.genderPolicy')
+              : t('playerMatch.detail.genderPreference')}
           </p>
           <p className="text-content-primary mt-1 text-sm font-semibold">{genderLabel}</p>
         </div>
+        {match.minimumRating !== null &&
+          match.minimumRating !== undefined &&
+          match.maximumRating !== null &&
+          match.maximumRating !== undefined && (
+            <div className="border-line rounded-lg border p-3">
+              <p className="text-content-secondary text-xs">{t('playerMatch.drafts.ratingRange')}</p>
+              <p className="text-content-primary mt-1 text-sm font-semibold">
+                {match.minimumRating} - {match.maximumRating}
+              </p>
+            </div>
+          )}
         <div className="border-line rounded-lg border p-3">
           <p className="text-content-secondary text-xs">{t('playerMatch.detail.players')}</p>
           <p className="text-content-primary mt-1 flex items-center gap-1.5 text-sm font-semibold">
@@ -182,50 +235,120 @@ const MatchDetailContent = ({ match }: { match: PlayerMatchDetail }) => {
           </ul>
         )}
       </section>
+
+      {isHost && match.status.toUpperCase() === 'OPEN' ? (
+        <Button type="button" className="w-full sm:w-auto" onClick={onManageRequests}>
+          {t('playerMatch.detail.manageRequests')}
+        </Button>
+      ) : requestStatus === 'PENDING' ? (
+        <p
+          role="status"
+          className="border-amber-200 bg-amber-50 text-amber-900 rounded-lg border p-3 text-sm font-medium"
+        >
+          {t('playerMatch.detail.requestPending')}
+        </p>
+      ) : isParticipant || requestStatus === 'APPROVED' ? (
+        <p
+          role="status"
+          className="border-emerald-200 bg-emerald-50 text-emerald-900 rounded-lg border p-3 text-sm font-medium"
+        >
+          {t('playerMatch.detail.requestApproved')}
+        </p>
+      ) : match.canJoin && onRequestJoin ? (
+        <Button
+          type="button"
+          className="w-full sm:w-auto"
+          onClick={() =>
+            onRequestJoin({
+              id: match.id,
+              title: match.title,
+              branchName: match.branchName,
+              courtName: match.courtName,
+              matchDate: match.matchDate ?? '',
+              startTime: match.startTime ?? '',
+              endTime: match.endTime ?? '',
+              matchLabel: gameTypeLabel,
+              currentPlayers: match.currentPlayers,
+              maxPlayers: match.maxPlayers,
+              feePerPlayer: match.feePerPlayer,
+            })
+          }
+        >
+          {t('playerMatch.join.request')}
+        </Button>
+      ) : null}
     </div>
   );
 };
 
 export const PlayerMatchDetailDialog = ({
   matchId,
+  joinRequestStatus,
+  onRequestJoin,
   open,
   onOpenChange,
 }: PlayerMatchDetailDialogProps) => {
   const { t } = useTranslation();
+  const currentUserId = useAuthStore((state) => state.user?.id);
+  const [requestsOpen, setRequestsOpen] = useState(false);
   const query = usePlayerMatchDetail(open ? matchId : undefined);
   const status = (query.error as (Error & { status?: number }) | null)?.status;
+  const hostedMatch = query.data
+    ? {
+        id: query.data.id,
+        title: query.data.title,
+        branchName: query.data.branchName,
+        courtName: query.data.courtName,
+        matchDate: query.data.matchDate,
+        startTime: query.data.startTime,
+        endTime: query.data.endTime,
+      }
+    : null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-line bg-surface max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{t('playerMatch.detail.title')}</DialogTitle>
-          <DialogDescription>{t('playerMatch.detail.descriptionIntro')}</DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="border-line bg-surface max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{t('playerMatch.detail.title')}</DialogTitle>
+            <DialogDescription>{t('playerMatch.detail.descriptionIntro')}</DialogDescription>
+          </DialogHeader>
 
-        {query.isLoading ? (
-          <DetailSkeleton />
-        ) : query.isError ? (
-          <div role="alert" className="space-y-3 rounded-lg border border-red-200 bg-red-50 p-4">
-            <p className="text-danger text-sm font-semibold">
-              {status === 404
-                ? t('playerMatch.detail.notFound')
-                : status === 401
-                  ? t('playerMatch.detail.unauthorized')
-                  : status === 403
-                    ? t('playerMatch.detail.forbidden')
-                    : t('playerMatch.detail.error')}
-            </p>
-            {status !== 404 && (
-              <Button type="button" variant="outline" onClick={() => void query.refetch()}>
-                {t('playerMatch.discovery.retry')}
-              </Button>
-            )}
-          </div>
-        ) : query.data ? (
-          <MatchDetailContent match={query.data} />
-        ) : null}
-      </DialogContent>
-    </Dialog>
+          {query.isLoading ? (
+            <DetailSkeleton />
+          ) : query.isError ? (
+            <div role="alert" className="space-y-3 rounded-lg border border-red-200 bg-red-50 p-4">
+              <p className="text-danger text-sm font-semibold">
+                {status === 404
+                  ? t('playerMatch.detail.notFound')
+                  : status === 401
+                    ? t('playerMatch.detail.unauthorized')
+                    : status === 403
+                      ? t('playerMatch.detail.forbidden')
+                      : t('playerMatch.detail.error')}
+              </p>
+              {status !== 404 && (
+                <Button type="button" variant="outline" onClick={() => void query.refetch()}>
+                  {t('playerMatch.discovery.retry')}
+                </Button>
+              )}
+            </div>
+          ) : query.data ? (
+            <MatchDetailContent
+              match={query.data}
+              currentUserId={currentUserId}
+              joinRequestStatus={joinRequestStatus}
+              onRequestJoin={onRequestJoin}
+              onManageRequests={() => setRequestsOpen(true)}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
+      <JoinRequestsDialog
+        match={hostedMatch}
+        open={requestsOpen}
+        onOpenChange={setRequestsOpen}
+      />
+    </>
   );
 };

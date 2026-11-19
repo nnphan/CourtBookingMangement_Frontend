@@ -3,15 +3,22 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { DiscoveryHeader } from '@/features/branch-discovery/components/DiscoveryHeader';
 import { MatchFilters } from '../components/MatchFilters';
 import { MatchList } from '../components/MatchList';
+import { PersonalizedMatchFilters } from '../components/PersonalizedMatchFilters';
+import { PersonalizedMatchResults } from '../components/PersonalizedMatchResults';
 import { JoinMatchConfirmationDialog } from '../components/JoinMatchConfirmationDialog';
 import { paths } from '@/app/router/paths';
 import { ArrowLeft, Flame, Sparkles, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
 import { PlayerMatchDetailDialog } from '../components/PlayerMatchDetailDialog';
-import { useJoinPlayerMatch } from '../hooks/usePlayerMatching';
+import { useJoinPlayerMatch, usePersonalizedPlayerMatchSearch } from '../hooks/usePlayerMatching';
 import { useAuthStore } from '@/features/auth/store/auth.store';
 import { toast } from '@/lib/toast';
-import type { PlayerMatchListItem } from '../types/player-matching.types';
+import type {
+  PersonalizedPlayerMatchSearchRequest,
+  PlayerMatchJoinPreview,
+  PlayerMatchListItem,
+} from '../types/player-matching.types';
 
 const getErrorStatus = (error: unknown): number | undefined => {
   if (typeof error !== 'object' || error === null || !('status' in error)) return undefined;
@@ -25,6 +32,11 @@ const getErrorMessage = (error: unknown): string | undefined => {
     : undefined;
 };
 
+const getErrorCode = (error: unknown): string | undefined => {
+  if (typeof error !== 'object' || error === null || !('code' in error)) return undefined;
+  return typeof error.code === 'string' ? error.code : undefined;
+};
+
 export const DiscoverMatchesPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -33,21 +45,99 @@ export const DiscoverMatchesPage = () => {
   const user = useAuthStore((state) => state.user);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated());
   const joinMutation = useJoinPlayerMatch();
+  const searchMutation = usePersonalizedPlayerMatchSearch();
   const isSubmittingJoinRef = useRef(false);
   const [joinRequestStatuses, setJoinRequestStatuses] = useState<Record<string, string>>({});
-  const [selectedMatchForJoin, setSelectedMatchForJoin] = useState<PlayerMatchListItem | null>(
+  const [selectedMatchForJoin, setSelectedMatchForJoin] = useState<PlayerMatchJoinPreview | null>(
     null,
   );
   const [joinError, setJoinError] = useState<string>();
+  const [discoveryMode, setDiscoveryMode] = useState<'personalized' | 'all'>('personalized');
+  const [personalizedResponse, setPersonalizedResponse] = useState<Awaited<
+    ReturnType<typeof searchMutation.mutateAsync>
+  > | null>(null);
+  const [searchErrorMessage, setSearchErrorMessage] = useState<string>();
+  const [retryRequest, setRetryRequest] = useState<PersonalizedPlayerMatchSearchRequest>();
+  const [lastSuccessfulSearch, setLastSuccessfulSearch] =
+    useState<PersonalizedPlayerMatchSearchRequest>();
 
-  const handleJoinMatch = (match: PlayerMatchListItem) => {
+  const handleJoinMatch = (match: PlayerMatchJoinPreview) => {
     if (!isAuthenticated) {
       navigate(paths.login, { state: { from: location.pathname } });
       return;
     }
-    if (joinRequestStatuses[match.id]) return;
+    const requestStatus =
+      joinRequestStatuses[match.id] ??
+      personalizedResponse?.data.items.find((item) => item.roomId === match.id)?.joinRequestStatus;
+    if (requestStatus?.toUpperCase() === 'PENDING') return;
     setJoinError(undefined);
     setSelectedMatchForJoin(match);
+  };
+
+  const handleLegacyJoinMatch = (match: PlayerMatchListItem) => {
+    handleJoinMatch({
+      id: match.id,
+      title: match.title,
+      branchName: match.branchName,
+      courtName: match.courtName,
+      matchDate: match.matchDate,
+      startTime: match.startTime,
+      endTime: match.endTime,
+      matchLabel: t(`playerMatch.skill.${match.skillLevel.toLowerCase()}`, {
+        defaultValue: match.skillLevel,
+      }),
+      currentPlayers: match.currentPlayers,
+      maxPlayers: match.maxPlayers,
+      feePerPlayer: match.feePerPlayer,
+    });
+  };
+
+  const handlePersonalizedSearch = async (request: PersonalizedPlayerMatchSearchRequest) => {
+    setSearchErrorMessage(undefined);
+    setRetryRequest({ ...request, saveAsDefault: false });
+    try {
+      const response = await searchMutation.mutateAsync(request);
+      setPersonalizedResponse(response);
+      setLastSuccessfulSearch({ ...request, saveAsDefault: false });
+      setRetryRequest(undefined);
+      if (request.saveAsDefault) {
+        toast.success(
+          t('playerMatch.scoring.defaultsSaved'),
+          t('playerMatch.scoring.defaultsSavedDescription'),
+        );
+      }
+    } catch (error) {
+      const code = getErrorCode(error);
+      const status = getErrorStatus(error);
+      const message =
+        code === 'PLAYER_MATCHING_PROFILE_REQUIRED'
+          ? t('playerMatch.scoring.errors.profileRequired')
+          : code === 'PLAYER_MATCHING_DISABLED'
+            ? t('playerMatch.scoring.errors.matchingDisabled')
+            : code === 'PREFERENCE_WEIGHT_TOTAL_INVALID'
+              ? t('playerMatch.scoring.errors.invalidWeights')
+              : code === 'SEARCH_CRITERIA_INVALID'
+                ? t('playerMatch.scoring.errors.invalidCriteria')
+                : status === 401
+                  ? t('playerMatch.scoring.errors.unauthorized')
+                  : t('playerMatch.scoring.errors.generic');
+      setSearchErrorMessage(message);
+    }
+  };
+
+  const handleRetrySearch = () => {
+    if (retryRequest && !searchMutation.isPending) {
+      void handlePersonalizedSearch(retryRequest);
+    }
+  };
+
+  const handlePageChange = (page: number) => {
+    if (!lastSuccessfulSearch || searchMutation.isPending) return;
+    void handlePersonalizedSearch({
+      ...lastSuccessfulSearch,
+      page,
+      saveAsDefault: false,
+    });
   };
 
   const handleJoinDialogOpenChange = (open: boolean) => {
@@ -56,11 +146,14 @@ export const DiscoverMatchesPage = () => {
     setSelectedMatchForJoin(null);
   };
 
-  const handleConfirmJoin = async () => {
+  const handleConfirmJoin = async (message: string) => {
     if (!selectedMatchForJoin || isSubmittingJoinRef.current) return;
     isSubmittingJoinRef.current = true;
     try {
-      const result = await joinMutation.mutateAsync(selectedMatchForJoin.id);
+      const result = await joinMutation.mutateAsync({
+        matchId: selectedMatchForJoin.id,
+        message,
+      });
       const status = result.status.trim().toUpperCase();
       setJoinRequestStatuses((current) => ({
         ...current,
@@ -68,22 +161,34 @@ export const DiscoverMatchesPage = () => {
       }));
 
       if (status === 'PENDING') {
-        toast.success(
-          t('playerMatch.join.success'),
-          t('playerMatch.join.successDescription'),
-        );
+        toast.success(t('playerMatch.join.success'), t('playerMatch.join.successDescription'));
       } else {
         toast.success(t('playerMatch.join.submitted'), result.message);
       }
       setJoinError(undefined);
       setSelectedMatchForJoin(null);
     } catch (error) {
-      if (getErrorStatus(error) === 401) {
+      const status = getErrorStatus(error);
+      const code = getErrorCode(error);
+      if (status === 401) {
         navigate(paths.login, { state: { from: location.pathname } });
       }
-      const message = getErrorMessage(error) ?? t('playerMatch.join.failed');
-      setJoinError(message);
-      toast.error(t('playerMatch.join.errorTitle'), message);
+      const errorMessage =
+        code === 'PLAYER_MATCH.REQUEST_EXISTS'
+          ? t('playerMatch.join.alreadyPending')
+          : code === 'PLAYER_MATCH.MATCH_FULL'
+            ? t('playerMatch.join.full')
+            : code === 'PLAYER_MATCH.NOT_OPEN' || code === 'PLAYER_MATCH.REQUEST_STATE_CHANGED'
+              ? t('playerMatch.join.unavailable')
+              : getErrorMessage(error) ?? t('playerMatch.join.failed');
+      if (code === 'PLAYER_MATCH.REQUEST_EXISTS') {
+        setJoinRequestStatuses((current) => ({
+          ...current,
+          [selectedMatchForJoin.id]: 'PENDING',
+        }));
+      }
+      setJoinError(errorMessage);
+      toast.error(t('playerMatch.join.errorTitle'), errorMessage);
     } finally {
       isSubmittingJoinRef.current = false;
     }
@@ -136,18 +241,68 @@ export const DiscoverMatchesPage = () => {
           </div>
         </div>
 
-        {/* Search & Filter Section */}
-        <section aria-label={t('playerMatch.discovery.filtersLabel')}>
-          <MatchFilters />
-        </section>
+        <div
+          role="group"
+          aria-label={t('playerMatch.scoring.discoveryMode')}
+          className="flex flex-wrap gap-2"
+        >
+          <Button
+            type="button"
+            variant={discoveryMode === 'personalized' ? 'primary' : 'outline'}
+            aria-pressed={discoveryMode === 'personalized'}
+            onClick={() => setDiscoveryMode('personalized')}
+            className="min-h-11"
+          >
+            {t('playerMatch.scoring.personalizedMode')}
+          </Button>
+          <Button
+            type="button"
+            variant={discoveryMode === 'all' ? 'primary' : 'outline'}
+            aria-pressed={discoveryMode === 'all'}
+            onClick={() => setDiscoveryMode('all')}
+            className="min-h-11"
+          >
+            {t('playerMatch.scoring.allMatchesMode')}
+          </Button>
+        </div>
 
-        <section aria-label={t('playerMatch.discovery.listLabel')}>
-          <MatchList
-            currentUserId={user?.id}
-            joinRequestStatuses={joinRequestStatuses}
-            onJoinMatch={handleJoinMatch}
-          />
-        </section>
+        {discoveryMode === 'personalized' ? (
+          <>
+            <section aria-label={t('playerMatch.discovery.filtersLabel')}>
+              <PersonalizedMatchFilters
+                isAuthenticated={isAuthenticated}
+                isSearching={searchMutation.isPending}
+                onSearch={(request) => void handlePersonalizedSearch(request)}
+              />
+            </section>
+            <section aria-label={t('playerMatch.scoring.resultsLabel')}>
+              <PersonalizedMatchResults
+                response={personalizedResponse}
+                isLoading={searchMutation.isPending}
+                errorMessage={searchErrorMessage}
+                joinRequestStatuses={joinRequestStatuses}
+                onJoinMatch={handleJoinMatch}
+                onRetry={handleRetrySearch}
+                onPageChange={handlePageChange}
+              />
+            </section>
+          </>
+        ) : (
+          <>
+            <section aria-label={t('playerMatch.discovery.filtersLabel')}>
+              <MatchFilters />
+            </section>
+
+            <section aria-label={t('playerMatch.discovery.listLabel')}>
+              <MatchList
+                currentUserId={user?.id}
+                joinRequestStatuses={joinRequestStatuses}
+                onJoinMatch={handleLegacyJoinMatch}
+              />
+            </section>
+          </>
+        )}
+
         <JoinMatchConfirmationDialog
           match={selectedMatchForJoin}
           open={selectedMatchForJoin !== null}
@@ -158,6 +313,13 @@ export const DiscoverMatchesPage = () => {
         />
         <PlayerMatchDetailDialog
           matchId={matchId}
+          joinRequestStatus={
+            matchId
+              ? joinRequestStatuses[matchId] ??
+                personalizedResponse?.data.items.find((item) => item.roomId === matchId)?.joinRequestStatus
+              : undefined
+          }
+          onRequestJoin={handleJoinMatch}
           open={Boolean(matchId)}
           onOpenChange={(open) => {
             if (!open) navigate(paths.playerMatching, { replace: true });

@@ -17,10 +17,11 @@ export const BOOKING_QUERY_KEYS = {
   courtStatus: ['court-status'] as const,
 };
 
-export const useMyBookings = () =>
+export const useMyBookings = (enabled = true) =>
   useQuery({
     queryKey: BOOKING_QUERY_KEYS.myBookings(),
     queryFn: bookingApi.getMyBookings,
+    enabled,
     staleTime: 30_000,
     refetchOnWindowFocus: true,
   });

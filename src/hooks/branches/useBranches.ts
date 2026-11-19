@@ -31,10 +31,14 @@ export interface UseGetBranchesResult {
 /**
  * Hook to fetch paginated branches list with query params
  */
-export const useGetBranches = (params: BranchSearchParams = {}): UseGetBranchesResult => {
+export const useGetBranches = (
+  params: BranchSearchParams = {},
+  enabled = true,
+): UseGetBranchesResult => {
   const { t } = useTranslation('branch');
   const query = useQuery({
     queryKey: QUERY_KEYS.BRANCHES_LIST(params),
+    enabled,
     queryFn: async () => {
       const response = await branchService.getBranches(params);
       if (!response.success) {

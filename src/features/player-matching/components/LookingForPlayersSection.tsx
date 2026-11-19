@@ -13,7 +13,7 @@ export const LookingForPlayersSection = () => {
   const { data: response, isLoading } = useFeaturedMatches();
   const [selectedMatchForJoin, setSelectedMatchForJoin] = useState<MatchItem | null>(null);
 
-  const matches = response?.data ?? [];
+  const matches = response?.success ? response.data : [];
 
   const handleCreateMatch = () => {
     // Navigate to branches / court selection to reserve and create match

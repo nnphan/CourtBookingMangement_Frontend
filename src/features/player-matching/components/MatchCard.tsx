@@ -25,6 +25,11 @@ const statusConfig: Record<
   MatchStatus,
   { label: string; badgeClass: string; dotClass: string }
 > = {
+  DRAFT: {
+    label: 'DRAFT',
+    badgeClass: 'bg-gray-100 text-gray-700 border-gray-300',
+    dotClass: 'bg-gray-400',
+  },
   OPEN: {
     label: 'OPEN',
     badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',

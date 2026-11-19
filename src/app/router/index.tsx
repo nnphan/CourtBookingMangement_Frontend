@@ -44,6 +44,9 @@ const DiscoverMatchesPage = lazy(
 const MyPlayerMatchesPage = lazy(
   () => import('@/features/player-matching/pages/MyPlayerMatchesPage'),
 );
+const PlayerMatchingProfilePage = lazy(
+  () => import('@/features/player-matching/pages/PlayerMatchingProfilePage'),
+);
 const AdminBranchLayout = lazy(() => import('@/pages/admin/branches/AdminBranchLayout'));
 const BranchListPage = lazy(() => import('@/pages/admin/branches/BranchListPage'));
 const BranchCreatePage = lazy(() => import('@/pages/admin/branches/BranchCreatePage'));
@@ -178,6 +181,10 @@ export const router = createBrowserRouter([
       { path: paths.courtStatus, element: withSuspense(<CourtStatusPage />) },
       { path: paths.myBooking, element: withSuspense(<MyBookingPage />) },
       { path: paths.myPlayerMatches, element: withSuspense(<MyPlayerMatchesPage />) },
+      {
+        path: paths.playerMatchingProfile,
+        element: withSuspense(<PlayerMatchingProfilePage />),
+      },
       {
         element: withSuspense(<CustomerLayout />),
         children: [

@@ -5,7 +5,7 @@ import { paths } from '@/app/router/paths';
 
 export const QuickActionsSection = () => {
   const { data: statsResponse } = useMatchStats();
-  const openMatchesCount = statsResponse?.data?.openMatches ?? 15;
+  const openMatchesCount = statsResponse?.success ? statsResponse.data.openMatches : 15;
 
   return (
     <section aria-label="Quick Actions" className="w-full">

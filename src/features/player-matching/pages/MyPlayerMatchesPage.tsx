@@ -2,20 +2,39 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Loader2, Search, UsersRound } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, Search, UsersRound } from 'lucide-react';
 import { DiscoveryHeader } from '@/features/branch-discovery/components/DiscoveryHeader';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { paths } from '@/app/router/paths';
+import { useApiErrorMessage } from '@/hooks/useApiErrorMessage';
+import { toast } from '@/lib/toast';
 import { MatchCardSkeleton } from '../components/MatchCardSkeleton';
 import {
   HostedPlayerMatchCard,
   ParticipatingPlayerMatchCard,
 } from '../components/MyPlayerMatchCards';
-import { useHostedPlayerMatches, useParticipatingPlayerMatches } from '../hooks/usePlayerMatching';
+import {
+  useCancelPlayerMatch,
+  useCancelPlayerMatchJoinRequest,
+  useHostedPlayerMatches,
+  useParticipatingPlayerMatches,
+} from '../hooks/usePlayerMatching';
 import { PlayerMatchDetailDialog } from '../components/PlayerMatchDetailDialog';
+import { PlayerMatchDraftDialog } from '../components/PlayerMatchDraftDialog';
 import { JoinRequestsDialog } from '../components/JoinRequestsDialog';
-import type { HostedPlayerMatch } from '../types/player-matching.types';
+import type {
+  HostedPlayerMatch,
+  ParticipatingPlayerMatch,
+} from '../types/player-matching.types';
 
 const PAGE_SIZE = 10;
 
@@ -140,13 +159,22 @@ const MatchEmptyState = ({
 
 const HostedMatchesPanel = ({ onViewDetails }: { onViewDetails: (id: string) => void }) => {
   const { t } = useTranslation();
+  const getErrorMessage = useApiErrorMessage();
   const [selectedMatchForRequests, setSelectedMatchForRequests] =
     useState<HostedPlayerMatch | null>(null);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editingDraftId, setEditingDraftId] = useState<string>();
+  const [pendingAction, setPendingAction] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
   const [status, setStatus] = useState('');
   const [matchDate, setMatchDate] = useState('');
   const [keywordDraft, setKeywordDraft] = useState('');
   const [keyword, setKeyword] = useState('');
   const [page, setPage] = useState(1);
+  const cancelMatch = useCancelPlayerMatch();
+  const actionPending = cancelMatch.isPending;
   const query = useHostedPlayerMatches({
     status: status || undefined,
     matchDate: matchDate || undefined,
@@ -157,8 +185,35 @@ const HostedMatchesPanel = ({ onViewDetails }: { onViewDetails: (id: string) => 
   const matches = query.data?.data ?? [];
   const metadata = query.data?.metadata;
 
+  const handleLifecycleAction = async () => {
+    if (!pendingAction || actionPending) return;
+    try {
+      await cancelMatch.mutateAsync(pendingAction.id);
+      toast.success(t('playerMatch.drafts.cancelSuccess'));
+      setPendingAction(null);
+    } catch (error) {
+      toast.error(
+        t('playerMatch.drafts.errors.actionTitle'),
+        getErrorMessage(error) ?? t('playerMatch.drafts.errors.generic'),
+      );
+    }
+  };
+
   return (
     <div className="space-y-5">
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          className="min-h-11 gap-2"
+          onClick={() => {
+            setEditingDraftId(undefined);
+            setCreateDialogOpen(true);
+          }}
+        >
+          <Plus aria-hidden="true" className="size-4" />
+          {t('playerMatch.drafts.create')}
+        </Button>
+      </div>
       <div className="border-line bg-surface-muted/50 grid gap-3 rounded-xl border p-4 sm:grid-cols-2 lg:grid-cols-3">
         <SelectFilter
           id="hosted-match-status"
@@ -170,6 +225,7 @@ const HostedMatchesPanel = ({ onViewDetails }: { onViewDetails: (id: string) => 
           }}
           options={[
             { value: '', label: t('playerMatch.myMatches.allStatuses') },
+            { value: 'DRAFT', label: t('playerMatch.myMatches.status.draft') },
             { value: 'OPEN', label: t('playerMatch.myMatches.status.open') },
             { value: 'FULL', label: t('playerMatch.myMatches.status.full') },
             { value: 'COMPLETED', label: t('playerMatch.myMatches.status.completed') },
@@ -262,6 +318,13 @@ const HostedMatchesPanel = ({ onViewDetails }: { onViewDetails: (id: string) => 
                 match={match}
                 onViewDetails={onViewDetails}
                 onReviewRequests={setSelectedMatchForRequests}
+                onEditDraft={(id) => {
+                  setCreateDialogOpen(false);
+                  setEditingDraftId(id);
+                }}
+                onRequestLifecycleAction={(item) =>
+                  setPendingAction({ id: item.id, title: item.title })
+                }
               />
             ))}
           </div>
@@ -282,6 +345,54 @@ const HostedMatchesPanel = ({ onViewDetails }: { onViewDetails: (id: string) => 
           if (!open) setSelectedMatchForRequests(null);
         }}
       />
+      <PlayerMatchDraftDialog
+        matchId={editingDraftId}
+        open={createDialogOpen || Boolean(editingDraftId)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCreateDialogOpen(false);
+            setEditingDraftId(undefined);
+          }
+        }}
+      />
+      <Dialog
+        open={Boolean(pendingAction)}
+        onOpenChange={(open) => {
+          if (!open && !actionPending) setPendingAction(null);
+        }}
+      >
+        <DialogContent className="border-line bg-surface sm:max-w-md" closeDisabled={actionPending}>
+          <DialogHeader>
+            <DialogTitle>
+              {t('playerMatch.drafts.confirmCancelTitle')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('playerMatch.drafts.confirmCancelDescription', {
+                title: pendingAction?.title ?? '',
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={actionPending}
+              onClick={() => setPendingAction(null)}
+            >
+              {t('playerMatch.create.cancel')}
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              disabled={actionPending}
+              onClick={() => void handleLifecycleAction()}
+            >
+              {actionPending && <Loader2 aria-hidden="true" className="size-4 animate-spin" />}
+              {t('playerMatch.drafts.confirmCancel')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
@@ -294,6 +405,11 @@ const ParticipatingMatchesPanel = ({
   onDiscover: () => void;
 }) => {
   const { t } = useTranslation();
+  const getErrorMessage = useApiErrorMessage();
+  const [pendingCancellation, setPendingCancellation] =
+    useState<ParticipatingPlayerMatch | null>(null);
+  const [cancellationError, setCancellationError] = useState<string>();
+  const cancelJoinRequest = useCancelPlayerMatchJoinRequest();
   const [participationStatus, setParticipationStatus] = useState('');
   const [matchStatus, setMatchStatus] = useState('');
   const [fromDate, setFromDate] = useState('');
@@ -307,6 +423,34 @@ const ParticipatingMatchesPanel = ({
   });
   const matches = query.data?.data ?? [];
   const metadata = query.data?.metadata;
+
+  const handleCancelRequest = async () => {
+    if (!pendingCancellation || cancelJoinRequest.isPending) return;
+    setCancellationError(undefined);
+    try {
+      await cancelJoinRequest.mutateAsync(pendingCancellation.matchId);
+      toast.success(
+        t('playerMatch.myMatches.cancelRequestSuccess'),
+        t('playerMatch.myMatches.cancelRequestSuccessDescription'),
+      );
+      setPendingCancellation(null);
+    } catch (error) {
+      const status =
+        typeof error === 'object' && error !== null && 'status' in error
+          ? error.status
+          : undefined;
+      const code =
+        typeof error === 'object' && error !== null && 'code' in error
+          ? error.code
+          : undefined;
+      const message =
+        status === 404 || status === 409 || code === 'PLAYER_MATCH.REQUEST_NOT_PENDING'
+          ? t('playerMatch.myMatches.cancelRequestChanged')
+          : getErrorMessage(error) ?? t('playerMatch.myMatches.cancelRequestFailed');
+      setCancellationError(message);
+      toast.error(t('playerMatch.myMatches.cancelRequestErrorTitle'), message);
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -410,6 +554,10 @@ const ParticipatingMatchesPanel = ({
                 key={match.matchId}
                 match={match}
                 onViewDetails={onViewDetails}
+                onCancelRequest={(selectedMatch) => {
+                  setCancellationError(undefined);
+                  setPendingCancellation(selectedMatch);
+                }}
               />
             ))}
           </div>
@@ -423,6 +571,58 @@ const ParticipatingMatchesPanel = ({
           onPageChange={setPage}
         />
       )}
+      <Dialog
+        open={Boolean(pendingCancellation)}
+        onOpenChange={(open) => {
+          if (!open && !cancelJoinRequest.isPending) {
+            setPendingCancellation(null);
+            setCancellationError(undefined);
+          }
+        }}
+      >
+        <DialogContent
+          className="border-line bg-surface sm:max-w-md"
+          closeDisabled={cancelJoinRequest.isPending}
+        >
+          <DialogHeader>
+            <DialogTitle>{t('playerMatch.myMatches.cancelRequestTitle')}</DialogTitle>
+            <DialogDescription>
+              {t('playerMatch.myMatches.cancelRequestDescription', {
+                title: pendingCancellation?.title ?? '',
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          {cancellationError && (
+            <p role="alert" className="text-danger text-sm">
+              {cancellationError}
+            </p>
+          )}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={cancelJoinRequest.isPending}
+              onClick={() => setPendingCancellation(null)}
+            >
+              {t('playerMatch.join.cancel')}
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              disabled={cancelJoinRequest.isPending}
+              aria-busy={cancelJoinRequest.isPending}
+              onClick={() => void handleCancelRequest()}
+            >
+              {cancelJoinRequest.isPending && (
+                <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+              )}
+              {cancelJoinRequest.isPending
+                ? t('playerMatch.myMatches.cancellingRequest')
+                : t('playerMatch.myMatches.cancelRequestConfirm')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

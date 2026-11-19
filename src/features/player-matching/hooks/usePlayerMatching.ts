@@ -10,10 +10,15 @@ import type {
   CreatePlayerMatchRequest,
   HostedPlayerMatchesParams,
   JoinPlayerMatchResponse,
+  JoinPlayerMatchVariables,
   ProcessJoinRequestVariables,
   PlayerMatchSearchParams,
   ParticipatingPlayerMatchesParams,
   PlayerMatchingFilterParams,
+  PlayerMatchPreferences,
+  UpdatePlayerMatchingProfileRequest,
+  PlayerMatchDraftRequest,
+  PersonalizedPlayerMatchSearchRequest,
 } from '../types/player-matching.types';
 import { BOOKING_QUERY_KEYS } from '@/features/bookings/api/booking.query';
 
@@ -32,14 +37,130 @@ export const playerMatchKeys = {
   list: (params: PlayerMatchSearchParams) => [...playerMatchKeys.lists(), params] as const,
   details: () => [...playerMatchKeys.all, 'detail'] as const,
   detail: (id: string) => [...playerMatchKeys.details(), id] as const,
+  draftDetail: (id: string) => [...playerMatchKeys.all, 'draft-detail', id] as const,
   hostedRoot: () => [...playerMatchKeys.all, 'hosted'] as const,
-  hosted: (params: HostedPlayerMatchesParams) =>
-    [...playerMatchKeys.hostedRoot(), params] as const,
+  hosted: (params: HostedPlayerMatchesParams) => [...playerMatchKeys.hostedRoot(), params] as const,
   joinRequests: (matchId: string, status?: string) =>
     [...playerMatchKeys.all, 'join-requests', matchId, status] as const,
   participatingRoot: () => [...playerMatchKeys.all, 'participating'] as const,
   participating: (params: ParticipatingPlayerMatchesParams) =>
     [...playerMatchKeys.participatingRoot(), params] as const,
+  profile: () => [...playerMatchKeys.all, 'profile'] as const,
+  preferences: () => [...playerMatchKeys.all, 'preferences'] as const,
+};
+
+const invalidateRoomLifecycleQueries = (queryClient: ReturnType<typeof useQueryClient>) =>
+  Promise.all([
+    queryClient.invalidateQueries({ queryKey: playerMatchKeys.hostedRoot() }),
+    queryClient.invalidateQueries({ queryKey: playerMatchKeys.lists() }),
+    queryClient.invalidateQueries({ queryKey: playerMatchKeys.details() }),
+    queryClient.invalidateQueries({ queryKey: playerMatchingKeys.all }),
+  ]);
+
+export const usePlayerMatchDraftDetails = (id?: string, enabled = true) =>
+  useQuery({
+    queryKey: playerMatchKeys.draftDetail(id ?? ''),
+    queryFn: ({ signal }) => playerMatchingApi.getPlayerMatchDraftDetails(id ?? '', signal),
+    enabled: Boolean(id?.trim()) && enabled,
+    retry: false,
+  });
+
+export const useCreatePlayerMatchDraft = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: PlayerMatchDraftRequest) =>
+      playerMatchingApi.createPlayerMatchDraft(payload),
+    retry: false,
+    onSuccess: () => invalidateRoomLifecycleQueries(queryClient),
+  });
+};
+
+export const useUpdatePlayerMatchDraft = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: PlayerMatchDraftRequest }) =>
+      playerMatchingApi.updatePlayerMatchDraft(id, payload),
+    retry: false,
+    onSuccess: (_result, { id }) =>
+      Promise.all([
+        invalidateRoomLifecycleQueries(queryClient),
+        queryClient.invalidateQueries({ queryKey: playerMatchKeys.draftDetail(id) }),
+      ]),
+  });
+};
+
+export const usePublishPlayerMatchDraft = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => playerMatchingApi.publishPlayerMatchDraft(id),
+    retry: false,
+    onSuccess: () => invalidateRoomLifecycleQueries(queryClient),
+  });
+};
+
+export const useCancelPlayerMatch = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => playerMatchingApi.cancelPlayerMatch(id),
+    retry: false,
+    onSuccess: () => invalidateRoomLifecycleQueries(queryClient),
+  });
+};
+
+export const usePlayerMatchingProfile = (enabled = true) =>
+  useQuery({
+    queryKey: playerMatchKeys.profile(),
+    queryFn: ({ signal }) => playerMatchingApi.getPlayerMatchingProfile(signal),
+    enabled,
+    retry: false,
+  });
+
+export const usePlayerMatchPreferences = (enabled = true) =>
+  useQuery({
+    queryKey: playerMatchKeys.preferences(),
+    queryFn: ({ signal }) => playerMatchingApi.getPlayerMatchPreferences(signal),
+    enabled,
+    retry: false,
+  });
+
+export const usePersonalizedPlayerMatchSearch = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (request: PersonalizedPlayerMatchSearchRequest) =>
+      playerMatchingApi.searchPersonalizedPlayerMatches(request),
+    retry: false,
+    onSuccess: (_response, request) =>
+      request.saveAsDefault
+        ? queryClient.invalidateQueries({ queryKey: playerMatchKeys.preferences() })
+        : undefined,
+  });
+};
+
+export const useUpdatePlayerMatchingProfile = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: UpdatePlayerMatchingProfileRequest) =>
+      playerMatchingApi.updatePlayerMatchingProfile(payload),
+    retry: false,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: playerMatchKeys.profile() }),
+  });
+};
+
+export const useUpdatePlayerMatchPreferences = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: PlayerMatchPreferences) =>
+      playerMatchingApi.updatePlayerMatchPreferences(payload),
+    retry: false,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: playerMatchKeys.preferences() }),
+  });
 };
 
 export const usePlayerMatches = (params: PlayerMatchSearchParams, enabled = true) =>
@@ -58,10 +179,7 @@ export const usePlayerMatchDetail = (id?: string) =>
     enabled: Boolean(id?.trim()),
   });
 
-export const useHostedPlayerMatches = (
-  params: HostedPlayerMatchesParams,
-  enabled = true,
-) =>
+export const useHostedPlayerMatches = (params: HostedPlayerMatchesParams, enabled = true) =>
   useQuery({
     queryKey: playerMatchKeys.hosted(params),
     queryFn: ({ signal }) => playerMatchingApi.getHostedPlayerMatches(params, signal),
@@ -69,11 +187,7 @@ export const useHostedPlayerMatches = (
     placeholderData: keepPreviousData,
   });
 
-export const usePlayerMatchJoinRequests = (
-  matchId?: string,
-  status?: string,
-  enabled = true,
-) =>
+export const usePlayerMatchJoinRequests = (matchId?: string, status?: string, enabled = true) =>
   useQuery({
     queryKey: playerMatchKeys.joinRequests(matchId ?? '', status),
     queryFn: ({ signal }) =>
@@ -133,21 +247,22 @@ export const useParticipatingPlayerMatches = (
 export const useJoinPlayerMatch = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<JoinPlayerMatchResponse, unknown, string>({
-    mutationFn: (matchId) => playerMatchingApi.joinPlayerMatch(matchId),
+  return useMutation<JoinPlayerMatchResponse, unknown, JoinPlayerMatchVariables>({
+    mutationFn: (variables) => playerMatchingApi.joinPlayerMatch(variables),
     retry: false,
-    onSuccess: async (_result, matchId) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: playerMatchKeys.lists() }),
-        queryClient.invalidateQueries({ queryKey: playerMatchKeys.detail(matchId) }),
-      ]);
-    },
-    onError: async (_error, matchId) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: playerMatchKeys.lists() }),
-        queryClient.invalidateQueries({ queryKey: playerMatchKeys.detail(matchId) }),
-      ]);
-    },
+    onSuccess: (_result, { matchId }) => invalidateJoinRequestQueries(queryClient, matchId),
+    onError: (_error, { matchId }) => invalidateJoinRequestQueries(queryClient, matchId),
+  });
+};
+
+export const useCancelPlayerMatchJoinRequest = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<JoinPlayerMatchResponse, unknown, string>({
+    mutationFn: (matchId) => playerMatchingApi.cancelPlayerMatchJoinRequest(matchId),
+    retry: false,
+    onSuccess: (_result, matchId) => invalidateJoinRequestQueries(queryClient, matchId),
+    onError: (_error, matchId) => invalidateJoinRequestQueries(queryClient, matchId),
   });
 };
 
@@ -190,7 +305,7 @@ export const useMatches = (filters: Omit<PlayerMatchingFilterParams, 'pageNumber
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
-      if (lastPage.metadata?.hasNextPage) {
+      if (lastPage.success && lastPage.metadata?.hasNextPage) {
         return (lastPage.metadata.pageNumber ?? 1) + 1;
       }
       return undefined;
