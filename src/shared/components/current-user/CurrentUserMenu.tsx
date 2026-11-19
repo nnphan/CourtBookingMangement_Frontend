@@ -5,6 +5,8 @@ import { paths } from '@/app/router/paths';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 import { useLogout } from '@/features/auth/hooks/useLogout';
 import { getCurrentUserRole } from '@/shared/utils/current-user';
+import { useAuthorization } from '@/features/auth/authorization';
+import { PERMISSIONS } from '@/shared/constants/permissions';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
@@ -27,17 +29,18 @@ export const CurrentUserMenu = ({ variant = 'contrast' }: CurrentUserMenuProps) 
   const location = useLocation();
   const { user, isLoading, isError, refetch } = useCurrentUser();
   const { logout, isLoggingOut } = useLogout();
+  const { hasRole, hasPermission } = useAuthorization();
 
   if (isLoading && !user) {
     return <CurrentUserMenuSkeleton variant={variant} label={t('account.loading')} />;
   }
 
   const fullName = user?.fullName?.trim() || t('account.user');
-  const secondary = user?.email || user?.phone || '';
+  const secondary = user?.email || user?.phoneNumber || '';
   const roleKey = getCurrentUserRole(user);
   const roleLabel = t(`account.roles.${roleKey}`);
-  const isCustomer = roleKey === 'customer';
-  const canAccessDashboard = roleKey === 'admin';
+  const isCustomer = hasRole('CUSTOMER');
+  const canAccessDashboard = hasPermission(PERMISSIONS.DASHBOARD_VIEW);
 
   return (
     <DropdownMenu>
@@ -98,15 +101,18 @@ export const CurrentUserMenu = ({ variant = 'contrast' }: CurrentUserMenuProps) 
             </Link>
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem asChild>
+        {isCustomer && <DropdownMenuItem asChild>
           <Link
-            to={isCustomer ? paths.myBooking : paths.bookings}
-            aria-current={isCustomer && location.pathname === paths.myBooking ? 'page' : undefined}
+            to={paths.myBooking}
+            aria-current={location.pathname === paths.myBooking ? 'page' : undefined}
           >
             <CalendarDays aria-hidden="true" className="size-4" />
-            {t(isCustomer ? 'account.myBookings' : 'account.bookings')}
+            {t('account.myBookings')}
           </Link>
-        </DropdownMenuItem>
+        </DropdownMenuItem>}
+        {hasPermission(PERMISSIONS.BOOKING_VIEW) && <DropdownMenuItem asChild>
+          <Link to={paths.bookings}><CalendarDays aria-hidden="true" className="size-4" />{t('account.bookings')}</Link>
+        </DropdownMenuItem>}
         <DropdownMenuItem asChild>
           <Link
             to={paths.myPlayerMatches}

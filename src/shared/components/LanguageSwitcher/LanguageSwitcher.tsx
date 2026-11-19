@@ -38,7 +38,7 @@ export const LanguageSwitcher = memo(
 
     return (
       <div
-        role="radiogroup"
+        role="group"
         aria-label="Language selector"
         className={cn(
           'inline-flex items-center gap-1 rounded-full p-1 transition-colors select-none',
@@ -64,13 +64,15 @@ export const LanguageSwitcher = memo(
           {/* Vietnamese Button */}
           <button
             type="button"
-            role="radio"
-            aria-checked={currentLang === 'vi'}
+            aria-pressed={currentLang === 'vi'}
             aria-label="Switch language to Vietnamese"
             onClick={() => handleSelectLanguage('vi')}
             className={cn(
-              'h-7 rounded-full px-2.5 text-xs font-bold transition-all duration-200 cursor-pointer',
-              'focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1',
+              'min-h-11 rounded-full px-2.5 text-xs font-bold transition-all duration-200 cursor-pointer',
+              'focus:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-1',
+              isContrast
+                ? 'focus-visible:ring-white focus-visible:ring-offset-brand-700'
+                : 'focus-visible:ring-brand-700 focus-visible:ring-offset-surface',
               currentLang === 'vi'
                 ? isContrast
                   ? 'bg-white text-brand-900 shadow-xs font-black'
@@ -96,13 +98,15 @@ export const LanguageSwitcher = memo(
           {/* English Button */}
           <button
             type="button"
-            role="radio"
-            aria-checked={currentLang === 'en'}
+            aria-pressed={currentLang === 'en'}
             aria-label="Switch language to English"
             onClick={() => handleSelectLanguage('en')}
             className={cn(
-              'h-7 rounded-full px-2.5 text-xs font-bold transition-all duration-200 cursor-pointer',
-              'focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1',
+              'min-h-11 rounded-full px-2.5 text-xs font-bold transition-all duration-200 cursor-pointer',
+              'focus:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-1',
+              isContrast
+                ? 'focus-visible:ring-white focus-visible:ring-offset-brand-700'
+                : 'focus-visible:ring-brand-700 focus-visible:ring-offset-surface',
               currentLang === 'en'
                 ? isContrast
                   ? 'bg-white text-brand-900 shadow-xs font-black'

@@ -7,6 +7,7 @@ import type { ManagementNavigationItem } from '@/types/management-navigation';
 import { useAuthStore } from '@/features/auth/store/auth.store';
 import { hasCurrentUserRole } from '@/shared/utils/current-user';
 import { USER_ROLES } from '@/shared/constants/roles';
+import { useAuthorization } from '@/features/auth/authorization';
 
 export interface ResolvedManagementNavigationItem extends ManagementNavigationItem {
   title: string;
@@ -30,18 +31,20 @@ export const useManagementNavigation = (): ResolvedManagementNavigationItem[] =>
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
   const canSeeAdminItems =
     hasHydrated && authenticated && hasCurrentUserRole(user, USER_ROLES.ADMIN);
+  const { hasPermission } = useAuthorization();
 
   return useMemo(
     () =>
       MANAGEMENT_NAVIGATION_ITEMS.filter(
         (item) =>
           (!item.adminOnly || canSeeAdminItems) &&
+          (!item.permission || (hasHydrated && authenticated && hasPermission(item.permission))) &&
           (!item.roles || (role !== 'OTHER' && item.roles.includes(role))),
       ).map((item) => ({
         ...item,
         title: t(item.translationKey, { defaultValue: item.label }),
         isActive: isPathActive(pathname, item.path),
       })),
-    [canSeeAdminItems, pathname, role, t],
+    [canSeeAdminItems, hasHydrated, authenticated, hasPermission, pathname, role, t],
   );
 };

@@ -63,6 +63,7 @@ export interface BranchProduct {
 export interface InventoryBalance {
   productId: string;
   sku: string;
+  barcode: string | null;
   productName: string;
   categoryName: string;
   unit: string;
@@ -70,6 +71,7 @@ export interface InventoryBalance {
   quantityReserved: number;
   availableQuantity: number;
   reorderLevel: number;
+  updatedAt: string;
 }
 
 export interface StockMovement {

@@ -164,7 +164,7 @@ export const posSalesApi = {
 
   async getInventory(
     branchId: string,
-    params: { lowStockOnly?: boolean; page?: number; pageSize?: number } = {},
+    params: { search?: string; lowStockOnly?: boolean; page?: number; pageSize?: number } = {},
   ) {
     const response = await http.get<SuccessEnvelope<InventoryBalance[]>>(
       `/branches/${branchId}/inventory`,

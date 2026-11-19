@@ -43,7 +43,8 @@
   /* Lines / states ------------------------------------------------------- */
   --color-line: #dfe3e8;
   --color-line-strong: #c4cad1;
-  --color-focus: #ffcf3f;
+  --color-focus: #005fcc;
+  --color-focus-onbrand: #ffffff;
   --color-danger: #d92d20;
   --color-success: #16853f;
   --color-accent-gold: #f2b21a;
@@ -70,6 +71,17 @@
     scroll-padding-top: env(safe-area-inset-top, 0px);
   }
 
+  html:has(.pos-workspace) {
+    scroll-padding-top: calc(4.5rem + env(safe-area-inset-top, 0px));
+    scroll-padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  @media (min-width: 1024px) {
+    html:has(.pos-workspace) {
+      scroll-padding-bottom: 1rem;
+    }
+  }
+
   body {
     @apply bg-surface font-sans text-base font-normal text-content-primary antialiased;
   }
@@ -80,8 +92,22 @@
     border-radius: var(--radius-field);
   }
 
+  .app-global-header :focus-visible {
+    outline-color: var(--color-focus-onbrand);
+  }
+
   ::placeholder {
     color: var(--color-content-placeholder);
+  }
+
+  @media (pointer: coarse) {
+    .pos-workspace :is(button, input:not([type='checkbox']):not([type='radio']):not([type='hidden']), select, textarea) {
+      min-height: 44px;
+    }
+
+    .pos-workspace :is(button, [role='button']) {
+      min-width: 44px;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {

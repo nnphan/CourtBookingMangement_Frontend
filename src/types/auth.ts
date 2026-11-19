@@ -2,13 +2,16 @@ export type UserRole = 'customer' | 'staff' | 'owner' | 'admin';
 
 export interface User {
   id: string;
-  fullName: string;
+  fullName: string | null;
   phoneNumber: string | null;
   email: string | null;
-  avatarUrl: string | null;
-  role: UserRole;
+  avatarUrl?: string | null;
+  role?: UserRole;
   /** All roles assigned to the user (backend enum values, e.g. 'ADMIN', 'BRANCH_OWNER'). */
   roles?: string[] | null;
+  permissions?: string[] | null;
+  isActive?: boolean;
+  isEmailVerified?: boolean;
 }
 
 export interface AuthTokens {

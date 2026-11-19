@@ -53,54 +53,54 @@ export const BookingContextMenu: React.FC<BookingContextMenuProps> = memo(
             <span>{t('courtStatus.actions.viewDetails', 'Xem chi tiết')}</span>
           </ContextMenuItem>
 
-          <ContextMenuItem
+          {onEdit && <ContextMenuItem
             onClick={() => onEdit?.(booking)}
             className="flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-slate-800"
           >
             <Edit className="size-4 text-blue-600" />
             <span>{t('courtStatus.actions.editBooking', 'Chỉnh sửa lịch')}</span>
-          </ContextMenuItem>
+          </ContextMenuItem>}
 
           <ContextMenuSeparator />
 
-          <ContextMenuItem
+          {onCheckIn && <ContextMenuItem
             onClick={() => onCheckIn?.(booking)}
             disabled={booking.checkedIn}
             className="flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-slate-800 disabled:opacity-40"
           >
             <LogIn className="size-4 text-teal-600" />
             <span>{t('courtStatus.actions.checkIn', 'Check-in nhận sân')}</span>
-          </ContextMenuItem>
+          </ContextMenuItem>}
 
-          <ContextMenuItem
+          {onCheckOut && <ContextMenuItem
             onClick={() => onCheckOut?.(booking)}
             disabled={!booking.checkedIn || booking.checkedOut}
             className="flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-slate-800 disabled:opacity-40"
           >
             <LogOut className="size-4 text-amber-600" />
             <span>{t('courtStatus.actions.checkOut', 'Check-out trả sân')}</span>
-          </ContextMenuItem>
+          </ContextMenuItem>}
 
           <ContextMenuSeparator />
 
-          <ContextMenuItem
+          {onCreateInvoice && <ContextMenuItem
             onClick={() => onCreateInvoice?.(booking)}
             className="flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-slate-800"
           >
             <Receipt className="size-4 text-purple-600" />
             <span>{t('courtStatus.actions.createInvoice', 'Tạo hóa đơn')}</span>
-          </ContextMenuItem>
+          </ContextMenuItem>}
 
           <ContextMenuSeparator />
 
-          <ContextMenuItem
+          {onCancel && <ContextMenuItem
             variant="danger"
             onClick={() => onCancel?.(booking)}
             className="flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-red-600"
           >
             <Trash2 className="size-4 text-red-600" />
             <span>{t('courtStatus.actions.cancelBooking', 'Hủy lịch đặt')}</span>
-          </ContextMenuItem>
+          </ContextMenuItem>}
         </ContextMenuContent>
       </ContextMenu>
     );

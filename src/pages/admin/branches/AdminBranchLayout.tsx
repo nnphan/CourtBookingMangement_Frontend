@@ -6,8 +6,9 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { ManagementNavigation } from '@/components/navigation';
 import { paths } from '@/app/router/paths';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
-import { useAuthStore } from '@/features/auth/store/auth.store';
 import { useBranchPermissions } from '@/hooks/branches';
+import { useAuthorization } from '@/features/auth/authorization';
+import { PERMISSIONS } from '@/shared/constants/permissions';
 import { CurrentUserMenu } from '@/shared/components/current-user';
 
 export const AdminBranchLayout: React.FC = () => {
@@ -15,37 +16,7 @@ export const AdminBranchLayout: React.FC = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const permissions = useBranchPermissions();
-  const { user, setUser } = useAuthStore();
-
-  // Quick demo toggle to switch between ADMIN and BRANCH_MANAGER roles for testing permission rules
-  const toggleRole = () => {
-    if (!user) {
-      setUser({
-        id: 'admin-01',
-        fullName: 'Admin Manager',
-        phone: '0901234567',
-        email: 'admin@alobo.vn',
-        avatarUrl: null,
-        role: 'admin',
-        roles: ['ADMIN'],
-      });
-      return;
-    }
-
-    if (permissions.isAdmin) {
-      setUser({
-        ...user,
-        role: 'owner',
-        roles: ['BRANCH_MANAGER'],
-      });
-    } else {
-      setUser({
-        ...user,
-        role: 'admin',
-        roles: ['ADMIN'],
-      });
-    }
-  };
+  const { hasPermission } = useAuthorization();
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-slate-50/70 font-sans text-slate-900">
@@ -92,10 +63,7 @@ export const AdminBranchLayout: React.FC = () => {
         {/* Right header actions */}
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Role badge with interactive test switch */}
-          <button
-            type="button"
-            onClick={toggleRole}
-            title={t('layout.role.toggleHint')}
+          <span
             className="flex items-center gap-1.5 rounded-xl bg-white/15 px-2.5 py-1.5 text-xs font-bold text-white transition-colors hover:bg-white/25 sm:px-3"
           >
             {permissions.isAdmin ? (
@@ -109,11 +77,11 @@ export const AdminBranchLayout: React.FC = () => {
                 <span>{t('layout.role.branchManager')}</span>
               </>
             )}
-          </button>
+          </span>
 
           <LanguageSwitcher mode="dropdown" variant="contrast" />
 
-          {permissions.isAdmin && (
+          {hasPermission(PERMISSIONS.DASHBOARD_VIEW) && (
             <button
               type="button"
               onClick={() => navigate(paths.dashboard)}

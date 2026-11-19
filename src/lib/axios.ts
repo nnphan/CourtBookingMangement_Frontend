@@ -64,6 +64,7 @@ const refreshAccessToken = async (): Promise<string | null> => {
       { refreshToken: tokens.refreshToken },
     );
     tokenStorage.write(data.data);
+    window.dispatchEvent(new CustomEvent('alobo:token-refreshed'));
     return data.data.accessToken;
   } catch {
     tokenStorage.clear();

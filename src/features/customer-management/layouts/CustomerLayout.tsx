@@ -7,16 +7,15 @@ import { ManagementNavigation } from '@/components/navigation';
 import { paths } from '@/app/router/paths';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 import { CurrentUserMenu } from '@/shared/components/current-user';
-import { useAuthStore } from '@/features/auth/store/auth.store';
-import { getCurrentUserRole } from '@/shared/utils/current-user';
+import { useAuthorization } from '@/features/auth/authorization';
+import { PERMISSIONS } from '@/shared/constants/permissions';
 
 export const CustomerLayout: React.FC = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
-  const user = useAuthStore((s) => s.user);
-  const isAdmin = getCurrentUserRole(user) === 'admin';
+  const { hasPermission } = useAuthorization();
 
   const isListPage = location.pathname === paths.customers;
 
@@ -72,7 +71,7 @@ export const CustomerLayout: React.FC = () => {
         <div className="flex items-center gap-2 sm:gap-3">
           <LanguageSwitcher variant="contrast" />
 
-          {isAdmin && (
+          {hasPermission(PERMISSIONS.DASHBOARD_VIEW) && (
             <button
               type="button"
               onClick={() => navigate(paths.dashboard)}

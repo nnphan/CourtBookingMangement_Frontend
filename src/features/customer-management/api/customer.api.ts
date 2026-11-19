@@ -12,6 +12,11 @@ import { createSuccessResponse } from '@/mocks/shared/mock-api-response';
 import { createErrorResponse } from '@/mocks/shared/mock-error';
 import { mockDelay } from '@/mocks/shared/mock-delay';
 
+const rethrowAuthorizationError = (error: unknown) => {
+  if (error && typeof error === 'object' && 'status' in error &&
+      (error.status === 401 || error.status === 403)) throw error;
+};
+
 // Mock Customers Database Seed
 let inMemoryCustomers: Customer[] = [
   {
@@ -388,7 +393,8 @@ export const customerApi = {
         params: requestParams,
       });
       return res.data;
-    } catch {
+    } catch (error) {
+      rethrowAuthorizationError(error);
       await mockDelay(200);
 
       const {
@@ -467,7 +473,8 @@ export const customerApi = {
     try {
       const res = await http.get<ApiResponse<Customer>>(`/customers/${id}`);
       return res.data;
-    } catch {
+    } catch (error) {
+      rethrowAuthorizationError(error);
       await mockDelay(150);
       const customer = inMemoryCustomers.find((c) => c.id === id);
       if (!customer) {
@@ -484,7 +491,8 @@ export const customerApi = {
     try {
       const res = await http.post<ApiResponse<Customer>>('/customers', input);
       return res.data;
-    } catch {
+    } catch (error) {
+      rethrowAuthorizationError(error);
       await mockDelay(250);
 
       // Validate unique phone number
@@ -537,7 +545,8 @@ export const customerApi = {
     try {
       const res = await http.put<ApiResponse<Customer>>(`/customers/${id}`, input);
       return res.data;
-    } catch {
+    } catch (error) {
+      rethrowAuthorizationError(error);
       await mockDelay(200);
 
       const index = inMemoryCustomers.findIndex((c) => c.id === id);
@@ -582,7 +591,8 @@ export const customerApi = {
     try {
       const res = await http.patch<ApiResponse<Customer>>(`/customers/${id}/deactivate`);
       return res.data;
-    } catch {
+    } catch (error) {
+      rethrowAuthorizationError(error);
       await mockDelay(150);
       const index = inMemoryCustomers.findIndex((c) => c.id === id);
       if (index === -1) {
@@ -613,7 +623,8 @@ export const customerApi = {
     try {
       const res = await http.post<ApiResponse<Customer>>(`/customers/${guestId}/convert`, data);
       return res.data;
-    } catch {
+    } catch (error) {
+      rethrowAuthorizationError(error);
       await mockDelay(200);
       const index = inMemoryCustomers.findIndex((c) => c.id === guestId);
       if (index === -1) {
@@ -647,7 +658,8 @@ export const customerApi = {
         { params },
       );
       return res.data;
-    } catch {
+    } catch (error) {
+      rethrowAuthorizationError(error);
       await mockDelay(200);
 
       const customer = inMemoryCustomers.find((c) => c.id === customerId);
@@ -705,7 +717,8 @@ export const customerApi = {
         params: { q: query },
       });
       return res.data;
-    } catch {
+    } catch (error) {
+      rethrowAuthorizationError(error);
       await mockDelay(100);
       const clean = query.trim().toLowerCase();
       if (!clean) {
@@ -730,7 +743,8 @@ export const customerApi = {
     try {
       const res = await http.get<ApiResponse<CustomerStatsOverview>>('/customers/stats');
       return res.data;
-    } catch {
+    } catch (error) {
+      rethrowAuthorizationError(error);
       await mockDelay(150);
 
       const totalCustomers = inMemoryCustomers.length;

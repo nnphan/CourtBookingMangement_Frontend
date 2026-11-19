@@ -1,6 +1,7 @@
 import { Building2, CalendarCheck, KeyRound, Shield, UserCog, Users } from 'lucide-react';
 import { paths } from '@/app/router/paths';
 import type { ManagementNavigationItem } from '@/types/management-navigation';
+import { PERMISSIONS as P } from '@/shared/constants/permissions';
 
 export const MANAGEMENT_NAVIGATION_ITEMS: readonly ManagementNavigationItem[] = [
   {
@@ -9,7 +10,7 @@ export const MANAGEMENT_NAVIGATION_ITEMS: readonly ManagementNavigationItem[] = 
     translationKey: 'navigation.branches',
     path: paths.adminBranches,
     icon: Building2,
-    roles: ['ADMIN'],
+    permission: P.BRANCH_VIEW,
     adminOnly: true,
   },
   {
@@ -18,7 +19,7 @@ export const MANAGEMENT_NAVIGATION_ITEMS: readonly ManagementNavigationItem[] = 
     translationKey: 'navigation.customers',
     path: paths.customers,
     icon: Users,
-    roles: ['ADMIN', 'BRANCH_MANAGER'],
+    permission: P.CUSTOMER_VIEW,
   },
   {
     key: 'users',
@@ -62,6 +63,6 @@ export const MANAGEMENT_NAVIGATION_ITEMS: readonly ManagementNavigationItem[] = 
     translationKey: 'navigation.courtStatus',
     path: paths.courtStatus,
     icon: CalendarCheck,
-    roles: ['ADMIN', 'BRANCH_MANAGER'],
+    permission: P.BOOKING_VIEW,
   },
 ];

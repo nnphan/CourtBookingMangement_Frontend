@@ -26,6 +26,7 @@ export const useAuthStore = create<AuthState>()(
       hasHydrated: false,
 
       setSession: ({ user, accessToken, refreshToken }) => {
+        queryClient.clear();
         tokenStorage.write({ accessToken, refreshToken });
         set({ user, accessToken, status: 'authenticated' });
       },
@@ -40,7 +41,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       isAuthenticated: () => {
-        const token = get().accessToken ?? tokenStorage.read()?.accessToken ?? null;
+        const token = tokenStorage.read()?.accessToken ?? get().accessToken ?? null;
         return !!token && !isExpired(token);
       },
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
@@ -58,3 +59,6 @@ export const useAuthStore = create<AuthState>()(
 
 /** Axios emits this when a refresh attempt fails. */
 window.addEventListener('alobo:session-expired', () => useAuthStore.getState().logout());
+window.addEventListener('alobo:token-refreshed', () => {
+  void queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+});

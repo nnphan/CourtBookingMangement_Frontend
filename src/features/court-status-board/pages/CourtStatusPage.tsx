@@ -30,10 +30,17 @@ import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 import { CurrentUserMenu } from '@/shared/components/current-user';
 import { ManagementNavigation } from '@/components/navigation';
 import { formatBookingDateToApi, formatTimeToApi } from '@/features/bookings/utils/booking.mapper';
+import { useAuthorization } from '@/features/auth/authorization';
+import { PERMISSIONS as P } from '@/shared/constants/permissions';
 
 export const CourtStatusPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { hasPermission, hasAllPermissions } = useAuthorization();
+  const canCreate = hasPermission(P.BOOKING_CREATE);
+  const canUpdate = hasPermission(P.BOOKING_UPDATE);
+  const canUpdateStatus = hasPermission(P.BOOKING_STATUS_UPDATE);
+  const canCancel = hasAllPermissions([P.BOOKING_CANCEL, P.BOOKING_STATUS_UPDATE]);
 
   // Branch list from backend API
   const {
@@ -381,7 +388,7 @@ export const CourtStatusPage: React.FC = () => {
             <EmptyState
               date={selectedDate}
               onCreateBooking={
-                isPastDate ? undefined : () => handleOpenCreateBooking({ date: selectedDate })
+                isPastDate || !canCreate ? undefined : () => handleOpenCreateBooking({ date: selectedDate })
               }
             />
           </div>
@@ -397,23 +404,23 @@ export const CourtStatusPage: React.FC = () => {
               zoomLevel={zoomLevel}
               onZoomChange={setZoomLevel}
               selectedSlotKeys={selectedSlotKeys}
-              onToggleSlot={handleToggleSlot}
+              onToggleSlot={canCreate ? handleToggleSlot : () => undefined}
               onSelectBooking={(b) => {
                 const found = bookings.find((item) => item.id === b.id);
                 if (found) openDetailDrawer(found);
               }}
-              onEditBooking={(b) => {
+              onEditBooking={canUpdate ? (b) => {
                 const found = bookings.find((item) => item.id === b.id);
                 if (found) openEditDialog(found);
-              }}
-              onCheckIn={handleCheckIn}
-              onCheckOut={handleCheckOut}
-              onCreateInvoice={handleCreateInvoice}
-              onCancelBooking={handleCancelBooking}
+              } : undefined}
+              onCheckIn={canUpdateStatus ? handleCheckIn : undefined}
+              onCheckOut={canUpdateStatus ? handleCheckOut : undefined}
+              onCreateInvoice={hasPermission(P.PAYMENT_CREATE) ? handleCreateInvoice : undefined}
+              onCancelBooking={canCancel ? handleCancelBooking : undefined}
             />
 
             {/* Selected Schedule Summary Bar */}
-            {hasSelection && (
+            {canCreate && hasSelection && (
               <SelectedScheduleSummary
                 ranges={normalizedRanges}
                 totalDurationHours={totalDurationHours}
@@ -443,7 +450,7 @@ export const CourtStatusPage: React.FC = () => {
       />
 
       {/* Create / Edit Booking Modal Dialog */}
-      {editingBooking ? (
+      {editingBooking && canUpdate ? (
         <EditBookingDialog
           isOpen={isCreateDialogOpen}
           onClose={closeCreateDialog}
@@ -453,7 +460,7 @@ export const CourtStatusPage: React.FC = () => {
           onSubmitBooking={handleSubmitBooking}
           isLoading={isUpdating}
         />
-      ) : (
+      ) : canCreate && !editingBooking ? (
         <CreateBookingDialog
           isOpen={isCreateDialogOpen}
           onClose={closeCreateDialog}
@@ -465,7 +472,7 @@ export const CourtStatusPage: React.FC = () => {
             void refetch();
           }}
         />
-      )}
+      ) : null}
     </div>
   );
 };

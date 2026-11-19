@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { useTranslation } from 'react-i18next';
 import {
   X,
@@ -28,9 +29,10 @@ import {
 } from 'lucide-react';
 import { useLogout } from '@/features/auth/hooks/useLogout';
 import { useAuthStore } from '@/features/auth/store/auth.store';
-import { getCurrentUserRole, hasCurrentUserRole } from '@/shared/utils/current-user';
+import { hasCurrentUserRole } from '@/shared/utils/current-user';
 import { USER_ROLES } from '@/shared/constants/roles';
-import { cn } from '@/lib/utils';
+import { PERMISSIONS as P } from '@/shared/constants/permissions';
+import { useAuthorization } from '@/features/auth/authorization';
 
 import { paths } from '@/app/router/paths';
 import { useNavigate } from 'react-router';
@@ -45,6 +47,7 @@ const menuItems = [
     icon: Building2,
     label: 'Quản lý chi nhánh (Branches)',
     path: paths.adminBranches,
+    permission: P.BRANCH_VIEW,
     adminOnly: true,
   },
   {
@@ -68,24 +71,24 @@ const menuItems = [
     path: paths.adminRoles,
     adminOnly: true,
   },
-  { icon: Users, label: 'Quản lý khách hàng', path: paths.customers },
+  { icon: Users, label: 'Quản lý khách hàng', path: paths.customers, permission: P.CUSTOMER_VIEW },
   {
     icon: UsersRound,
     label: 'Player matching profile',
     translationKey: 'playerMatchingProfile.nav',
     path: paths.playerMatchingProfile,
   },
-  { icon: ShoppingBag, label: 'POS / Bán hàng', path: paths.posSales, posOnly: true },
-  { icon: BarChart3, label: 'Quản trị POS & kho', path: paths.posDashboard, posOnly: true },
-  { icon: Tags, label: 'Danh mục sản phẩm', path: paths.posCategories, posOnly: true },
+  { icon: ShoppingBag, label: 'POS / Bán hàng', path: paths.posSales, anyPermissions: [P.SALES_VIEW, P.PRODUCT_VIEW, P.INVENTORY_VIEW, P.SALES_REPORT_VIEW] },
+  { icon: BarChart3, label: 'Quản trị POS & kho', path: paths.posDashboard, permission: P.SALES_REPORT_VIEW },
+  { icon: Tags, label: 'Danh mục sản phẩm', path: paths.posCategories, permission: P.PRODUCT_VIEW },
   {
     icon: PackageOpen,
     label: 'Kho và danh mục',
     path: paths.posInventory,
-    posOnly: true,
+    permission: P.INVENTORY_VIEW,
   },
   { icon: Globe, label: 'Chuyển đổi ngôn ngữ' },
-  { icon: Home, label: 'Đổi trang chủ: Trang chủ cũ', path: paths.dashboard },
+  { icon: Home, label: 'Đổi trang chủ: Trang chủ cũ', path: paths.dashboard, permission: P.DASHBOARD_VIEW },
   {
     icon: User,
     label: 'Quản lý người dùng (User)',
@@ -112,54 +115,30 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const authenticated = useAuthStore((s) => s.isAuthenticated());
   const canAccessAdminRoutes =
     hasHydrated && authenticated && hasCurrentUserRole(user, USER_ROLES.ADMIN);
-  const posRoles = [...(user?.roles ?? []), user?.role ?? ''].map((role) => role.toUpperCase());
-  const canAccessPosRoutes =
-    hasHydrated &&
-    authenticated &&
-    posRoles.some((role) => ['ADMIN', 'SUPER_ADMIN', 'BRANCH_ADMIN', 'STAFF'].includes(role));
-  const isAdmin = hasHydrated && authenticated && getCurrentUserRole(user) === 'admin';
+  const { hasPermission, hasAnyPermission } = useAuthorization();
   const navigate = useNavigate();
-  const sidebarRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
-  // Trap focus basic implementation
-  useEffect(() => {
-    if (isOpen && sidebarRef.current) {
-      sidebarRef.current.focus();
-    }
-  }, [isOpen]);
+  const previousFocus = useRef<HTMLElement | null>(null);
 
   return (
-    <>
-      {/* Backdrop */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 transition-opacity"
-          aria-hidden="true"
-          onClick={onClose}
-        />
-      )}
+    <DialogPrimitive.Root open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogPrimitive.Portal>
+        {/* Backdrop */}
+        <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-black/50 transition-opacity" />
 
-      {/* Drawer */}
-      <div
-        ref={sidebarRef}
-        tabIndex={-1}
-        className={cn(
-          'bg-brand-600 text-content-onbrand fixed inset-y-0 left-0 z-50 w-full max-w-[350px] transform shadow-[var(--shadow-drawer)] transition-transform duration-300 ease-[var(--ease-standard)] outline-none',
-          isOpen ? 'translate-x-0' : '-translate-x-full',
-        )}
-        role="dialog"
-        aria-modal="true"
+        {/* Drawer */}
+      <DialogPrimitive.Content
+        className="bg-brand-600 text-content-onbrand fixed inset-y-0 left-0 z-50 w-full max-w-[350px] shadow-[var(--shadow-drawer)] outline-none"
         aria-label="Menu"
+        aria-describedby={undefined}
+        onOpenAutoFocus={() => {
+          previousFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        }}
+        onCloseAutoFocus={(event) => {
+          if (previousFocus.current?.isConnected) {
+            event.preventDefault();
+            previousFocus.current.focus();
+          }
+        }}
       >
         <div className="flex h-14 items-center justify-between border-b border-white/10 px-4 pt-[env(safe-area-inset-top,0px)] sm:h-16">
           <button
@@ -181,8 +160,8 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                 (item) =>
                   !('adminOnly' in item) || !item.adminOnly || canAccessAdminRoutes,
               )
-              .filter((item) => !('posOnly' in item) || !item.posOnly || canAccessPosRoutes)
-              .filter((item) => item.path !== paths.dashboard || isAdmin)
+              .filter((item) => !('permission' in item) || !item.permission || (hasHydrated && authenticated && hasPermission(item.permission)))
+              .filter((item) => !('anyPermissions' in item) || !item.anyPermissions || (hasHydrated && authenticated && hasAnyPermission(item.anyPermissions)))
               .map((item, i) => (
                 <button
                   key={i}
@@ -216,7 +195,8 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
             </button>
           </nav>
         </div>
-      </div>
-    </>
+      </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 };

@@ -14,14 +14,15 @@ import {
   Tags,
   Truck,
 } from 'lucide-react';
-import { BranchSelector } from '@/components/branches/BranchSelector';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody } from '@/components/ui/card';
 import { queryClient } from '@/lib/query-client';
 import { toast } from '@/lib/toast';
-import { useAuthStore } from '@/features/auth/store/auth.store';
+import { useAuthorization } from '@/features/auth/authorization';
+import { PERMISSIONS as P } from '@/shared/constants/permissions';
 import { paths } from '@/app/router/paths';
 import { posSalesApi } from '../api';
+import { PosWorkspaceHeader, PosWorkspaceTabs } from '../components/PosWorkspaceShell';
 import type { BranchProduct, InventoryBalance, Product, ProductCategory, SalesReport, StockMovement } from '../types';
 
 type Section =
@@ -38,77 +39,21 @@ type Section =
   | 'dashboard'
   | 'invoice';
 
-type Permission =
-  | 'product.view'
-  | 'product.create'
-  | 'product.update'
-  | 'product.deactivate'
-  | 'inventory.view'
-  | 'inventory.receive'
-  | 'inventory.post_receipt'
-  | 'inventory.adjust'
-  | 'sales.view'
-  | 'sales.cancel'
-  | 'sales.refund'
-  | 'sales.invoice.view'
-  | 'sales.invoice.print'
-  | 'sales.report.view';
-
-const branchAdminPermissions: Permission[] = [
-  'product.view',
-  'product.create',
-  'product.update',
-  'product.deactivate',
-  'inventory.view',
-  'inventory.receive',
-  'inventory.post_receipt',
-  'inventory.adjust',
-  'sales.view',
-  'sales.cancel',
-  'sales.refund',
-  'sales.invoice.view',
-  'sales.invoice.print',
-  'sales.report.view',
-];
-
-const staffPermissions: Permission[] = [
-  'product.view',
-  'inventory.view',
-  'sales.view',
-  'sales.invoice.view',
-  'sales.invoice.print',
-];
-
-const permissionBySection: Record<Section, Permission[]> = {
-  categories: ['product.view'],
-  products: ['product.view'],
-  'branch-products': ['product.view', 'product.update'],
-  inventory: ['inventory.view'],
-  movements: ['inventory.view'],
-  receipts: ['inventory.view'],
-  'receipt-edit': ['inventory.receive'],
-  'receipt-detail': ['inventory.view'],
-  orders: ['sales.view'],
-  'order-detail': ['sales.view'],
-  dashboard: ['sales.report.view'],
-  invoice: ['sales.invoice.view'],
-};
-
 const sectionLinks: Array<{
   section: Section;
   path: string;
   label: string;
   icon: typeof Tags;
-  permissions: Permission[];
+  permissions: string[];
 }> = [
-  { section: 'dashboard', path: paths.posDashboard, label: 'Báo cáo bán hàng', icon: BarChart3, permissions: ['sales.report.view'] },
-  { section: 'categories', path: paths.posCategories, label: 'Danh mục', icon: Tags, permissions: ['product.view'] },
-  { section: 'products', path: paths.posProducts, label: 'Sản phẩm', icon: Package, permissions: ['product.view'] },
-  { section: 'branch-products', path: paths.posBranchProducts, label: 'Cấu hình chi nhánh', icon: ClipboardList, permissions: ['product.view', 'product.update'] },
-  { section: 'inventory', path: paths.posInventory, label: 'Tồn kho', icon: Boxes, permissions: ['inventory.view'] },
-  { section: 'movements', path: paths.posMovements, label: 'Biến động kho', icon: RefreshCw, permissions: ['inventory.view'] },
-  { section: 'receipts', path: paths.posReceipts, label: 'Phiếu nhập', icon: Truck, permissions: ['inventory.view'] },
-  { section: 'orders', path: paths.posOrders, label: 'Đơn bán hàng', icon: FileText, permissions: ['sales.view'] },
+  { section: 'dashboard', path: paths.posDashboard, label: 'Báo cáo bán hàng', icon: BarChart3, permissions: [P.SALES_REPORT_VIEW] },
+  { section: 'categories', path: paths.posCategories, label: 'Danh mục', icon: Tags, permissions: [P.PRODUCT_VIEW] },
+  { section: 'products', path: paths.posProducts, label: 'Sản phẩm', icon: Package, permissions: [P.PRODUCT_VIEW] },
+  { section: 'branch-products', path: paths.posBranchProducts, label: 'Cấu hình chi nhánh', icon: ClipboardList, permissions: [P.PRODUCT_VIEW, P.PRODUCT_UPDATE] },
+  { section: 'inventory', path: paths.posInventory, label: 'Tồn kho', icon: Boxes, permissions: [P.INVENTORY_VIEW] },
+  { section: 'movements', path: paths.posMovements, label: 'Biến động kho', icon: RefreshCw, permissions: [P.INVENTORY_VIEW] },
+  { section: 'receipts', path: paths.posReceipts, label: 'Phiếu nhập', icon: Truck, permissions: [P.INVENTORY_VIEW] },
+  { section: 'orders', path: paths.posOrders, label: 'Đơn bán hàng', icon: FileText, permissions: [P.SALES_VIEW] },
 ];
 
 const queryKeys = {
@@ -145,12 +90,15 @@ const invalidateInventoryViews = (branchId: string) =>
   ]);
 
 const inputClass =
-  'h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100';
+  'h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100';
 const labelClass = 'mb-1.5 block text-sm font-semibold text-slate-700';
 const currency = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 });
 const amount = (value: number) => currency.format(value);
 
 const errorMessage = (error: unknown) => {
+  if (error && typeof error === 'object' && 'status' in error && error.status === 403) {
+    return 'Bạn không có quyền truy cập dữ liệu hoặc chi nhánh này.';
+  }
   if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
     return error.message;
   }
@@ -159,19 +107,7 @@ const errorMessage = (error: unknown) => {
 
 const notifyError = (error: unknown) => toast.error('Không thể hoàn tất', errorMessage(error));
 
-const canUse = (roles: string[], permission: Permission) =>
-  roles.some((role) => {
-    if (role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'BRANCH_ADMIN') {
-      return branchAdminPermissions.includes(permission);
-    }
-    return role === 'STAFF' && staffPermissions.includes(permission);
-  });
-
-const useCan = (permission: Permission) => {
-  const user = useAuthStore((state) => state.user);
-  const roles = [...(user?.roles ?? []), user?.role ?? ''].map((role) => role.toUpperCase());
-  return canUse(roles, permission);
-};
+const useCan = (permission: string) => useAuthorization().hasPermission(permission);
 
 const Field = ({
   label,
@@ -245,43 +181,34 @@ const ManagementFrame = ({
   setBranchId: (id: string) => void;
   children: ReactNode;
 }) => {
-  const user = useAuthStore((state) => state.user);
-  const roles = [...(user?.roles ?? []), user?.role ?? ''].map((role) => role.toUpperCase());
+  const { hasAllPermissions, hasAnyPermission } = useAuthorization();
   const visibleLinks = sectionLinks.filter((link) =>
-    link.permissions.every((permission) => canUse(roles, permission)),
+    hasAllPermissions(link.permissions),
   );
 
   return (
-    <div className="space-y-5 py-5 sm:py-8">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-          <Link to={paths.posSales} className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-700 hover:text-emerald-900">
+    <div className="pos-workspace min-w-0 space-y-4 py-4 sm:py-5">
+      <PosWorkspaceHeader
+        title="POS & Kho hàng"
+        description="Danh mục, sản phẩm, tồn kho và giao dịch của chi nhánh đang chọn."
+        branchId={branchId}
+        onBranchChange={setBranchId}
+        backLink={
+          hasAnyPermission([P.SALES_VIEW, P.PRODUCT_VIEW, P.INVENTORY_VIEW, P.SALES_REPORT_VIEW]) && <Link to={paths.posSales} className="mb-3 inline-flex items-center gap-1 text-sm font-semibold text-emerald-700 hover:text-emerald-900">
             <ArrowLeft className="size-4" /> POS / bán hàng
           </Link>
-          <p className="mt-3 text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">ALOBO · Quản lý bán hàng</p>
-          <h1 className="mt-1 text-2xl font-black text-slate-950 sm:text-3xl">Quản trị POS & kho</h1>
-          <p className="mt-1 text-sm text-slate-600">Danh mục, sản phẩm, tồn kho và giao dịch của chi nhánh đang chọn.</p>
-        </div>
-        <div className="w-full sm:w-80">
-          <label className={labelClass}>Chi nhánh đang thao tác</label>
-          <BranchSelector value={branchId} onChange={setBranchId} />
-        </div>
-      </div>
-      <nav aria-label="Quản lý POS" className="grid grid-cols-2 gap-2 rounded-2xl bg-white p-2 shadow-sm sm:grid-cols-4 lg:grid-cols-8">
-        {visibleLinks.map(({ section: linkSection, path, label, icon: Icon }) => (
-          <Link
-            key={linkSection}
-            to={path}
-            aria-current={section === linkSection ? 'page' : undefined}
-            className={`flex min-h-11 items-center justify-center gap-2 rounded-xl px-2 py-2 text-center text-xs font-bold transition sm:text-sm ${
-              section === linkSection ? 'bg-emerald-700 text-white' : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-900'
-            }`}
-          >
-            <Icon className="size-4 shrink-0" />
-            {label}
-          </Link>
-        ))}
-      </nav>
+        }
+      />
+      <PosWorkspaceTabs
+        ariaLabel="Quản lý POS"
+        tabs={visibleLinks.map(({ section: linkSection, path, label, icon }) => ({
+          id: linkSection,
+          to: path,
+          label,
+          icon,
+          active: section === linkSection,
+        }))}
+      />
       {!branchId ? (
         <Card><CardBody><EmptyPanel>Vui lòng chọn chi nhánh được phân quyền để xem dữ liệu.</EmptyPanel></CardBody></Card>
       ) : children}
@@ -290,22 +217,11 @@ const ManagementFrame = ({
 };
 
 const CommerceManagementPage = ({ section }: { section: Section }) => {
-  const user = useAuthStore((state) => state.user);
-  const roles = [...(user?.roles ?? []), user?.role ?? ''].map((role) => role.toUpperCase());
-  const allowed = permissionBySection[section].every((permission) => canUse(roles, permission));
   const [branchId, setBranchId] = useState(() => localStorage.getItem('pos-sales.branchId') ?? '');
   const handleBranchChange = (nextBranchId: string) => {
     setBranchId(nextBranchId);
     localStorage.setItem('pos-sales.branchId', nextBranchId);
   };
-
-  if (!allowed) {
-    return (
-      <div className="py-12">
-        <Card><CardBody><p role="alert" className="text-center text-sm font-semibold text-red-700">Bạn không có quyền truy cập chức năng này.</p></CardBody></Card>
-      </div>
-    );
-  }
 
   return (
     <ManagementFrame section={section} branchId={branchId} setBranchId={handleBranchChange}>
@@ -318,7 +234,7 @@ const CommerceManagementPage = ({ section }: { section: Section }) => {
       {section === 'receipt-edit' && <ReceiptEditorPage branchId={branchId} />}
       {section === 'receipt-detail' && <ReceiptDetailPage branchId={branchId} />}
       {section === 'orders' && <OrdersPage branchId={branchId} />}
-      {section === 'order-detail' && <OrderDetailPage branchId={branchId} roles={roles} />}
+      {section === 'order-detail' && <OrderDetailPage branchId={branchId} />}
       {section === 'dashboard' && <SalesDashboardPage branchId={branchId} />}
       {section === 'invoice' && <InvoicePage branchId={branchId} />}
     </ManagementFrame>
@@ -326,9 +242,9 @@ const CommerceManagementPage = ({ section }: { section: Section }) => {
 };
 
 const CategoriesPage = () => {
-  const canCreate = useCan('product.create');
-  const canUpdate = useCan('product.update');
-  const canDeactivate = useCan('product.deactivate');
+  const canCreate = useCan(P.PRODUCT_CREATE);
+  const canUpdate = useCan(P.PRODUCT_UPDATE);
+  const canDeactivate = useCan(P.PRODUCT_DEACTIVATE);
   const categoriesQuery = useQuery({ queryKey: queryKeys.categories, queryFn: () => posSalesApi.getCategories() });
   const [editing, setEditing] = useState<ProductCategory | null>(null);
   const [code, setCode] = useState('');
@@ -391,9 +307,9 @@ const CategoriesPage = () => {
 };
 
 const ProductsPage = () => {
-  const canCreate = useCan('product.create');
-  const canUpdate = useCan('product.update');
-  const canDeactivate = useCan('product.deactivate');
+  const canCreate = useCan(P.PRODUCT_CREATE);
+  const canUpdate = useCan(P.PRODUCT_UPDATE);
+  const canDeactivate = useCan(P.PRODUCT_DEACTIVATE);
   const categoriesQuery = useQuery({ queryKey: queryKeys.categories, queryFn: () => posSalesApi.getCategories() });
   const productsQuery = useQuery({ queryKey: queryKeys.products, queryFn: () => posSalesApi.searchCatalogProducts({ pageSize: 100 }) });
   const [editing, setEditing] = useState<Product | null>(null);
@@ -546,7 +462,7 @@ const BranchProductsPage = ({ branchId }: { branchId: string }) => {
 };
 
 const InventoryPage = ({ branchId }: { branchId: string }) => {
-  const canAdjust = useCan('inventory.adjust');
+  const canAdjust = useCan(P.INVENTORY_ADJUST);
   const inventoryQuery = useQuery({ queryKey: queryKeys.inventory(branchId), queryFn: () => posSalesApi.getInventory(branchId) });
   const [reorder, setReorder] = useState<Record<string, string>>({});
   const [productId, setProductId] = useState('');
@@ -629,7 +545,7 @@ const MovementTable = ({ movements }: { movements: StockMovement[] }) => (
 );
 
 const ReceiptsPage = ({ branchId }: { branchId: string }) => {
-  const canReceive = useCan('inventory.receive');
+  const canReceive = useCan(P.INVENTORY_RECEIVE);
   const receiptsQuery = useQuery({ queryKey: queryKeys.receipts(branchId), queryFn: () => posSalesApi.getReceipts(branchId) });
   return <Card><CardBody className="space-y-4">
     <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-black text-slate-900">Phiếu nhập hàng</h2><p className="text-sm text-slate-500">Phiếu nháp chỉ làm thay đổi tồn sau khi được ghi sổ.</p></div>{canReceive && <Link to={paths.posReceiptCreate}><Button><Plus className="size-4" />Tạo phiếu nhập</Button></Link>}</div>
@@ -759,8 +675,8 @@ const ReceiptActions = ({
   onPost: () => void;
   onCancel: () => void;
 }) => {
-  const canReceive = useCan('inventory.receive');
-  const canPost = useCan('inventory.post_receipt');
+  const canReceive = useCan(P.INVENTORY_RECEIVE);
+  const canPost = useCan(P.INVENTORY_POST_RECEIPT);
   return <div className="flex flex-wrap gap-2">
     {canReceive && <><Link to={paths.posReceiptEdit(receipt.id)}><Button variant="outline">Sửa nháp</Button></Link><Button variant="outline" disabled={cancelPending} onClick={() => { if (window.confirm('Hủy phiếu nhập nháp này?')) onCancel(); }}>Hủy phiếu</Button></>}
     {canPost && <Button disabled={postPending} onClick={() => { if (window.confirm('Ghi sổ phiếu này và cộng tồn kho? Thao tác không thể hoàn tác.')) onPost(); }}>{postPending ? 'Đang ghi sổ...' : 'Ghi sổ'}</Button>}
@@ -782,7 +698,8 @@ const OrdersPage = ({ branchId }: { branchId: string }) => {
   </CardBody></Card>;
 };
 
-const OrderDetailPage = ({ branchId, roles }: { branchId: string; roles: string[] }) => {
+const OrderDetailPage = ({ branchId }: { branchId: string }) => {
+  const { hasPermission } = useAuthorization();
   const { orderId = '' } = useParams();
   const orderQuery = useQuery({ queryKey: queryKeys.order(branchId, orderId), queryFn: () => posSalesApi.getOrder(branchId, orderId), enabled: Boolean(orderId) });
   const cancel = useMutation({
@@ -803,10 +720,10 @@ const OrderDetailPage = ({ branchId, roles }: { branchId: string; roles: string[
   if (orderQuery.isError) return <ErrorPanel error={orderQuery.error} retry={() => void orderQuery.refetch()} />;
   const order = orderQuery.data;
   if (!order) return <EmptyPanel>Không tìm thấy đơn hàng.</EmptyPanel>;
-  const canCancel = canUse(roles, 'sales.cancel') && canUse(roles, 'sales.refund') && order.status === 'COMPLETED';
+  const canCancel = hasPermission(P.SALES_CANCEL) && order.status === 'COMPLETED';
   return <Card><CardBody className="space-y-5">
     <div className="flex flex-wrap items-start justify-between gap-3"><div><Link to={paths.posOrders} className="inline-flex items-center gap-1 text-sm font-bold text-emerald-700"><ArrowLeft className="size-4" />Danh sách đơn</Link><h2 className="mt-3 text-xl font-black text-slate-900">{order.orderCode}</h2></div>
-      <div className="flex flex-wrap gap-2">{order.invoiceId && <Link to={paths.posInvoice(order.invoiceId)}><Button variant="outline"><FileText className="size-4" />Hóa đơn</Button></Link>}{canCancel && <Button variant="outline" disabled={cancel.isPending} onClick={() => { if (window.confirm('Hủy đơn và hoàn kho toàn bộ sản phẩm?')) cancel.mutate(); }}>Hủy đơn / hoàn tiền</Button>}</div>
+      <div className="flex flex-wrap gap-2">{order.invoiceId && hasPermission(P.SALES_INVOICE_VIEW) && <Link to={paths.posInvoice(order.invoiceId)}><Button variant="outline"><FileText className="size-4" />Hóa đơn</Button></Link>}{canCancel && <Button variant="outline" disabled={cancel.isPending} onClick={() => { if (window.confirm('Hủy đơn và hoàn kho toàn bộ sản phẩm?')) cancel.mutate(); }}>Hủy đơn / hoàn tiền</Button>}</div>
     </div>
     <div className="grid gap-3 rounded-xl bg-slate-50 p-4 text-sm sm:grid-cols-3"><p><b>Khách hàng:</b> {order.customerName ?? 'Khách lẻ'}</p><p><b>Booking tham chiếu:</b> {order.bookingId ?? '—'}</p><p><b>Trạng thái:</b> {order.status}</p><p><b>Thanh toán:</b> {order.paymentStatus} · {order.paymentMethodCode}</p><p><b>Ngày tạo:</b> {new Date(order.createdAt).toLocaleString('vi-VN')}</p><p><b>Hoàn tất:</b> {order.completedAt ? new Date(order.completedAt).toLocaleString('vi-VN') : '—'}</p>{order.notes && <p className="sm:col-span-3"><b>Ghi chú:</b> {order.notes}</p>}</div>
     <Table><thead><tr><TableHead>Sản phẩm</TableHead><TableHead>Số lượng</TableHead><TableHead>Đơn giá</TableHead><TableHead>Thành tiền</TableHead></tr></thead><tbody>{order.items.map((item, index) => <tr key={`${item.productId}-${index}`}><TableCell>{item.sku}<br />{item.productName}</TableCell><TableCell>{item.quantity} {item.unit}</TableCell><TableCell>{amount(item.unitPrice)}</TableCell><TableCell>{amount(item.lineTotal)}</TableCell></tr>)}</tbody></Table>
@@ -843,7 +760,7 @@ const SalesReportView = ({ report }: { report: SalesReport }) => (
 );
 
 const InvoicePage = ({ branchId }: { branchId: string }) => {
-  const canPrint = useCan('sales.invoice.print');
+  const canPrint = useCan(P.SALES_INVOICE_PRINT);
   const { invoiceId = '' } = useParams();
   const invoiceQuery = useQuery({ queryKey: queryKeys.invoice(branchId, invoiceId), queryFn: () => posSalesApi.getInvoice(branchId, invoiceId), enabled: Boolean(invoiceId) });
   const [pdfPreview, setPdfPreview] = useState<{ key: string; url: string } | null>(null);

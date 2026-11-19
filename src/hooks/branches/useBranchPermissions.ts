@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useAuthStore } from '@/features/auth/store/auth.store';
+import { PERMISSIONS } from '@/shared/constants/permissions';
 
 export interface BranchPermissions {
   role: 'ADMIN' | 'BRANCH_MANAGER' | 'OTHER';
@@ -20,21 +21,8 @@ export const useBranchPermissions = (): BranchPermissions => {
   const user = useAuthStore((s) => s.user);
 
   return useMemo(() => {
-    // If not logged in in local development/demo, default to ADMIN privilege
-    if (!user) {
-      return {
-        role: 'ADMIN',
-        isAdmin: true,
-        isBranchManager: false,
-        canCreate: true,
-        canEdit: true,
-        canDelete: true,
-        canView: true,
-      };
-    }
-
-    const roleName = user.role?.toLowerCase() || '';
-    const rolesList = (user.roles || []).map((r) => r.toUpperCase());
+    const roleName = user?.role?.toLowerCase() || '';
+    const rolesList = (user?.roles || []).map((r) => r.toUpperCase());
 
     const isAdmin =
       roleName === 'admin' ||
@@ -56,10 +44,10 @@ export const useBranchPermissions = (): BranchPermissions => {
       role: effectiveRole,
       isAdmin,
       isBranchManager,
-      canCreate: isAdmin,
-      canEdit: isAdmin || isBranchManager,
+      canCreate: user?.permissions?.includes(PERMISSIONS.BRANCH_CREATE) ?? false,
+      canEdit: user?.permissions?.includes(PERMISSIONS.BRANCH_UPDATE) ?? false,
       canDelete: isAdmin,
-      canView: isAdmin || isBranchManager,
+      canView: user?.permissions?.includes(PERMISSIONS.BRANCH_VIEW) ?? false,
     };
   }, [user]);
 };

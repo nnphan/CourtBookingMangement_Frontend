@@ -60,7 +60,7 @@ export const QuickBookingDrawer = () => {
 
       if (user) {
         setFullName(user.fullName ?? '');
-        setPhoneNumber(user.phone ?? '');
+        setPhoneNumber(user.phoneNumber ?? '');
       } else {
         setFullName('');
         setPhoneNumber('');

@@ -31,6 +31,8 @@ import { toBookingTypeEnum } from '../utils/booking.utils';
 import { getBookingActionCapabilities } from '../utils/booking-action-capabilities';
 import { formatCurrency } from '@/features/bookings/utils/booking.mapper';
 import { toast } from '@/lib/toast';
+import { useAuthorization } from '@/features/auth/authorization';
+import { PERMISSIONS as P } from '@/shared/constants/permissions';
 
 export interface BookingDetailDrawerProps {
   bookingId?: string | null;
@@ -57,6 +59,8 @@ export const BookingDetailDrawer: React.FC<BookingDetailDrawerProps> = memo(
     mode = 'ADMIN',
   }) => {
     const { t } = useTranslation();
+    const { hasPermission, hasAllPermissions } = useAuthorization();
+    const canManage = (permission: string) => mode === 'CUSTOMER' || hasPermission(permission);
 
     const [isCheckOutModalOpen, setIsCheckOutModalOpen] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -311,7 +315,7 @@ export const BookingDetailDrawer: React.FC<BookingDetailDrawerProps> = memo(
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-2">
                       {/* Edit Button */}
-                      {capabilities.canEdit && onEdit && (
+                      {capabilities.canEdit && onEdit && canManage(P.BOOKING_UPDATE) && (
                         <Button
                           type="button"
                           variant="outline"
@@ -329,7 +333,7 @@ export const BookingDetailDrawer: React.FC<BookingDetailDrawerProps> = memo(
                       )}
 
                       {/* Payment Button (when balance remaining) */}
-                      {capabilities.canPay && (
+                      {capabilities.canPay && canManage(P.PAYMENT_CREATE) && (
                         <Button
                           type="button"
                           variant="outline"
@@ -344,7 +348,7 @@ export const BookingDetailDrawer: React.FC<BookingDetailDrawerProps> = memo(
                       )}
 
                       {/* Check-in Button */}
-                      {capabilities.canCheckIn && (
+                      {capabilities.canCheckIn && canManage(P.BOOKING_STATUS_UPDATE) && (
                         <Button
                           type="button"
                           variant="primary"
@@ -369,7 +373,7 @@ export const BookingDetailDrawer: React.FC<BookingDetailDrawerProps> = memo(
                       )}
 
                       {/* Check-out Button (when already checked in / playing) */}
-                      {capabilities.canCheckOut && (
+                      {capabilities.canCheckOut && canManage(P.BOOKING_STATUS_UPDATE) && (
                         <Button
                           type="button"
                           variant="primary"
@@ -385,7 +389,7 @@ export const BookingDetailDrawer: React.FC<BookingDetailDrawerProps> = memo(
                     </div>
 
                     {/* Cancel Booking Button */}
-                    {capabilities.canCancel && (
+                    {capabilities.canCancel && (mode === 'CUSTOMER' || hasAllPermissions([P.BOOKING_CANCEL, P.BOOKING_STATUS_UPDATE])) && (
                       <Button
                         type="button"
                         variant="danger"

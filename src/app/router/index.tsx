@@ -1,7 +1,8 @@
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router';
 import { paths } from '@/app/router/paths';
-import { AdminOnlyRoute, AdminRoute, GuestRoute, ProtectedRoute } from '@/app/router/guards';
+import { AdminOnlyRoute, GuestRoute, PermissionGuard, ProtectedRoute } from '@/app/router/guards';
+import { PERMISSIONS as P } from '@/shared/constants/permissions';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { RouteFallback } from '@/components/common/RouteFallback';
 import { RouteErrorBoundary } from '@/components/common/RouteErrorBoundary';
@@ -67,6 +68,10 @@ const withSuspense = (node: React.ReactNode) => (
   <Suspense fallback={<RouteFallback />}>{node}</Suspense>
 );
 
+const withPermissions = (node: React.ReactNode, permissions: readonly string[], mode: 'all' | 'any' = 'all') => (
+  <PermissionGuard permissions={permissions} mode={mode}>{withSuspense(node)}</PermissionGuard>
+);
+
 export const router = createBrowserRouter([
   {
     path: paths.root,
@@ -117,68 +122,65 @@ export const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
-          {
-            element: <AdminOnlyRoute />,
-            children: [{ path: paths.dashboard, element: withSuspense(<DashboardPage />) }],
-          },
-          { path: paths.courts, element: withSuspense(<CourtsPage />) },
-          { path: paths.bookings, element: withSuspense(<BookingsPage />) },
-          { path: paths.posSales, element: withSuspense(<CommercePage />) },
+          { path: paths.dashboard, element: withPermissions(<DashboardPage />, [P.DASHBOARD_VIEW]) },
+          { path: paths.courts, element: withPermissions(<CourtsPage />, [P.COURT_VIEW]) },
+          { path: paths.bookings, element: withPermissions(<BookingsPage />, [P.BOOKING_VIEW]) },
+          { path: paths.posSales, element: withPermissions(<CommercePage />, [P.SALES_VIEW, P.PRODUCT_VIEW, P.INVENTORY_VIEW, P.SALES_REPORT_VIEW], 'any') },
           {
             path: paths.posCategories,
-            element: withSuspense(<CommerceManagementPage section="categories" />),
+            element: withPermissions(<CommerceManagementPage section="categories" />, [P.PRODUCT_VIEW]),
           },
           {
             path: paths.posProducts,
-            element: withSuspense(<CommerceManagementPage section="products" />),
+            element: withPermissions(<CommerceManagementPage section="products" />, [P.PRODUCT_VIEW]),
           },
           {
             path: paths.posBranchProducts,
-            element: withSuspense(<CommerceManagementPage section="branch-products" />),
+            element: withPermissions(<CommerceManagementPage section="branch-products" />, [P.PRODUCT_VIEW, P.PRODUCT_UPDATE]),
           },
           {
             path: paths.posInventory,
-            element: withSuspense(<CommerceManagementPage section="inventory" />),
+            element: withPermissions(<CommerceManagementPage section="inventory" />, [P.INVENTORY_VIEW]),
           },
           {
             path: paths.posMovements,
-            element: withSuspense(<CommerceManagementPage section="movements" />),
+            element: withPermissions(<CommerceManagementPage section="movements" />, [P.INVENTORY_VIEW]),
           },
           {
             path: paths.posReceipts,
-            element: withSuspense(<CommerceManagementPage section="receipts" />),
+            element: withPermissions(<CommerceManagementPage section="receipts" />, [P.INVENTORY_VIEW]),
           },
           {
             path: paths.posReceiptCreate,
-            element: withSuspense(<CommerceManagementPage section="receipt-edit" />),
+            element: withPermissions(<CommerceManagementPage section="receipt-edit" />, [P.INVENTORY_RECEIVE]),
           },
           {
             path: paths.posReceiptEdit(),
-            element: withSuspense(<CommerceManagementPage section="receipt-edit" />),
+            element: withPermissions(<CommerceManagementPage section="receipt-edit" />, [P.INVENTORY_VIEW, P.INVENTORY_RECEIVE]),
           },
           {
             path: paths.posReceiptDetail(),
-            element: withSuspense(<CommerceManagementPage section="receipt-detail" />),
+            element: withPermissions(<CommerceManagementPage section="receipt-detail" />, [P.INVENTORY_VIEW]),
           },
           {
             path: paths.posOrders,
-            element: withSuspense(<CommerceManagementPage section="orders" />),
+            element: withPermissions(<CommerceManagementPage section="orders" />, [P.SALES_VIEW]),
           },
           {
             path: paths.posOrderDetail(),
-            element: withSuspense(<CommerceManagementPage section="order-detail" />),
+            element: withPermissions(<CommerceManagementPage section="order-detail" />, [P.SALES_VIEW]),
           },
           {
             path: paths.posDashboard,
-            element: withSuspense(<CommerceManagementPage section="dashboard" />),
+            element: withPermissions(<CommerceManagementPage section="dashboard" />, [P.SALES_REPORT_VIEW]),
           },
           {
             path: paths.posInvoice(),
-            element: withSuspense(<CommerceManagementPage section="invoice" />),
+            element: withPermissions(<CommerceManagementPage section="invoice" />, [P.SALES_INVOICE_VIEW]),
           },
         ],
       },
-      { path: paths.courtStatus, element: withSuspense(<CourtStatusPage />) },
+      { path: paths.courtStatus, element: withPermissions(<CourtStatusPage />, [P.BOOKING_VIEW]) },
       { path: paths.myBooking, element: withSuspense(<MyBookingPage />) },
       { path: paths.myPlayerMatches, element: withSuspense(<MyPlayerMatchesPage />) },
       {
@@ -186,7 +188,7 @@ export const router = createBrowserRouter([
         element: withSuspense(<PlayerMatchingProfilePage />),
       },
       {
-        element: withSuspense(<CustomerLayout />),
+        element: withPermissions(<CustomerLayout />, [P.CUSTOMER_VIEW]),
         children: [
           { path: paths.customers, element: withSuspense(<CustomerListPage />) },
           { path: paths.customerCreate, element: withSuspense(<CustomerCreatePage />) },
@@ -209,16 +211,16 @@ export const router = createBrowserRouter([
         ],
       },
       {
-        path: paths.adminBranches,
-        element: <AdminRoute />,
+        element: <AdminOnlyRoute />,
         children: [
           {
-            element: withSuspense(<AdminBranchLayout />),
+            path: paths.adminBranches,
+            element: withPermissions(<AdminBranchLayout />, [P.BRANCH_VIEW]),
             children: [
               { index: true, element: withSuspense(<BranchListPage />) },
-              { path: 'create', element: withSuspense(<BranchCreatePage />) },
+              { path: 'create', element: withPermissions(<BranchCreatePage />, [P.BRANCH_CREATE]) },
               { path: ':id', element: withSuspense(<BranchDetailPage />) },
-              { path: ':id/edit', element: withSuspense(<BranchEditPage />) },
+              { path: ':id/edit', element: withPermissions(<BranchEditPage />, [P.BRANCH_UPDATE]) },
             ],
           },
         ],

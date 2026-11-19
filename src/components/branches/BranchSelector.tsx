@@ -29,7 +29,7 @@ export const SelectSkeleton: React.FC<SelectSkeletonProps> = ({
       role="status"
       aria-label="Loading branches..."
       className={cn(
-        'flex h-10 w-full min-w-[200px] animate-pulse items-center justify-between rounded-lg px-3',
+        'flex h-11 w-full min-w-[200px] animate-pulse items-center justify-between rounded-lg px-3',
         variant === 'contrast'
           ? 'border border-white/25 bg-white/20'
           : 'border border-slate-200 bg-slate-100',
@@ -126,7 +126,7 @@ export const BranchSelector: React.FC<BranchSelectorProps> = ({
     return (
       <div
         className={cn(
-          'flex h-10 w-full min-w-[200px] items-center justify-between gap-2 rounded-lg px-3 text-xs',
+          'flex h-11 w-full min-w-[200px] items-center justify-between gap-2 rounded-lg px-3 text-xs',
           variant === 'contrast'
             ? 'border border-amber-300/40 bg-amber-950/40 text-amber-200'
             : 'border border-red-200 bg-red-50 text-red-600',
@@ -142,7 +142,7 @@ export const BranchSelector: React.FC<BranchSelectorProps> = ({
           onClick={handleRetry}
           title={t('common.retry', 'Thử lại')}
           className={cn(
-            'inline-flex shrink-0 items-center gap-1 rounded px-2 py-1 font-semibold transition-colors cursor-pointer',
+            'inline-flex min-h-11 shrink-0 items-center gap-1 rounded px-2 py-1 font-semibold transition-colors cursor-pointer',
             variant === 'contrast'
               ? 'bg-white/20 text-white hover:bg-white/30'
               : 'bg-red-100 text-red-700 hover:bg-red-200',
@@ -160,7 +160,7 @@ export const BranchSelector: React.FC<BranchSelectorProps> = ({
     return (
       <div
         className={cn(
-          'flex h-10 w-full min-w-[200px] items-center gap-2 rounded-lg px-3 text-xs opacity-75',
+          'flex h-11 w-full min-w-[200px] items-center gap-2 rounded-lg px-3 text-xs opacity-75',
           variant === 'contrast'
             ? 'border border-white/20 bg-white/10 text-white/80'
             : 'border border-slate-200 bg-slate-50 text-slate-500',
@@ -188,7 +188,7 @@ export const BranchSelector: React.FC<BranchSelectorProps> = ({
           />
         }
         className={cn(
-          'h-10 text-xs font-semibold shadow-none transition-colors cursor-pointer',
+          'h-11 text-xs font-semibold shadow-none transition-colors cursor-pointer',
           variant === 'contrast'
             ? 'border-white/25 bg-white/20 text-white backdrop-blur-xs hover:bg-white/25 focus:ring-white/40'
             : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50 focus:ring-emerald-600',
@@ -203,7 +203,7 @@ export const BranchSelector: React.FC<BranchSelectorProps> = ({
             key={option.value}
             value={option.value}
             className={cn(
-              'rounded-lg py-2 pl-2.5 pr-8 text-xs font-medium cursor-pointer transition-colors',
+              'min-h-11 rounded-lg py-2 pl-2.5 pr-8 text-xs font-medium cursor-pointer transition-colors',
               // Highlight currently selected branch
               option.value === value && 'font-semibold text-emerald-800 bg-emerald-50/90',
             )}

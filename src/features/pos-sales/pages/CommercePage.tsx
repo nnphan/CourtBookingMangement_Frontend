@@ -1,10 +1,15 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useMutation, useQuery, type UseQueryResult } from '@tanstack/react-query';
+import { Link, useSearchParams } from 'react-router';
 import {
   BarChart3,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   Boxes,
   Check,
+  CheckCircle2,
+  CircleX,
   ClipboardList,
   Download,
   PackagePlus,
@@ -14,16 +19,33 @@ import {
   Search,
   ShoppingCart,
   Tags,
+  TriangleAlert,
   X,
 } from 'lucide-react';
-import { BranchSelector } from '@/components/branches/BranchSelector';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { queryClient } from '@/lib/query-client';
 import { toast } from '@/lib/toast';
-import { useAuthStore } from '@/features/auth/store/auth.store';
+import { useAuthorization } from '@/features/auth/authorization';
+import { PERMISSIONS as P } from '@/shared/constants/permissions';
+import { paths } from '@/app/router/paths';
 import { posSalesApi } from '../api';
-import type { BranchProduct, CheckoutRequest, CustomerLookup, SalesOrder } from '../types';
+import { PosWorkspaceHeader, PosWorkspaceTabs } from '../components/PosWorkspaceShell';
+import type { BranchProduct, CheckoutRequest, CustomerLookup, InventoryBalance, SalesOrder } from '../types';
+import {
+  filterInventory, isValidReorderLevel, loadInventory, sortInventory, stockStatus, validateInventoryPage,
+  type InventorySort, type InventorySortField, type StockStatus,
+} from '../inventory-overview';
+import {
+  adjustmentTypes, emptyAdjustmentDraft, isAdjustmentDraftDirty, validateAdjustment,
+  type AdjustmentDraft, type AdjustmentType,
+} from '../inventory-adjustment';
+import {
+  emptyReceiptDraft, isReceiptDraftDirty, mapReceiptFieldErrors, validateReceiptDraft,
+  type ReceiptDraft, type ReceiptDraftLine, type ReceiptFieldErrors,
+} from '../receipt-draft';
 
 type CommerceTab = 'pos' | 'catalog' | 'inventory' | 'orders';
 const tabs: Array<{ id: CommerceTab; label: string; icon: typeof ShoppingCart }> = [
@@ -55,6 +77,9 @@ const currency = new Intl.NumberFormat('vi-VN', {
 const amount = (value: number) => currency.format(value);
 
 const errorMessage = (error: unknown) => {
+  if (error && typeof error === 'object' && 'status' in error && error.status === 403) {
+    return 'Bạn không có quyền truy cập dữ liệu hoặc chi nhánh này.';
+  }
   if (error && typeof error === 'object' && 'message' in error) {
     const message = error.message;
     if (typeof message === 'string') return message;
@@ -132,68 +157,72 @@ const EmptyPanel = ({ children }: { children: string }) => (
 );
 
 const CommercePage = () => {
-  const user = useAuthStore((state) => state.user);
-  const roles = [...(user?.roles ?? []), user?.role ?? ''].map((role) => role.toUpperCase());
-  const isBranchAdmin = roles.some((role) => ['ADMIN', 'SUPER_ADMIN', 'BRANCH_ADMIN'].includes(role));
-  const canUsePos = isBranchAdmin || roles.includes('STAFF');
+  const { hasPermission, hasAnyPermission } = useAuthorization();
+  const availableTabs = tabs.filter((tab) =>
+    tab.id === 'pos' ? hasPermission(P.SALES_VIEW) :
+    tab.id === 'catalog' ? hasPermission(P.PRODUCT_VIEW) :
+    tab.id === 'inventory' ? hasPermission(P.INVENTORY_VIEW) :
+    hasAnyPermission([P.SALES_VIEW, P.SALES_REPORT_VIEW]));
   const [searchParams, setSearchParams] = useSearchParams();
   const [branchId, setBranchId] = useState(() => localStorage.getItem('pos-sales.branchId') ?? '');
+  const [receiptDraft, setReceiptDraft] = useState<ReceiptDraft>(emptyReceiptDraft);
+  const [receiptSaving, setReceiptSaving] = useState(false);
+  const [adjustmentDraft, setAdjustmentDraft] = useState<AdjustmentDraft>(emptyAdjustmentDraft);
+  const [adjustmentBusy, setAdjustmentBusy] = useState(false);
   const selectedTab = searchParams.get('tab');
-  const activeTab: CommerceTab = tabs.some((tab) => tab.id === selectedTab) &&
-    (selectedTab !== 'catalog' || isBranchAdmin)
+  const activeTab: CommerceTab = availableTabs.some((tab) => tab.id === selectedTab)
     ? (selectedTab as CommerceTab)
-    : 'pos';
+    : availableTabs[0]?.id ?? 'pos';
 
   const handleBranchChange = (nextBranchId: string) => {
+    if (nextBranchId === branchId || receiptSaving || adjustmentBusy) return;
+    const unsavedReceipt = isReceiptDraftDirty(receiptDraft);
+    const unsavedAdjustment = isAdjustmentDraftDirty(adjustmentDraft);
+    if ((unsavedReceipt || unsavedAdjustment) && !window.confirm(
+      `Bỏ ${unsavedReceipt && unsavedAdjustment ? 'phiếu nhập và điều chỉnh tồn kho' : unsavedReceipt ? 'phiếu nhập' : 'điều chỉnh tồn kho'} chưa lưu để đổi chi nhánh?`,
+    )) return;
+    setReceiptDraft(emptyReceiptDraft());
+    setAdjustmentDraft(emptyAdjustmentDraft());
     setBranchId(nextBranchId);
     localStorage.setItem('pos-sales.branchId', nextBranchId);
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete('inventorySearch');
+      next.delete('inventoryCategory');
+      next.delete('inventoryStatus');
+      return next;
+    }, { replace: true });
   };
 
-  if (!canUsePos) {
+  if (!availableTabs.length) {
     return (
       <Card><CardBody><p role="alert" className="py-8 text-center text-sm font-semibold text-red-700">Bạn không có quyền truy cập chức năng POS.</p></CardBody></Card>
     );
   }
 
   return (
-    <div className="space-y-5 py-5 sm:py-8">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-          <p className="text-sm font-bold uppercase tracking-[0.16em] text-emerald-700">
-            ALOBO · Quản lý bán hàng
-          </p>
-          <h1 className="mt-1 text-2xl font-black text-slate-950 sm:text-3xl">POS & Kho hàng</h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Bán hàng, quản lý sản phẩm và theo dõi tồn kho theo chi nhánh.
-          </p>
-        </div>
-        <div className="w-full sm:w-80">
-          <label className={labelClass}>Chi nhánh đang thao tác</label>
-          <BranchSelector value={branchId} onChange={handleBranchChange} />
-        </div>
-      </div>
+    <div className="pos-workspace min-w-0 space-y-4 py-4 sm:py-5">
+      <PosWorkspaceHeader
+        title="POS & Kho hàng"
+        description="Bán hàng, quản lý sản phẩm và theo dõi tồn kho theo chi nhánh."
+        branchId={branchId}
+        onBranchChange={handleBranchChange}
+        branchDisabled={receiptSaving || adjustmentBusy}
+      />
 
-      <div className="grid grid-cols-2 gap-2 rounded-2xl bg-white p-2 shadow-sm sm:grid-cols-4">
-        {tabs
-          .filter((tab) => tab.id !== 'catalog' || isBranchAdmin)
-          .map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === id}
-            onClick={() => setSearchParams(id === 'pos' ? {} : { tab: id })}
-            className={`flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-bold transition ${
-              activeTab === id
-                ? 'bg-emerald-700 text-white shadow-sm'
-                : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-900'
-            }`}
-          >
-            <Icon className="size-4" />
-            {label}
-          </button>
-          ))}
-      </div>
+      <PosWorkspaceTabs
+        ariaLabel="Chức năng POS"
+        stretch
+        tabs={availableTabs
+          .map(({ id, label, icon }) => ({
+            id,
+            label,
+            icon,
+            to: id === 'pos' ? paths.posSales : `${paths.posSales}?tab=${id}`,
+            active: activeTab === id,
+            disabled: (adjustmentBusy || receiptSaving) && id !== activeTab,
+          }))}
+      />
 
       {!branchId ? (
         <Card>
@@ -205,8 +234,12 @@ const CommercePage = () => {
         <>
           {activeTab === 'pos' && <PosPanel key={branchId} branchId={branchId} />}
           {activeTab === 'catalog' && <CatalogPanel key={branchId} branchId={branchId} />}
-          {activeTab === 'inventory' && <InventoryPanel key={branchId} branchId={branchId} canManage={isBranchAdmin} />}
-          {activeTab === 'orders' && <OrdersPanel key={branchId} branchId={branchId} canCancel={isBranchAdmin} canViewReport={isBranchAdmin} />}
+          {activeTab === 'inventory' && <InventoryPanel key={branchId} branchId={branchId}
+            canAdjust={hasPermission(P.INVENTORY_ADJUST)} canReceive={hasPermission(P.INVENTORY_RECEIVE)} canPost={hasPermission(P.INVENTORY_POST_RECEIPT)}
+            receiptDraft={receiptDraft} setReceiptDraft={setReceiptDraft} receiptSaving={receiptSaving} setReceiptSaving={setReceiptSaving}
+            adjustmentDraft={adjustmentDraft} setAdjustmentDraft={setAdjustmentDraft} adjustmentBusy={adjustmentBusy} setAdjustmentBusy={setAdjustmentBusy} />}
+          {activeTab === 'orders' && <OrdersPanel key={branchId} branchId={branchId}
+            canViewOrders={hasPermission(P.SALES_VIEW)} canCancel={hasPermission(P.SALES_CANCEL)} canViewReport={hasPermission(P.SALES_REPORT_VIEW)} />}
         </>
       )}
     </div>
@@ -214,6 +247,7 @@ const CommercePage = () => {
 };
 
 const PosPanel = ({ branchId }: { branchId: string }) => {
+  const { hasPermission } = useAuthorization();
   const [search, setSearch] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [cart, setCart] = useState<Record<string, number>>({});
@@ -257,7 +291,7 @@ const PosPanel = ({ branchId }: { branchId: string }) => {
   const customerQuery = useQuery({
     queryKey: ['pos-sales', 'customer-search', debouncedCustomerSearch],
     queryFn: () => posSalesApi.searchCustomers(debouncedCustomerSearch),
-    enabled: debouncedCustomerSearch.trim().length >= 2 && !selectedCustomer,
+    enabled: hasPermission(P.CUSTOMER_VIEW) && debouncedCustomerSearch.trim().length >= 2 && !selectedCustomer,
   });
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedCustomerSearch(customerSearch.trim()), 300);
@@ -547,7 +581,7 @@ const PosPanel = ({ branchId }: { branchId: string }) => {
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      className="grid size-10 place-items-center rounded-lg border"
+                      className="grid size-11 place-items-center rounded-lg border"
                       disabled={checkoutMutation.isPending}
                       onClick={() => setQuantity(product, (cart[product.productId] ?? 0) - 1)}
                       aria-label={`Giảm số lượng ${product.name}`}
@@ -557,7 +591,7 @@ const PosPanel = ({ branchId }: { branchId: string }) => {
                     <span className="w-8 text-center font-bold">{cart[product.productId]}</span>
                     <button
                       type="button"
-                      className="grid size-10 place-items-center rounded-lg border"
+                      className="grid size-11 place-items-center rounded-lg border"
                       disabled={
                         checkoutMutation.isPending ||
                         (product.trackInventory &&
@@ -571,7 +605,7 @@ const PosPanel = ({ branchId }: { branchId: string }) => {
                     </button>
                     <button
                       type="button"
-                      className="grid size-10 place-items-center rounded-lg text-red-600 hover:bg-red-50"
+                      className="grid size-11 place-items-center rounded-lg text-red-600 hover:bg-red-50"
                       disabled={checkoutMutation.isPending}
                       onClick={() => setQuantity(product, 0)}
                       aria-label={`Xóa ${product.name}`}
@@ -695,7 +729,7 @@ const PosPanel = ({ branchId }: { branchId: string }) => {
                 : 'Số lượng trong giỏ đang cao hơn tồn kho khả dụng mới nhất. Hãy giảm số lượng trước khi thanh toán.'}
             </p>
           )}
-          <Button
+          {hasPermission(P.SALES_CREATE) && <Button
             block
             onClick={checkout}
             loading={checkoutMutation.isPending}
@@ -710,7 +744,7 @@ const PosPanel = ({ branchId }: { branchId: string }) => {
           >
             <Check className="size-5" />
             Thanh toán
-          </Button>
+          </Button>}
           {completedOrder && (
             <div className="flex flex-wrap gap-2 rounded-xl bg-emerald-50 p-3">
               <div className="w-full text-sm text-emerald-950" role="status" aria-live="polite">
@@ -723,15 +757,15 @@ const PosPanel = ({ branchId }: { branchId: string }) => {
               </div>
               {completedOrder.invoiceId ? (
                 <>
-                  <Button size="sm" variant="outline" onClick={() => void openInvoice(completedOrder.invoiceId!, 'preview')}>
+                  {hasPermission(P.SALES_INVOICE_VIEW) && <Button size="sm" variant="outline" onClick={() => void openInvoice(completedOrder.invoiceId!, 'preview')}>
                     <Printer className="size-4" /> Xem hóa đơn
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => void openInvoice(completedOrder.invoiceId!, 'download')}>
+                  </Button>}
+                  {hasPermission(P.SALES_INVOICE_PRINT) && <Button size="sm" variant="outline" onClick={() => void openInvoice(completedOrder.invoiceId!, 'download')}>
                     <Download className="size-4" /> Tải PDF
-                  </Button>
-                  <Button size="sm" onClick={() => void openInvoice(completedOrder.invoiceId!, 'print')}>
+                  </Button>}
+                  {hasPermission(P.SALES_INVOICE_PRINT) && <Button size="sm" onClick={() => void openInvoice(completedOrder.invoiceId!, 'print')}>
                     <Printer className="size-4" /> In hóa đơn
-                  </Button>
+                  </Button>}
                 </>
               ) : <p className="text-sm text-amber-800">Đơn hàng đã hoàn tất nhưng chưa có mã hóa đơn để in.</p>}
             </div>
@@ -749,6 +783,7 @@ const PosPanel = ({ branchId }: { branchId: string }) => {
 };
 
 const CatalogPanel = ({ branchId }: { branchId: string }) => {
+  const { hasPermission } = useAuthorization();
   const categoriesQuery = useQuery({
     queryKey: queryKeys.catalog,
     queryFn: () => posSalesApi.getCategories(),
@@ -886,17 +921,17 @@ const CatalogPanel = ({ branchId }: { branchId: string }) => {
             ))}
             {categories.length === 0 && <span className="text-sm text-slate-500">Chưa có danh mục.</span>}
           </div>
-          <form onSubmit={submitCategory} className="grid gap-3 sm:grid-cols-[1fr_2fr_auto]">
+          {hasPermission(P.PRODUCT_CREATE) && <form onSubmit={submitCategory} className="grid gap-3 sm:grid-cols-[1fr_2fr_auto]">
             <Field label="Mã danh mục" value={categoryCode} onChange={setCategoryCode} required />
             <Field label="Tên danh mục" value={categoryName} onChange={setCategoryName} required />
             <Button className="self-end" size="md" loading={createCategory.isPending}>
               <Plus className="size-4" /> Thêm
             </Button>
-          </form>
+          </form>}
         </CardBody>
       </Card>
 
-      <Card>
+      {hasPermission(P.PRODUCT_CREATE) && <Card>
         <CardBody>
           <h2 className="mb-4 flex items-center gap-2 text-lg font-extrabold">
             <PackagePlus className="size-5 text-emerald-700" /> Tạo sản phẩm
@@ -930,9 +965,9 @@ const CatalogPanel = ({ branchId }: { branchId: string }) => {
             Sản phẩm được tạo trong catalog chung; cần cấu hình giá và bật bán riêng cho chi nhánh.
           </p>
         </CardBody>
-      </Card>
+      </Card>}
 
-      <Card className="lg:col-span-2">
+      {hasPermission(P.PRODUCT_UPDATE) && <Card className="lg:col-span-2">
         <CardBody>
           <h2 className="mb-1 text-lg font-extrabold">Cấu hình sản phẩm tại chi nhánh</h2>
           <p className="mb-4 text-sm text-slate-500">
@@ -1029,15 +1064,677 @@ const CatalogPanel = ({ branchId }: { branchId: string }) => {
             )}
           </div>
         </CardBody>
-      </Card>
+      </Card>}
     </div>
   );
 };
 
-const InventoryPanel = ({ branchId, canManage }: { branchId: string; canManage: boolean }) => {
+const InventoryAdjustmentForm = ({
+  branchId,
+  balances,
+  draft,
+  setDraft,
+  busy,
+  setBusy,
+  invalidateInventory,
+  refreshInventory,
+}: {
+  branchId: string;
+  balances: InventoryBalance[];
+  draft: AdjustmentDraft;
+  setDraft: React.Dispatch<React.SetStateAction<AdjustmentDraft>>;
+  busy: boolean;
+  setBusy: React.Dispatch<React.SetStateAction<boolean>>;
+  invalidateInventory: () => void;
+  refreshInventory: () => Promise<InventoryBalance[]>;
+}) => {
+  const { productSearch, productId, movementType, quantity, notes } = draft;
+  const [submitError, setSubmitError] = useState('');
+  const [conflictNotice, setConflictNotice] = useState('');
+  const [needsRefresh, setNeedsRefresh] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [confirmDecrease, setConfirmDecrease] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<'productId' | 'movementType' | 'quantity' | 'notes', string>>>({});
+  const submitting = useRef(false);
+  const selected = balances.find((item) => item.productId === productId);
+  const matchingProducts = filterInventory(balances, productSearch, '', 'all');
+  const options = selected && !matchingProducts.some((item) => item.productId === selected.productId)
+    ? [selected, ...matchingProducts] : matchingProducts;
+  const validation = validateAdjustment(selected, movementType, quantity, notes);
+  const formatQuantity = (value: number) => value.toLocaleString('vi-VN', { maximumFractionDigits: 3 });
+  const updateDraft = <K extends keyof AdjustmentDraft>(key: K, value: AdjustmentDraft[K]) => {
+    setDraft((current) => ({ ...current, [key]: value }));
+    setFieldErrors((current) => {
+      const next = { ...current };
+      if (key === 'productId') delete next.productId;
+      if (key === 'movementType') delete next.movementType;
+      if (key === 'quantity') delete next.quantity;
+      if (key === 'notes') delete next.notes;
+      return next;
+    });
+  };
+
+  const refreshAfterConflict = async (conflictedProductId: string) => {
+    setRefreshing(true);
+    try {
+      const freshBalances = await refreshInventory();
+      const freshItem = freshBalances.find((item) => item.productId === conflictedProductId);
+      setConflictNotice(freshItem
+        ? `Tồn kho khả dụng mới nhất: ${formatQuantity(freshItem.availableQuantity)} ${freshItem.unit}. Vui lòng kiểm tra lại số lượng.`
+        : 'Sản phẩm không còn trong tồn kho chi nhánh. Vui lòng chọn sản phẩm khác.');
+      setNeedsRefresh(false);
+    } catch (error) {
+      setConflictNotice(`Không thể tải tồn kho mới nhất: ${errorMessage(error)} Hãy thử làm mới trước khi gửi lại.`);
+      setNeedsRefresh(true);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const adjustmentMutation = useMutation({
+    mutationFn: (input: { productId: string; movementType: AdjustmentType; quantity: number; notes: string }) =>
+      posSalesApi.adjustInventory(branchId, input),
+    onSuccess: () => {
+      setDraft(emptyAdjustmentDraft());
+      setSubmitError('');
+      setFieldErrors({});
+      setConflictNotice('');
+      setNeedsRefresh(false);
+      toast.success('Đã ghi nhận điều chỉnh tồn kho.');
+      invalidateInventory();
+    },
+    onError: async (error, input) => {
+      setSubmitError(errorMessage(error));
+      if (error && typeof error === 'object' && 'fields' in error && error.fields &&
+          typeof error.fields === 'object') {
+        const mapped: typeof fieldErrors = {};
+        for (const [key, value] of Object.entries(error.fields)) {
+          if (typeof value !== 'string') continue;
+          const field = key.toLowerCase();
+          if (field === 'productid') mapped.productId = value;
+          else if (field === 'movementtype') mapped.movementType = value;
+          else if (field === 'quantity') mapped.quantity = value;
+          else if (field === 'notes') mapped.notes = value;
+        }
+        setFieldErrors(mapped);
+      }
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'Inventory.InsufficientStock') {
+        setNeedsRefresh(true);
+        await refreshAfterConflict(input.productId);
+      }
+    },
+    onSettled: () => { submitting.current = false; setBusy(false); },
+  });
+
+  const submitAdjustment = () => {
+    if (!selected || !validation.valid || Object.keys(fieldErrors).length || needsRefresh ||
+        refreshing || busy || adjustmentMutation.isPending || submitting.current) return;
+    submitting.current = true;
+    setBusy(true);
+    setConfirmDecrease(false);
+    setSubmitError('');
+    setConflictNotice('');
+    adjustmentMutation.mutate({ productId, movementType, quantity: Number(quantity), notes: notes.trim() });
+  };
+
+  return (
+    <>
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!selected || !validation.valid || Object.keys(fieldErrors).length || needsRefresh ||
+            refreshing || busy || adjustmentMutation.isPending || submitting.current) return;
+        if (movementType !== 'ADJUSTMENT_IN') setConfirmDecrease(true);
+        else submitAdjustment();
+      }}
+    >
+      <fieldset disabled={busy || refreshing} className="grid gap-3 sm:grid-cols-2">
+        <label className="block">
+          <span className={labelClass}>Tìm sản phẩm</span>
+          <input className={inputClass} value={productSearch} onChange={(event) => updateDraft('productSearch', event.target.value)} placeholder="Tên, SKU hoặc mã vạch" />
+        </label>
+        <label className="block">
+          <span className={labelClass}>Sản phẩm</span>
+          <select className={inputClass} value={productId} onChange={(event) => updateDraft('productId', event.target.value)} required
+            aria-invalid={Boolean(fieldErrors.productId)} aria-describedby={fieldErrors.productId ? 'adjustment-product-error' : undefined}>
+            <option value="">Chọn sản phẩm</option>
+            {options.map((item) => <option key={item.productId} value={item.productId}>{item.sku} · {item.productName}</option>)}
+          </select>
+          {fieldErrors.productId && <span id="adjustment-product-error" className="mt-1 block text-sm text-red-700">{fieldErrors.productId}</span>}
+        </label>
+        <label className="block">
+          <span className={labelClass}>Loại điều chỉnh</span>
+          <select className={inputClass} value={movementType} onChange={(event) => {
+            const option = adjustmentTypes.find((type) => type.value === event.target.value);
+            if (option) updateDraft('movementType', option.value);
+          }} aria-invalid={Boolean(fieldErrors.movementType)}
+            aria-describedby={fieldErrors.movementType ? 'adjustment-type-error' : undefined}>
+            {adjustmentTypes.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
+          </select>
+          {fieldErrors.movementType && <span id="adjustment-type-error" className="mt-1 block text-sm text-red-700">{fieldErrors.movementType}</span>}
+        </label>
+        <label className="block">
+          <span className={labelClass}>Số lượng{selected ? ` (${selected.unit})` : ''}</span>
+          <input className={inputClass} type="number" min={0.001} max={999999999.999} step={0.001} required value={quantity}
+            onChange={(event) => updateDraft('quantity', event.target.value)}
+            aria-invalid={Boolean(fieldErrors.quantity || (quantity && validation.quantityError))}
+            aria-describedby={fieldErrors.quantity || (quantity && validation.quantityError) ? 'adjustment-quantity-error' : undefined} />
+          {(fieldErrors.quantity || (quantity && validation.quantityError)) && <span id="adjustment-quantity-error" className="mt-1 block text-sm text-red-700">{fieldErrors.quantity || validation.quantityError}</span>}
+        </label>
+        <label className="block sm:col-span-2">
+          <span className={labelClass}>Lý do / ghi chú</span>
+          <input className={inputClass} value={notes} onChange={(event) => updateDraft('notes', event.target.value)} maxLength={2000} required
+            aria-invalid={Boolean(fieldErrors.notes || (notes && validation.notesError))}
+            aria-describedby={fieldErrors.notes || (notes && validation.notesError) ? 'adjustment-notes-error' : undefined} />
+          {(fieldErrors.notes || (notes && validation.notesError)) && <span id="adjustment-notes-error" className="mt-1 block text-sm text-red-700">{fieldErrors.notes || validation.notesError}</span>}
+        </label>
+        {selected && <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-700 sm:col-span-2">
+          <p>Hiện có: <strong>{formatQuantity(selected.quantityOnHand)} {selected.unit}</strong> · Khả dụng: <strong>{formatQuantity(selected.availableQuantity)} {selected.unit}</strong></p>
+          {!validation.quantityError && validation.resultOnHand !== null && validation.resultAvailable !== null && (
+            <p className="mt-1">Dự kiến sau điều chỉnh: <strong>{formatQuantity(validation.resultOnHand)} {selected.unit}</strong> · Khả dụng: <strong>{formatQuantity(validation.resultAvailable)} {selected.unit}</strong></p>
+          )}
+          <p className="mt-1 text-slate-500">Tồn kho sẽ được máy chủ kiểm tra khi ghi nhận.</p>
+        </div>}
+        {submitError && <p role="alert" className="text-sm text-red-700 sm:col-span-2">{submitError}</p>}
+        {conflictNotice && <p role="status" className="text-sm text-amber-800 sm:col-span-2">{conflictNotice}</p>}
+        {needsRefresh && <Button type="button" variant="outline" size="sm" className="sm:col-span-2" onClick={() => void refreshAfterConflict(productId)}>
+          <RefreshCw aria-hidden="true" className="size-4" /> Làm mới tồn kho
+        </Button>}
+        <Button type="submit" className="sm:col-span-2" loading={busy || refreshing} disabled={!validation.valid || needsRefresh || Object.keys(fieldErrors).length > 0}>
+          {busy ? 'Đang ghi nhận...' : refreshing ? 'Đang tải tồn kho...' : 'Ghi nhận điều chỉnh'}
+        </Button>
+      </fieldset>
+    </form>
+    <Dialog open={confirmDecrease} onOpenChange={setConfirmDecrease}>
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto [&>button:last-child]:right-1 [&>button:last-child]:top-1 [&>button:last-child]:grid [&>button:last-child]:size-11 [&>button:last-child]:place-items-center">
+        <DialogHeader className="pr-10">
+          <DialogTitle>Xác nhận giảm tồn kho</DialogTitle>
+          <DialogDescription>
+            {selected && `Giảm ${formatQuantity(Number(quantity))} ${selected.unit} của ${selected.productName}. Vui lòng kiểm tra trước khi ghi nhận.`}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="gap-2">
+          <Button type="button" variant="outline" onClick={() => setConfirmDecrease(false)}>Hủy</Button>
+          <Button type="button" onClick={submitAdjustment}>Xác nhận điều chỉnh</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
+  );
+};
+
+const ReceiptDraftForm = ({
+  draft,
+  setDraft,
+  balances,
+  busy,
+  saving,
+  error,
+  fieldErrors,
+  setFieldErrors,
+  onSave,
+}: {
+  draft: ReceiptDraft;
+  setDraft: React.Dispatch<React.SetStateAction<ReceiptDraft>>;
+  balances: InventoryBalance[];
+  busy: boolean;
+  saving: boolean;
+  error: string;
+  fieldErrors: ReceiptFieldErrors;
+  setFieldErrors: React.Dispatch<React.SetStateAction<ReceiptFieldErrors>>;
+  onSave: () => void;
+}) => {
+  const validation = validateReceiptDraft(draft, new Set(balances.map((item) => item.productId)));
+  const productInputs = useRef(new Map<number, HTMLSelectElement>());
+  const focusLine = useRef<number | null>(null);
+  const nextLineKey = useRef(Math.max(-1, ...draft.items.map((item) => item.key)) + 1);
+  useEffect(() => {
+    if (focusLine.current !== null) {
+      productInputs.current.get(focusLine.current)?.focus();
+      focusLine.current = null;
+    }
+  }, [draft.items]);
+  const updateHeader = (key: 'supplierName' | 'supplierReference' | 'notes', value: string) => {
+    setDraft((current) => ({ ...current, [key]: value }));
+    setFieldErrors((current) => {
+      const header = { ...current.header };
+      delete header[key];
+      return { ...current, header };
+    });
+  };
+  const updateLine = (key: number, patch: Partial<ReceiptDraftLine>) => {
+    setDraft((current) => ({
+      ...current,
+      items: current.items.map((item) => item.key === key ? { ...item, ...patch } : item),
+    }));
+    setFieldErrors((current) => {
+      const line = { ...current.lines[key] };
+      if ('productId' in patch) delete line.productId;
+      if ('quantity' in patch) delete line.quantity;
+      if ('unitCost' in patch) delete line.unitCost;
+      return { ...current, lines: { ...current.lines, [key]: line } };
+    });
+  };
+  const displayCents = (cents: bigint) => new Intl.NumberFormat('vi-VN', {
+    style: 'currency', currency: 'VND', maximumFractionDigits: 2,
+  }).format(Number(cents) / 100);
+  const allAmountsValid = validation.lines.every((line) => line.lineCents !== null);
+
+  return (
+    <form onSubmit={(event) => {
+      event.preventDefault();
+      if (validation.valid && !busy) onSave();
+    }}>
+      <fieldset disabled={busy} className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className={labelClass}>Nhà cung cấp</span>
+            <input className={inputClass} value={draft.supplierName} maxLength={200}
+              aria-invalid={Boolean(fieldErrors.header.supplierName)}
+              aria-describedby={fieldErrors.header.supplierName ? 'receipt-supplier-error' : undefined}
+              onChange={(event) => updateHeader('supplierName', event.target.value)} />
+            {fieldErrors.header.supplierName && <span id="receipt-supplier-error" className="mt-1 block text-sm text-red-700">{fieldErrors.header.supplierName}</span>}
+          </label>
+          <label className="block">
+            <span className={labelClass}>Số hóa đơn / tham chiếu</span>
+            <input className={inputClass} value={draft.supplierReference} maxLength={100}
+              aria-invalid={Boolean(fieldErrors.header.supplierReference)}
+              aria-describedby={fieldErrors.header.supplierReference ? 'receipt-reference-error' : undefined}
+              onChange={(event) => updateHeader('supplierReference', event.target.value)} />
+            {fieldErrors.header.supplierReference && <span id="receipt-reference-error" className="mt-1 block text-sm text-red-700">{fieldErrors.header.supplierReference}</span>}
+          </label>
+          <label className="block sm:col-span-2">
+            <span className={labelClass}>Ghi chú</span>
+            <input className={inputClass} value={draft.notes} maxLength={2000}
+              aria-invalid={Boolean(fieldErrors.header.notes)}
+              aria-describedby={fieldErrors.header.notes ? 'receipt-notes-error' : undefined}
+              onChange={(event) => updateHeader('notes', event.target.value)} />
+            {fieldErrors.header.notes && <span id="receipt-notes-error" className="mt-1 block text-sm text-red-700">{fieldErrors.header.notes}</span>}
+          </label>
+          <p className="text-sm text-slate-500 sm:col-span-2">Ngày tạo được ghi tự động khi lưu phiếu.</p>
+        </div>
+        <div className="@container max-h-[28rem] space-y-3 overflow-y-auto pr-1">
+          {draft.items.map((item, index) => {
+            const line = validation.lines[index];
+            const active = Boolean(item.productId || item.quantity || item.unitCost);
+            const productError = fieldErrors.lines[item.key]?.productId || (active ? line.productError : '');
+            const quantityError = fieldErrors.lines[item.key]?.quantity || (active ? line.quantityError : '');
+            const costError = fieldErrors.lines[item.key]?.unitCost || (active ? line.costError : '');
+            return (
+              <div key={item.key} className="grid min-w-0 gap-3 rounded-xl border border-slate-200 p-3 @sm:grid-cols-2 @[700px]:grid-cols-[minmax(220px,2fr)_minmax(110px,1fr)_minmax(140px,1fr)_minmax(140px,1fr)_44px] @[700px]:items-start">
+                <label className="block min-w-0">
+                  <span className={labelClass}>Sản phẩm {index + 1}</span>
+                  <select className={inputClass} value={item.productId} required ref={(element) => {
+                    if (element) productInputs.current.set(item.key, element);
+                    else productInputs.current.delete(item.key);
+                  }}
+                    onChange={(event) => updateLine(item.key, { productId: event.target.value })}
+                    aria-invalid={Boolean(productError)}
+                    aria-describedby={productError ? `receipt-product-error-${item.key}` : undefined}>
+                    <option value="">Chọn sản phẩm</option>
+                    {balances.map((balance) => <option key={balance.productId} value={balance.productId}>{balance.sku} · {balance.productName}</option>)}
+                  </select>
+                  {productError && <span id={`receipt-product-error-${item.key}`} className="mt-1 block text-sm text-red-700">{productError}</span>}
+                </label>
+                <label className="block min-w-0">
+                  <span className={labelClass}>Số lượng</span>
+                  <input className={inputClass} type="number" min={0.001} max={999999999.999} step={0.001} required value={item.quantity}
+                    onChange={(event) => updateLine(item.key, { quantity: event.target.value })}
+                    aria-invalid={Boolean(quantityError)}
+                    aria-describedby={quantityError ? `receipt-quantity-error-${item.key}` : undefined} />
+                  {quantityError && <span id={`receipt-quantity-error-${item.key}`} className="mt-1 block text-sm text-red-700">{quantityError}</span>}
+                </label>
+                <label className="block min-w-0">
+                  <span className={`${labelClass} whitespace-nowrap`}>Giá vốn / đơn vị</span>
+                  <input className={inputClass} type="number" min={0} max={9999999999.99} step={0.01} required value={item.unitCost}
+                    onChange={(event) => updateLine(item.key, { unitCost: event.target.value })}
+                    aria-invalid={Boolean(costError)}
+                    aria-describedby={costError ? `receipt-cost-error-${item.key}` : undefined} />
+                  {costError && <span id={`receipt-cost-error-${item.key}`} className="mt-1 block text-sm text-red-700">{costError}</span>}
+                </label>
+                <div className="min-w-0">
+                  <span className={labelClass}>Thành tiền dự kiến</span>
+                  <p className="flex min-h-11 items-center text-sm font-bold text-slate-900">
+                    {line.lineCents === null ? '—' : line.lineCents > 999_999_999_999n ? 'Vượt giới hạn' : displayCents(line.lineCents)}
+                  </p>
+                </div>
+                <button type="button" className="grid size-11 place-items-center rounded-lg text-red-600 hover:bg-red-50 disabled:opacity-40 @[760px]:mt-7"
+                  aria-label={`Xóa sản phẩm ${index + 1} khỏi phiếu nhập`} disabled={draft.items.length === 1}
+                  onClick={() => {
+                    focusLine.current = (draft.items[index + 1] ?? draft.items[index - 1]).key;
+                    setDraft((current) => ({ ...current, items: current.items.filter((lineItem) => lineItem.key !== item.key) }));
+                    setFieldErrors((current) => {
+                      const lines = { ...current.lines };
+                      delete lines[item.key];
+                      return { ...current, lines };
+                    });
+                  }}>
+                  <X aria-hidden="true" className="size-4" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        <Button type="button" size="sm" variant="outline" disabled={draft.items.length >= 500}
+          onClick={() => {
+            const key = nextLineKey.current++;
+            focusLine.current = key;
+            setDraft((current) => ({
+              ...current,
+              items: [...current.items, { key, productId: '', quantity: '', unitCost: '' }],
+            }));
+          }}>
+          <Plus aria-hidden="true" className="size-4" /> Thêm sản phẩm
+        </Button>
+        <div className="rounded-lg bg-slate-50 p-3 text-sm" aria-live="polite">
+          <p className="font-bold">Tổng phiếu dự kiến: {allAmountsValid && !validation.totalError ? displayCents(validation.totalCents) : '—'}</p>
+          <p className="mt-1 text-slate-600">Máy chủ tính lại tổng khi lưu. Lưu nháp không thay đổi tồn kho.</p>
+          {validation.totalError && <p className="mt-1 text-red-700">{validation.totalError}</p>}
+        </div>
+        {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+        <Button type="submit" className="w-full" loading={saving} disabled={!validation.valid || busy}>
+          {saving ? 'Đang lưu...' : 'Lưu phiếu nháp'}
+        </Button>
+      </fieldset>
+    </form>
+  );
+};
+
+const INVENTORY_PAGE_SIZE = 20;
+const inventoryNumber = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 3 });
+const inventoryDate = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
+
+const InventoryTable = ({
+  branchId,
+  canManage,
+  overview,
+  search,
+  setSearch,
+  appliedSearch,
+  category,
+  status,
+  updateFilter,
+}: {
+  branchId: string;
+  canManage: boolean;
+  overview: UseQueryResult<InventoryBalance[], Error>;
+  search: string;
+  setSearch: (value: string) => void;
+  appliedSearch: string;
+  category: string;
+  status: StockStatus;
+  updateFilter: (key: string, value: string) => void;
+}) => {
+  const [page, setPage] = useState(1);
+  const [sort, setSort] = useState<InventorySort>(null);
+  const [reorderLevels, setReorderLevels] = useState<Record<string, string>>({});
+  const reorderLock = useRef(false);
+  const serverMode = !category && status === 'all' && sort === null;
+  const tableQuery = useQuery({
+    queryKey: [...queryKeys.inventory(branchId), 'table', { page, search: appliedSearch }],
+    queryFn: async () => {
+      const result = await posSalesApi.getInventory(branchId, {
+        page, pageSize: INVENTORY_PAGE_SIZE, search: appliedSearch.trim() || undefined,
+      });
+      return validateInventoryPage(result, page, INVENTORY_PAGE_SIZE);
+    },
+    enabled: serverMode,
+  });
+  const reorderMutation = useMutation({
+    mutationFn: ({ id, level }: { id: string; level: number }) => posSalesApi.setReorderLevel(branchId, id, level),
+    onSuccess: async (_, { id }) => {
+      setReorderLevels((current) => {
+        const next = { ...current };
+        delete next[id];
+        return next;
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.inventory(branchId) }),
+        queryClient.invalidateQueries({ queryKey: ['pos-sales', 'management', 'inventory', branchId] }),
+      ]);
+      toast.success('Đã cập nhật mức tồn kho cảnh báo.');
+    },
+    onError: notifyError,
+    onSettled: () => { reorderLock.current = false; },
+  });
+  const balances = overview.data ?? [];
+  const categories = [...new Set(balances.map((item) => item.categoryName))].sort((a, b) => a.localeCompare(b, 'vi'));
+  const filtered = useMemo(
+    () => serverMode ? [] : sortInventory(filterInventory(overview.data ?? [], appliedSearch, category, status), sort),
+    [serverMode, overview.data, appliedSearch, category, status, sort],
+  );
+  const totalCount = serverMode ? tableQuery.data?.metadata.totalCount : overview.data ? filtered.length : undefined;
+  const totalPages = totalCount === undefined ? undefined : Math.max(1, Math.ceil(totalCount / INVENTORY_PAGE_SIZE));
+  const rows = serverMode
+    ? tableQuery.data?.items
+    : overview.data ? filtered.slice((page - 1) * INVENTORY_PAGE_SIZE, page * INVENTORY_PAGE_SIZE) : undefined;
+  const loading = serverMode ? tableQuery.isLoading : overview.isLoading;
+  const error = serverMode ? tableQuery.error : overview.error;
+
+  useEffect(() => { setPage(1); }, [appliedSearch, category, status, sort]);
+  useEffect(() => {
+    if (totalPages !== undefined && page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const setSortField = (field: InventorySortField) => {
+    setPage(1);
+    setSort((current) => ({
+      field,
+      direction: current?.field === field && current.direction === 'asc' ? 'desc' : 'asc',
+    }));
+  };
+  const header = (label: string, field: InventorySortField, numeric = false, pinned = false) => (
+    <th scope="col" aria-sort={sort?.field === field ? (sort.direction === 'asc' ? 'ascending' : 'descending') : undefined}
+      className={`sticky top-0 z-10 whitespace-nowrap bg-slate-50 px-3 py-3 ${pinned ? 'min-w-40 xl:left-0 xl:z-20' : ''} ${numeric ? 'text-right' : 'text-left'}`}>
+      <button type="button" className={`inline-flex min-h-11 items-center gap-1 font-bold text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 ${numeric ? 'justify-end' : ''}`}
+        onClick={() => setSortField(field)}>
+        {label}
+        {sort?.field === field
+          ? sort.direction === 'asc' ? <ArrowUp aria-hidden="true" className="size-4" /> : <ArrowDown aria-hidden="true" className="size-4" />
+          : <ArrowUpDown aria-hidden="true" className="size-4 text-slate-400" />}
+      </button>
+    </th>
+  );
+  const showError = Boolean(error) && (serverMode || !overview.data);
+  const isRefreshing = overview.isFetching || (serverMode && tableQuery.isFetching);
+
+  return (
+    <Card>
+      <CardBody>
+        <h2 className="mb-4 flex items-center gap-2 text-lg font-extrabold">
+          <Boxes aria-hidden="true" className="size-5 text-emerald-700" /> Tồn kho chi nhánh
+        </h2>
+        <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] xl:items-end">
+          <Field label="Tìm sản phẩm" value={search} onChange={(value) => { setPage(1); setSearch(value); }} placeholder="Tên, SKU hoặc mã vạch" />
+          <SelectField label="Danh mục" value={category} onChange={(value) => { setPage(1); updateFilter('inventoryCategory', value); }}>
+            <option value="">Tất cả danh mục</option>
+            {category && !categories.includes(category) && <option value={category}>{category}</option>}
+            {categories.map((name) => <option key={name} value={name}>{name}</option>)}
+          </SelectField>
+          <SelectField label="Trạng thái tồn kho" value={status} onChange={(value) => { setPage(1); updateFilter('inventoryStatus', value === 'all' ? '' : value); }}>
+            <option value="all">Tất cả trạng thái</option>
+            <option value="in-stock">Còn hàng</option>
+            <option value="low-stock">Sắp hết hàng</option>
+            <option value="out-of-stock">Hết hàng</option>
+          </SelectField>
+          <Button type="button" variant="outline" size="sm" loading={isRefreshing} onClick={() => {
+            void overview.refetch();
+            if (serverMode) void tableQuery.refetch();
+          }}>
+            <RefreshCw aria-hidden="true" className="size-4" /> Làm mới
+          </Button>
+        </div>
+        {!serverMode && <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600">
+          <p>Bộ lọc và sắp xếp được áp dụng trên toàn bộ dữ liệu đã tải của chi nhánh.</p>
+          {sort && <Button type="button" variant="outline" size="sm" onClick={() => { setPage(1); setSort(null); }}>Thứ tự mặc định</Button>}
+        </div>}
+        <p className="mb-3 text-sm text-slate-600 xl:hidden">
+          Cuộn ngang để xem các cột và thao tác; chọn bảng rồi dùng phím mũi tên để cuộn bằng bàn phím.
+        </p>
+        {isRefreshing && !loading && <p role="status" className="mb-3 text-sm text-slate-600">Đang cập nhật tồn kho...</p>}
+        {showError && <div className="mb-3"><ErrorPanel error={error} retry={() => {
+          if (serverMode) void tableQuery.refetch();
+          else void overview.refetch();
+        }} /></div>}
+        {loading && <p role="status" className="sr-only">Đang tải bảng tồn kho...</p>}
+        <div role="region" aria-label="Bảng tồn kho chi nhánh, cuộn để xem thêm" tabIndex={0}
+          onFocusCapture={(event) => {
+            const container = event.currentTarget;
+            if (event.target === container) return;
+            const bounds = container.getBoundingClientRect();
+            const focused = event.target.getBoundingClientRect();
+            if (focused.right > bounds.right) container.scrollLeft += focused.right - bounds.right + 8;
+            else if (focused.left < bounds.left) container.scrollLeft -= bounds.left - focused.left + 8;
+          }}
+          className="max-h-[min(60dvh,48rem)] overflow-auto rounded-xl border border-slate-200 scroll-px-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
+          <table className="w-full min-w-[1100px] border-collapse text-sm" aria-busy={loading || isRefreshing}>
+            <caption className="sr-only">Tồn kho chi nhánh theo sản phẩm</caption>
+            <thead>
+              <tr className="text-xs uppercase">
+                {header('Sản phẩm', 'productName', false, true)}
+                {header('SKU', 'sku')}
+                {header('Danh mục', 'categoryName')}
+                {header('Hiện có', 'quantityOnHand', true)}
+                {header('Đã giữ', 'quantityReserved', true)}
+                {header('Khả dụng', 'availableQuantity', true)}
+                {header('Mức đặt lại', 'reorderLevel', true)}
+                <th scope="col" className="sticky top-0 z-10 whitespace-nowrap bg-slate-50 px-3 py-3 text-left">Trạng thái</th>
+                <th scope="col" className="sticky top-0 z-10 whitespace-nowrap bg-slate-50 px-3 py-3 text-left">Cập nhật</th>
+                {canManage && <th scope="col" className="sticky top-0 z-10 whitespace-nowrap bg-slate-50 px-3 py-3 text-left">Thao tác</th>}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {loading && Array.from({ length: 5 }, (_, index) => (
+                <tr key={index} aria-hidden="true">
+                  {Array.from({ length: canManage ? 10 : 9 }, (_, cell) => (
+                    <td key={cell} className="px-3 py-4"><Skeleton className="h-4" /></td>
+                  ))}
+                </tr>
+              ))}
+              {!loading && rows?.map((item) => {
+                const itemStatus = stockStatus(item);
+                const badge = itemStatus === 'out-of-stock'
+                  ? { label: 'Hết hàng', className: 'bg-red-50 text-red-800', Icon: CircleX }
+                  : itemStatus === 'low-stock'
+                    ? { label: 'Sắp hết', className: 'bg-amber-50 text-amber-800', Icon: TriangleAlert }
+                    : { label: 'Còn hàng', className: 'bg-emerald-50 text-emerald-800', Icon: CheckCircle2 };
+                const level = reorderLevels[item.productId] ?? String(item.reorderLevel);
+                const levelValid = isValidReorderLevel(level);
+                const pending = reorderMutation.isPending && reorderMutation.variables?.id === item.productId;
+                const updated = Date.parse(item.updatedAt);
+                return (
+                  <tr key={item.productId}>
+                    <td className="min-w-40 bg-surface px-3 py-3 font-semibold text-slate-900 xl:sticky xl:left-0 xl:z-[1]">
+                      <span className="block max-w-56 break-words [overflow-wrap:anywhere]">{item.productName}</span>
+                      <span className="block text-xs font-normal text-slate-500">Đơn vị: {item.unit}</span>
+                    </td>
+                    <td className="px-3 py-3">{item.sku}</td>
+                    <td className="px-3 py-3">{item.categoryName}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">{inventoryNumber.format(item.quantityOnHand)}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">{inventoryNumber.format(item.quantityReserved)}</td>
+                    <td className="px-3 py-3 text-right font-bold tabular-nums">{inventoryNumber.format(item.availableQuantity)}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">
+                      {canManage ? <>
+                        <input aria-label={`Mức đặt lại ${item.productName} (${item.sku})`} aria-invalid={!levelValid}
+                          aria-describedby={!levelValid ? `reorder-error-${item.productId}` : undefined}
+                          className="h-11 w-24 rounded border border-slate-200 px-2 text-right" type="number" min={0} max={999999999.999} step={0.001}
+                          value={level} disabled={pending}
+                          onChange={(event) => setReorderLevels((current) => ({ ...current, [item.productId]: event.target.value }))} />
+                        {!levelValid && <span id={`reorder-error-${item.productId}`} className="block max-w-40 text-xs text-red-700">Nhập mức không âm, tối đa 3 chữ số thập phân.</span>}
+                      </> : inventoryNumber.format(item.reorderLevel)}
+                    </td>
+                    <td className="px-3 py-3"><span className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-1 text-xs font-semibold ${badge.className}`}><badge.Icon aria-hidden="true" className="size-4" />{badge.label}</span></td>
+                    <td className="whitespace-nowrap px-3 py-3">{Number.isNaN(updated) ? 'Không rõ' : inventoryDate.format(updated)}</td>
+                    {canManage && <td className="px-3 py-3"><Button type="button" size="sm" variant="outline" loading={pending}
+                      disabled={reorderMutation.isPending || !levelValid || Number(level) === item.reorderLevel}
+                      aria-label={`Lưu mức đặt lại ${item.productName} (${item.sku})`}
+                      onClick={() => {
+                        if (reorderLock.current || !levelValid || Number(level) === item.reorderLevel) return;
+                        reorderLock.current = true;
+                        reorderMutation.mutate({ id: item.productId, level: Number(level) });
+                      }}>Lưu</Button></td>}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {!loading && rows && rows.length === 0 && <EmptyPanel>
+            {appliedSearch || category || status !== 'all'
+              ? 'Không tìm thấy sản phẩm. Hãy thử thay đổi tìm kiếm hoặc bộ lọc.'
+              : 'Chưa có sản phẩm theo dõi tồn kho tại chi nhánh.'}
+          </EmptyPanel>}
+        </div>
+        {totalCount !== undefined && totalPages !== undefined && totalCount > 0 && <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <p aria-live="polite" className="text-sm text-slate-600">Trang {Math.min(page, totalPages)} / {totalPages} · {inventoryNumber.format(totalCount)} sản phẩm</p>
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" size="sm" disabled={page <= 1 || loading} onClick={() => setPage((current) => current - 1)}>Trang trước</Button>
+            <Button type="button" variant="outline" size="sm" disabled={page >= totalPages || loading} onClick={() => setPage((current) => current + 1)}>Trang sau</Button>
+          </div>
+        </div>}
+      </CardBody>
+    </Card>
+  );
+};
+
+const InventoryPanel = ({
+  branchId,
+  canAdjust,
+  canReceive,
+  canPost,
+  receiptDraft,
+  setReceiptDraft,
+  receiptSaving,
+  setReceiptSaving,
+  adjustmentDraft,
+  setAdjustmentDraft,
+  adjustmentBusy,
+  setAdjustmentBusy,
+}: {
+  branchId: string;
+  canAdjust: boolean;
+  canReceive: boolean;
+  canPost: boolean;
+  receiptDraft: ReceiptDraft;
+  setReceiptDraft: React.Dispatch<React.SetStateAction<ReceiptDraft>>;
+  receiptSaving: boolean;
+  setReceiptSaving: React.Dispatch<React.SetStateAction<boolean>>;
+  adjustmentDraft: AdjustmentDraft;
+  setAdjustmentDraft: React.Dispatch<React.SetStateAction<AdjustmentDraft>>;
+  adjustmentBusy: boolean;
+  setAdjustmentBusy: React.Dispatch<React.SetStateAction<boolean>>;
+}) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlSearch = searchParams.get('inventorySearch') ?? '';
+  const category = searchParams.get('inventoryCategory') ?? '';
+  const statusParam = searchParams.get('inventoryStatus');
+  const status: StockStatus = statusParam === 'in-stock' || statusParam === 'low-stock' || statusParam === 'out-of-stock'
+    ? statusParam : 'all';
+  const [search, setSearch] = useState(urlSearch);
+  useEffect(() => setSearch(urlSearch), [urlSearch]);
+  useEffect(() => {
+    if (search === urlSearch) return;
+    const timer = window.setTimeout(() => {
+      setSearchParams((current) => {
+        const next = new URLSearchParams(current);
+        if (search.trim()) next.set('inventorySearch', search.trim());
+        else next.delete('inventorySearch');
+        return next;
+      }, { replace: true });
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [search, urlSearch, setSearchParams]);
+
+  const updateFilter = (key: string, value: string) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      if (value) next.set(key, value);
+      else next.delete(key);
+      return next;
+    }, { replace: true });
+  };
   const inventoryQuery = useQuery({
-    queryKey: queryKeys.inventory(branchId),
-    queryFn: () => posSalesApi.getInventory(branchId),
+    queryKey: [...queryKeys.inventory(branchId), 'overview'],
+    queryFn: () => loadInventory((page) => posSalesApi.getInventory(branchId, { page })),
   });
   const receiptsQuery = useQuery({
     queryKey: queryKeys.receipts(branchId),
@@ -1047,316 +1744,156 @@ const InventoryPanel = ({ branchId, canManage }: { branchId: string; canManage: 
     queryKey: queryKeys.movements(branchId),
     queryFn: () => posSalesApi.getMovements(branchId),
   });
-  const [productId, setProductId] = useState('');
-  const [quantity, setQuantity] = useState('');
-  const [movementType, setMovementType] = useState('ADJUSTMENT_IN');
-  const [notes, setNotes] = useState('');
-  const [supplier, setSupplier] = useState('');
-  const [receiptItems, setReceiptItems] = useState([
-    { productId: '', quantity: '', unitCost: '' },
-  ]);
-  const [reorderLevels, setReorderLevels] = useState<Record<string, string>>({});
+  const [receiptError, setReceiptError] = useState('');
+  const [receiptFieldErrors, setReceiptFieldErrors] = useState<ReceiptFieldErrors>({ header: {}, lines: {} });
+  const [postError, setPostError] = useState('');
+  const [pendingPost, setPendingPost] = useState<{ id: string; receiptCode: string } | null>(null);
+  const [lastSavedReceipt, setLastSavedReceipt] = useState<{ id: string; receiptCode: string } | null>(null);
+  const receiptOperationLock = useRef(false);
+  const postButtonRef = useRef<HTMLButtonElement | null>(null);
+  const receiptsHeadingRef = useRef<HTMLHeadingElement | null>(null);
 
-  const invalidateInventory = () => {
+  const invalidateAdjustment = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.inventory(branchId) });
-    void queryClient.invalidateQueries({ queryKey: queryKeys.receipts(branchId) });
     void queryClient.invalidateQueries({ queryKey: queryKeys.movements(branchId) });
     void queryClient.invalidateQueries({ queryKey: ['pos-sales', 'management', 'inventory', branchId] });
-    void queryClient.invalidateQueries({ queryKey: ['pos-sales', 'management', 'receipts', branchId] });
     void queryClient.invalidateQueries({ queryKey: ['pos-sales', 'management', 'movements', branchId] });
   };
-  const adjustmentMutation = useMutation({
-    mutationFn: () =>
-      posSalesApi.adjustInventory(branchId, {
-        productId,
-        movementType,
-        quantity: Number(quantity),
-        notes: notes.trim(),
-      }),
-    onSuccess: () => {
-      setQuantity('');
-      setNotes('');
-      toast.success('Đã ghi nhận điều chỉnh tồn kho.');
-      invalidateInventory();
-    },
-    onError: notifyError,
-  });
+  const invalidateInventory = () => {
+    invalidateAdjustment();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.receipts(branchId) });
+    void queryClient.invalidateQueries({ queryKey: ['pos-sales', 'management', 'receipts', branchId] });
+  };
   const receiptMutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (draft: ReceiptDraft) =>
       posSalesApi.createReceipt(branchId, {
-        supplierName: supplier.trim() || undefined,
-        items: receiptItems.map((item) => ({
+        supplierName: draft.supplierName.trim() || undefined,
+        supplierReference: draft.supplierReference.trim() || undefined,
+        notes: draft.notes.trim() || undefined,
+        items: draft.items.map((item) => ({
           productId: item.productId,
           quantity: Number(item.quantity),
           unitCost: Number(item.unitCost),
         })),
       }),
-    onSuccess: () => {
-      setReceiptItems([{ productId: '', quantity: '', unitCost: '' }]);
-      toast.success('Đã tạo phiếu nhập nháp. Hãy kiểm tra và xác nhận phiếu để tăng tồn kho.');
-      invalidateInventory();
+    onSuccess: (receipt) => {
+      setReceiptDraft(emptyReceiptDraft());
+      setReceiptError('');
+      setReceiptFieldErrors({ header: {}, lines: {} });
+      setLastSavedReceipt({ id: receipt.id, receiptCode: receipt.receiptCode });
+      toast.success(`Đã lưu phiếu nháp ${receipt.receiptCode}. Hãy kiểm tra và ghi sổ để tăng tồn kho.`);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.receipts(branchId) });
+      void queryClient.invalidateQueries({ queryKey: ['pos-sales', 'management', 'receipts', branchId] });
+      void queryClient.invalidateQueries({ queryKey: ['pos-sales', 'management', 'receipt', branchId, receipt.id] });
     },
-    onError: notifyError,
+    onError: (error, draft) => {
+      setReceiptError(errorMessage(error));
+      if (error && typeof error === 'object' && 'fields' in error && error.fields &&
+          typeof error.fields === 'object') {
+        const fields = Object.fromEntries(
+          Object.entries(error.fields).filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
+        );
+        setReceiptFieldErrors(mapReceiptFieldErrors(fields, draft.items));
+      }
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'Inventory.ProductNotConfigured') {
+        void inventoryQuery.refetch();
+      }
+    },
+    onSettled: () => { receiptOperationLock.current = false; setReceiptSaving(false); },
   });
   const postReceiptMutation = useMutation({
     mutationFn: (receiptId: string) => posSalesApi.postReceipt(branchId, receiptId),
-    onSuccess: () => {
+    onSuccess: (_, receiptId) => {
+      setPostError('');
       toast.success('Đã xác nhận phiếu nhập và cập nhật tồn kho.');
       invalidateInventory();
+      void queryClient.invalidateQueries({ queryKey: ['pos-sales', 'management', 'receipt', branchId, receiptId] });
     },
-    onError: notifyError,
-  });
-  const reorderMutation = useMutation({
-    mutationFn: ({ id, level }: { id: string; level: number }) =>
-      posSalesApi.setReorderLevel(branchId, id, level),
-    onSuccess: () => {
-      toast.success('Đã cập nhật mức tồn kho cảnh báo.');
-      void queryClient.invalidateQueries({ queryKey: queryKeys.inventory(branchId) });
+    onError: (error, receiptId) => {
+      setPostError(errorMessage(error));
+      if (error && typeof error === 'object' && 'status' in error &&
+          (error.status === 404 || error.status === 409)) {
+        void receiptsQuery.refetch();
+        void queryClient.invalidateQueries({ queryKey: ['pos-sales', 'management', 'receipt', branchId, receiptId] });
+      }
     },
-    onError: notifyError,
+    onSettled: () => { receiptOperationLock.current = false; setReceiptSaving(false); },
   });
-  const balances = inventoryQuery.data?.items ?? [];
-  const refresh = () => {
-    void inventoryQuery.refetch();
-    void receiptsQuery.refetch();
-    void movementsQuery.refetch();
-  };
-  const queryError = inventoryQuery.error ?? receiptsQuery.error ?? movementsQuery.error;
-  if (queryError) return <ErrorPanel error={queryError} retry={refresh} />;
+  const balances = inventoryQuery.data ?? [];
+  const metrics = [
+    { label: 'Sản phẩm theo dõi', value: balances.length },
+    { label: 'Sắp hết hàng', value: balances.filter((item) => stockStatus(item) === 'low-stock').length },
+    { label: 'Hết hàng', value: balances.filter((item) => stockStatus(item) === 'out-of-stock').length },
+  ];
 
   return (
     <div className="space-y-4">
-      {canManage && <div className="grid gap-4 xl:grid-cols-2">
-        <Card>
+      {inventoryQuery.isError && <ErrorPanel error={inventoryQuery.error} retry={() => void inventoryQuery.refetch()} />}
+      <section aria-label="Tổng quan tồn kho" className="grid gap-3 sm:grid-cols-3">
+        {metrics.map((metric) => (
+          <Card key={metric.label}>
+            <CardBody>
+              <p className="text-sm font-semibold text-slate-600">{metric.label}</p>
+              {inventoryQuery.data
+                ? <p className="mt-1 text-2xl font-black text-slate-950">{metric.value.toLocaleString('vi-VN')}</p>
+                : inventoryQuery.isLoading
+                  ? <div role="status" aria-label="Đang tải tổng quan tồn kho" className="mt-2 h-7 w-16 animate-pulse rounded bg-slate-200" />
+                  : <p className="mt-1 text-sm text-slate-600">Không có dữ liệu</p>}
+            </CardBody>
+          </Card>
+        ))}
+      </section>
+      {(canAdjust || canReceive) && inventoryQuery.data && <div className="grid gap-4 min-[1200px]:grid-cols-2">
+        {canAdjust && <Card>
           <CardBody>
             <h2 className="mb-4 text-lg font-extrabold">Điều chỉnh tồn kho</h2>
-            <form
-              className="grid gap-3 sm:grid-cols-2"
-              onSubmit={(event) => {
-                event.preventDefault();
-                adjustmentMutation.mutate();
+            <InventoryAdjustmentForm
+              branchId={branchId}
+              balances={balances}
+              draft={adjustmentDraft}
+              setDraft={setAdjustmentDraft}
+              busy={adjustmentBusy}
+              setBusy={setAdjustmentBusy}
+              invalidateInventory={invalidateAdjustment}
+              refreshInventory={async () => {
+                const result = await inventoryQuery.refetch();
+                if (result.isError || !result.data) throw result.error ?? new Error('Không thể tải tồn kho mới nhất.');
+                return result.data;
               }}
-            >
-              <SelectField label="Sản phẩm" value={productId} onChange={setProductId}>
-                <option value="">Chọn sản phẩm</option>
-                {balances.map((item) => (
-                  <option key={item.productId} value={item.productId}>
-                    {item.sku} · {item.productName}
-                  </option>
-                ))}
-              </SelectField>
-              <SelectField label="Loại điều chỉnh" value={movementType} onChange={setMovementType}>
-                <option value="ADJUSTMENT_IN">Nhập bổ sung</option>
-                <option value="ADJUSTMENT_OUT">Xuất kho</option>
-                <option value="DAMAGE">Hàng hư hỏng</option>
-              </SelectField>
-              <Field
-                label="Số lượng"
-                value={quantity}
-                onChange={setQuantity}
-                type="number"
-                min={0.001}
-                step={0.001}
-                required
-              />
-              <Field label="Lý do / ghi chú" value={notes} onChange={setNotes} required />
-              <Button className="sm:col-span-2" loading={adjustmentMutation.isPending}>
-                Ghi nhận điều chỉnh
-              </Button>
-            </form>
+            />
           </CardBody>
-        </Card>
+        </Card>}
 
-        <Card>
+        {canReceive && <Card>
           <CardBody>
             <h2 className="mb-4 text-lg font-extrabold">Tạo phiếu nhập hàng</h2>
-            <form
-              className="grid gap-3 sm:grid-cols-2"
-              onSubmit={(event) => {
-                event.preventDefault();
-                receiptMutation.mutate();
-              }}
-            >
-              <Field label="Nhà cung cấp" value={supplier} onChange={setSupplier} />
-              <div className="space-y-3 sm:col-span-2">
-                {receiptItems.map((item, index) => (
-                  <div
-                    key={index}
-                    className="grid gap-2 rounded-xl border border-slate-200 p-3 sm:grid-cols-[2fr_1fr_1fr_auto]"
-                  >
-                    <label className="block">
-                      <span className={labelClass}>Sản phẩm</span>
-                      <select
-                        className={inputClass}
-                        value={item.productId}
-                        required
-                        onChange={(event) =>
-                          setReceiptItems((current) =>
-                            current.map((line, lineIndex) =>
-                              lineIndex === index
-                                ? { ...line, productId: event.target.value }
-                                : line,
-                            ),
-                          )
-                        }
-                      >
-                        <option value="">Chọn sản phẩm</option>
-                        {balances.map((balance) => (
-                          <option key={balance.productId} value={balance.productId}>
-                            {balance.sku} · {balance.productName}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <Field
-                      label="Số lượng"
-                      value={item.quantity}
-                      onChange={(value) =>
-                        setReceiptItems((current) =>
-                          current.map((line, lineIndex) =>
-                            lineIndex === index ? { ...line, quantity: value } : line,
-                          ),
-                        )
-                      }
-                      type="number"
-                      min={0.001}
-                      step={0.001}
-                      required
-                    />
-                    <Field
-                      label="Giá vốn / đơn vị"
-                      value={item.unitCost}
-                      onChange={(value) =>
-                        setReceiptItems((current) =>
-                          current.map((line, lineIndex) =>
-                            lineIndex === index ? { ...line, unitCost: value } : line,
-                          ),
-                        )
-                      }
-                      type="number"
-                      min={0}
-                      step={1000}
-                      required
-                    />
-                    <button
-                      type="button"
-                      className="mt-6 grid size-10 place-items-center rounded-lg text-red-600 hover:bg-red-50 disabled:opacity-40"
-                      aria-label="Xóa sản phẩm khỏi phiếu nhập"
-                      disabled={receiptItems.length === 1}
-                      onClick={() =>
-                        setReceiptItems((current) => current.filter((_, lineIndex) => lineIndex !== index))
-                      }
-                    >
-                      <X className="size-4" />
-                    </button>
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    setReceiptItems((current) => [
-                      ...current,
-                      { productId: '', quantity: '', unitCost: '' },
-                    ])
-                  }
-                >
-                  <Plus className="size-4" /> Thêm sản phẩm
-                </Button>
-              </div>
-              <Button
-                className="sm:col-span-2"
-                loading={receiptMutation.isPending}
-                disabled={
-                  receiptItems.some(
-                    (item) => !item.productId || Number(item.quantity) <= 0 || !item.unitCost,
-                  ) ||
-                  new Set(receiptItems.map((item) => item.productId)).size !== receiptItems.length
-                }
-              >
-                Tạo phiếu nhập nháp
-              </Button>
-            </form>
+            <ReceiptDraftForm draft={receiptDraft} setDraft={setReceiptDraft} balances={balances}
+              busy={receiptSaving} saving={receiptMutation.isPending} error={receiptError}
+              fieldErrors={receiptFieldErrors} setFieldErrors={setReceiptFieldErrors} onSave={() => {
+                if (receiptOperationLock.current || receiptSaving) return;
+                receiptOperationLock.current = true;
+                setReceiptSaving(true);
+                setReceiptError('');
+                receiptMutation.mutate(receiptDraft);
+              }} />
           </CardBody>
-        </Card>
+        </Card>}
       </div>}
 
-      <Card>
-        <CardBody>
-          <h2 className="mb-4 flex items-center gap-2 text-lg font-extrabold">
-            <Boxes className="size-5 text-emerald-700" /> Tồn kho chi nhánh
-          </h2>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px] text-left text-sm">
-              <thead className="border-b text-xs uppercase text-slate-500">
-                <tr>
-                  <th className="py-3">Sản phẩm</th><th>Danh mục</th><th className="text-right">Tồn</th>
-                  <th className="text-right">Đã giữ</th><th className="text-right">Có thể bán</th>
-                  {canManage && <><th className="text-right">Mức đặt lại</th><th /></>}
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {balances.map((item) => (
-                  <tr key={item.productId}>
-                    <td className="py-3 font-semibold">{item.sku} · {item.productName}</td>
-                    <td>{item.categoryName}</td>
-                    <td className="text-right">{item.quantityOnHand} {item.unit}</td>
-                    <td className="text-right">{item.quantityReserved}</td>
-                    <td className={`text-right font-bold ${item.availableQuantity <= item.reorderLevel ? 'text-amber-700' : ''}`}>
-                      {item.availableQuantity}
-                    </td>
-                    {canManage && <><td className="text-right">
-                      <input
-                        aria-label={`Mức đặt lại ${item.productName}`}
-                        className="h-9 w-20 rounded border px-2 text-right"
-                        type="number"
-                        min={0}
-                        step={0.001}
-                        value={reorderLevels[item.productId] ?? String(item.reorderLevel)}
-                        onChange={(event) =>
-                          setReorderLevels((current) => ({
-                            ...current,
-                            [item.productId]: event.target.value,
-                          }))
-                        }
-                      />
-                    </td>
-                    <td className="pl-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={
-                          Number(reorderLevels[item.productId] ?? item.reorderLevel) ===
-                          item.reorderLevel
-                        }
-                        loading={reorderMutation.isPending}
-                        onClick={() =>
-                          reorderMutation.mutate({
-                            id: item.productId,
-                            level: Number(reorderLevels[item.productId]),
-                          })
-                        }
-                      >
-                        Lưu
-                      </Button>
-                    </td></>}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {inventoryQuery.isLoading && <EmptyPanel>Đang tải tồn kho...</EmptyPanel>}
-            {!inventoryQuery.isLoading && balances.length === 0 && (
-              <EmptyPanel>Chưa có sản phẩm theo dõi tồn kho tại chi nhánh.</EmptyPanel>
-            )}
-          </div>
-        </CardBody>
-      </Card>
+      <InventoryTable branchId={branchId} canManage={canAdjust} overview={inventoryQuery}
+        search={search} setSearch={setSearch} appliedSearch={urlSearch}
+        category={category} status={status} updateFilter={updateFilter} />
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
           <CardBody>
-            <h2 className="mb-3 text-lg font-extrabold">Phiếu nhập gần đây</h2>
+            <h2 ref={receiptsHeadingRef} tabIndex={-1} className="mb-3 text-lg font-extrabold">Phiếu nhập gần đây</h2>
+            {lastSavedReceipt && <p className="mb-3 text-sm text-slate-700">
+              Phiếu vừa lưu: <Link className="font-bold text-emerald-700 underline" to={paths.posReceiptDetail(lastSavedReceipt.id)}>{lastSavedReceipt.receiptCode}</Link>
+            </p>}
+            {postError && <p role="alert" className="mb-3 text-sm text-red-700">{postError}</p>}
+            {receiptsQuery.isError && <ErrorPanel error={receiptsQuery.error} retry={() => void receiptsQuery.refetch()} />}
+            {receiptsQuery.isLoading && <EmptyPanel>Đang tải phiếu nhập...</EmptyPanel>}
             <div className="space-y-2">
               {(receiptsQuery.data?.items ?? []).map((receipt) => (
                 <div key={receipt.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3">
@@ -1366,13 +1903,20 @@ const InventoryPanel = ({ branchId, canManage }: { branchId: string; canManage: 
                       {receipt.supplierName || 'Không rõ nhà cung cấp'} · {receipt.status} · {amount(receipt.totalCost)}
                     </p>
                   </div>
-                  {canManage && receipt.status === 'DRAFT' && (
+                  {canPost && receipt.status === 'DRAFT' && (
                     <Button
                       size="sm"
-                      onClick={() => postReceiptMutation.mutate(receipt.id)}
-                      loading={postReceiptMutation.isPending}
+                      type="button"
+                      aria-label={`Ghi sổ phiếu ${receipt.receiptCode}`}
+                      disabled={receiptSaving}
+                      onClick={(event) => {
+                        if (receiptOperationLock.current || receiptSaving) return;
+                        postButtonRef.current = event.currentTarget;
+                        setPendingPost({ id: receipt.id, receiptCode: receipt.receiptCode });
+                      }}
+                      loading={postReceiptMutation.isPending && postReceiptMutation.variables === receipt.id}
                     >
-                      Xác nhận nhập
+                      Ghi sổ nhập kho
                     </Button>
                   )}
                 </div>
@@ -1383,7 +1927,14 @@ const InventoryPanel = ({ branchId, canManage }: { branchId: string; canManage: 
         </Card>
         <Card>
           <CardBody>
-            <h2 className="mb-3 text-lg font-extrabold">Biến động kho gần đây</h2>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-lg font-extrabold">Biến động kho gần đây</h2>
+              <Link to={paths.posMovements} className="text-sm font-bold text-emerald-700 underline">
+                Mở lịch sử biến động
+              </Link>
+            </div>
+            {movementsQuery.isError && <ErrorPanel error={movementsQuery.error} retry={() => void movementsQuery.refetch()} />}
+            {movementsQuery.isLoading && <EmptyPanel>Đang tải biến động kho...</EmptyPanel>}
             <div className="max-h-80 space-y-2 overflow-auto">
               {(movementsQuery.data?.items ?? []).map((movement) => (
                 <div key={movement.id} className="flex justify-between gap-3 rounded-xl border p-3 text-sm">
@@ -1401,25 +1952,55 @@ const InventoryPanel = ({ branchId, canManage }: { branchId: string; canManage: 
           </CardBody>
         </Card>
       </div>
+      <Dialog open={pendingPost !== null} onOpenChange={(open) => { if (!open) setPendingPost(null); }}>
+        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto [&>button:last-child]:right-1 [&>button:last-child]:top-1 [&>button:last-child]:grid [&>button:last-child]:size-11 [&>button:last-child]:place-items-center" onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          const button = postButtonRef.current;
+          if (button && button.isConnected && !button.disabled) button.focus();
+          else receiptsHeadingRef.current?.focus();
+        }}>
+          <DialogHeader className="pr-10">
+            <DialogTitle>Xác nhận ghi sổ nhập kho</DialogTitle>
+            <DialogDescription>
+              Ghi sổ phiếu {pendingPost?.receiptCode} sẽ cộng tồn kho và không thể hoàn tác.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button type="button" variant="outline" onClick={() => setPendingPost(null)}>Hủy</Button>
+            <Button type="button" onClick={() => {
+              if (!pendingPost || receiptOperationLock.current || receiptSaving) return;
+              receiptOperationLock.current = true;
+              setReceiptSaving(true);
+              setPostError('');
+              setPendingPost(null);
+              postReceiptMutation.mutate(pendingPost.id);
+            }}>Xác nhận ghi sổ</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 const OrdersPanel = ({
   branchId,
+  canViewOrders,
   canCancel,
   canViewReport,
 }: {
   branchId: string;
+  canViewOrders: boolean;
   canCancel: boolean;
   canViewReport: boolean;
 }) => {
+  const { hasPermission } = useAuthorization();
   const today = new Date().toISOString().slice(0, 10);
   const [from, setFrom] = useState(today);
   const [to, setTo] = useState(today);
   const ordersQuery = useQuery({
     queryKey: queryKeys.orders(branchId),
     queryFn: () => posSalesApi.getOrders(branchId),
+    enabled: canViewOrders,
   });
   const reportQuery = useQuery({
     queryKey: queryKeys.report(branchId, from, to),
@@ -1474,8 +2055,8 @@ const OrdersPanel = ({
       <ErrorPanel
         error={error}
         retry={() => {
-          void ordersQuery.refetch();
-          void reportQuery.refetch();
+          if (canViewOrders) void ordersQuery.refetch();
+          if (canViewReport) void reportQuery.refetch();
         }}
       />
     );
@@ -1538,7 +2119,7 @@ const OrdersPanel = ({
         </CardBody>
       </Card>}
 
-      <Card>
+      {canViewOrders && <Card>
         <CardBody>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h2 className="flex items-center gap-2 text-lg font-extrabold">
@@ -1569,22 +2150,22 @@ const OrdersPanel = ({
                       <div className="flex justify-end gap-2">
                         {order.invoiceId && (
                           <>
-                            <Button
+                            {hasPermission(P.SALES_INVOICE_VIEW) && <Button
                               size="sm"
                               variant="outline"
                               aria-label="Xem hóa đơn"
                               onClick={() => void openInvoice(order.invoiceId!, false)}
                             >
                               <Printer className="size-4" />
-                            </Button>
-                            <Button
+                            </Button>}
+                            {hasPermission(P.SALES_INVOICE_PRINT) && <Button
                               size="sm"
                               variant="outline"
                               aria-label="Tải hóa đơn"
                               onClick={() => void openInvoice(order.invoiceId!, true)}
                             >
                               <Download className="size-4" />
-                            </Button>
+                            </Button>}
                           </>
                         )}
                         {canCancel && order.status === 'COMPLETED' && (
@@ -1613,7 +2194,7 @@ const OrdersPanel = ({
             )}
           </div>
         </CardBody>
-      </Card>
+      </Card>}
     </div>
   );
 };
