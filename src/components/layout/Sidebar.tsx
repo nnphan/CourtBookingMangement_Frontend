@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { use, useRef } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { useTranslation } from 'react-i18next';
 import {
@@ -47,15 +47,15 @@ const menuItems = [
     icon: Building2,
     label: 'Quản lý chi nhánh (Branches)',
     path: paths.adminBranches,
-    permission: P.BRANCH_VIEW,
-    adminOnly: true,
+    anyPermissions: [P.BRANCH_CREATE, P.BRANCH_VIEW],
+    adminOnly: false,
   },
   {
     icon: Building2,
     label: 'Quản lý chủ sân',
     translationKey: 'navigation.owners',
     path: paths.adminOwners,
-    adminOnly: true,
+    adminOnly: false,
   },
   {
     icon: KeyRound,
@@ -78,8 +78,18 @@ const menuItems = [
     translationKey: 'playerMatchingProfile.nav',
     path: paths.playerMatchingProfile,
   },
-  { icon: ShoppingBag, label: 'POS / Bán hàng', path: paths.posSales, anyPermissions: [P.SALES_VIEW, P.PRODUCT_VIEW, P.INVENTORY_VIEW, P.SALES_REPORT_VIEW] },
-  { icon: BarChart3, label: 'Quản trị POS & kho', path: paths.posDashboard, permission: P.SALES_REPORT_VIEW },
+  {
+    icon: ShoppingBag,
+    label: 'POS / Bán hàng',
+    path: paths.posSales,
+    anyPermissions: [P.SALES_VIEW, P.PRODUCT_VIEW, P.INVENTORY_VIEW, P.SALES_REPORT_VIEW],
+  },
+  {
+    icon: BarChart3,
+    label: 'Quản trị POS & kho',
+    path: paths.posDashboard,
+    permission: P.SALES_REPORT_VIEW,
+  },
   { icon: Tags, label: 'Danh mục sản phẩm', path: paths.posCategories, permission: P.PRODUCT_VIEW },
   {
     icon: PackageOpen,
@@ -87,24 +97,14 @@ const menuItems = [
     path: paths.posInventory,
     permission: P.INVENTORY_VIEW,
   },
-  { icon: Globe, label: 'Chuyển đổi ngôn ngữ' },
-  { icon: Home, label: 'Đổi trang chủ: Trang chủ cũ', path: paths.dashboard, permission: P.DASHBOARD_VIEW },
   {
     icon: User,
     label: 'Quản lý người dùng (User)',
     path: paths.adminUsers,
     adminOnly: true,
   },
-  { icon: Info, label: 'Phiên bản: 2.10.3' },
-  { icon: Printer, label: 'Cài đặt máy hiện' },
-  { icon: Receipt, label: 'Cài đặt hóa đơn' },
-  { icon: Users, label: 'Phân quyền nhân viên' },
   { icon: FileBarChart, label: 'Xuất báo cáo tháng' },
-  { icon: HelpCircle, label: 'Hướng dẫn sử dụng' },
-  { icon: Sparkles, label: 'Ứng dụng có gì mới?' },
-  { icon: Gift, label: 'Giới thiệu bạn bè' },
   { icon: Bell, label: 'Quản lý thông báo' },
-  { icon: RefreshCw, label: 'Chuyển tài khoản' },
 ];
 
 export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
@@ -119,83 +119,99 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const navigate = useNavigate();
   const previousFocus = useRef<HTMLElement | null>(null);
 
+  console.log(user);
+  console.log(hasPermission);
+
   return (
-    <DialogPrimitive.Root open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <DialogPrimitive.Root
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <DialogPrimitive.Portal>
         {/* Backdrop */}
         <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-black/50 transition-opacity" />
 
         {/* Drawer */}
-      <DialogPrimitive.Content
-        className="bg-brand-600 text-content-onbrand fixed inset-y-0 left-0 z-50 w-full max-w-[350px] shadow-[var(--shadow-drawer)] outline-none"
-        aria-label="Menu"
-        aria-describedby={undefined}
-        onOpenAutoFocus={() => {
-          previousFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-        }}
-        onCloseAutoFocus={(event) => {
-          if (previousFocus.current?.isConnected) {
-            event.preventDefault();
-            previousFocus.current.focus();
-          }
-        }}
-      >
-        <div className="flex h-14 items-center justify-between border-b border-white/10 px-4 pt-[env(safe-area-inset-top,0px)] sm:h-16">
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-content-onbrand grid size-11 place-items-center rounded-full transition-colors hover:bg-white/10"
-            aria-label="Close menu"
-          >
-            <X aria-hidden className="size-6" strokeWidth={2.5} />
-          </button>
-          <span className="text-lg font-bold">Menu</span>
-          <div className="w-11" /> {/* Spacer for centering */}
-        </div>
-
-        <div className="h-[calc(100dvh-3.5rem-env(safe-area-inset-top,0px))] overflow-y-auto pb-[env(safe-area-inset-bottom,0px)]">
-          <nav className="flex flex-col py-2">
-            {menuItems
-              .filter(
-                (item) =>
-                  !('adminOnly' in item) || !item.adminOnly || canAccessAdminRoutes,
-              )
-              .filter((item) => !('permission' in item) || !item.permission || (hasHydrated && authenticated && hasPermission(item.permission)))
-              .filter((item) => !('anyPermissions' in item) || !item.anyPermissions || (hasHydrated && authenticated && hasAnyPermission(item.anyPermissions)))
-              .map((item, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => {
-                    if ('path' in item && item.path) {
-                      navigate(item.path);
-                      onClose();
-                    }
-                  }}
-                  className="group flex w-full cursor-pointer items-center gap-3 border-b border-white/5 px-4 py-3.5 text-left transition-colors hover:bg-white/10 focus-visible:bg-white/10"
-                >
-                  <item.icon aria-hidden className="size-5 shrink-0 opacity-80" />
-                  <span className="flex-1 text-[15px] font-medium">
-                    {'translationKey' in item && item.translationKey
-                      ? t(item.translationKey)
-                      : item.label}
-                  </span>
-                  <ChevronRight aria-hidden className="size-4 shrink-0 opacity-60" />
-                </button>
-              ))}
+        <DialogPrimitive.Content
+          className="bg-brand-600 text-content-onbrand fixed inset-y-0 left-0 z-50 w-full max-w-[350px] shadow-[var(--shadow-drawer)] outline-none"
+          aria-label="Menu"
+          aria-describedby={undefined}
+          onOpenAutoFocus={() => {
+            previousFocus.current =
+              document.activeElement instanceof HTMLElement ? document.activeElement : null;
+          }}
+          onCloseAutoFocus={(event) => {
+            if (previousFocus.current?.isConnected) {
+              event.preventDefault();
+              previousFocus.current.focus();
+            }
+          }}
+        >
+          <div className="flex h-14 items-center justify-between border-b border-white/10 px-4 pt-[env(safe-area-inset-top,0px)] sm:h-16">
             <button
               type="button"
-              onClick={logout}
-              disabled={isLoggingOut}
-              className="group flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-white/10 focus-visible:bg-white/10 disabled:opacity-60"
+              onClick={onClose}
+              className="text-content-onbrand grid size-11 place-items-center rounded-full transition-colors hover:bg-white/10"
+              aria-label="Close menu"
             >
-              <LogOut aria-hidden className="size-5 shrink-0 opacity-80" />
-              <span className="flex-1 text-[15px] font-medium">{t('nav.logout')}</span>
-              <ChevronRight aria-hidden className="size-4 shrink-0 opacity-60" />
+              <X aria-hidden className="size-6" strokeWidth={2.5} />
             </button>
-          </nav>
-        </div>
-      </DialogPrimitive.Content>
+            <span className="text-lg font-bold">Menu</span>
+            <div className="w-11" /> {/* Spacer for centering */}
+          </div>
+
+          <div className="h-[calc(100dvh-3.5rem-env(safe-area-inset-top,0px))] overflow-y-auto pb-[env(safe-area-inset-bottom,0px)]">
+            <nav className="flex flex-col py-2">
+              {menuItems
+                .filter((item) => !('adminOnly' in item) || !item.adminOnly || canAccessAdminRoutes)
+                .filter(
+                  (item) =>
+                    !('permission' in item) ||
+                    !item.permission ||
+                    (hasHydrated && authenticated && hasPermission(item.permission)),
+                )
+                .filter(
+                  (item) =>
+                    !('anyPermissions' in item) ||
+                    !item.anyPermissions ||
+                    (hasHydrated && authenticated && hasAnyPermission(item.anyPermissions)),
+                )
+                .map((item, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      if ('path' in item && item.path) {
+                        navigate(item.path);
+                        onClose();
+                      }
+                    }}
+                    className="group flex w-full cursor-pointer items-center gap-3 border-b border-white/5 px-4 py-3.5 text-left transition-colors hover:bg-white/10 focus-visible:bg-white/10"
+                  >
+                    <item.icon aria-hidden className="size-5 shrink-0 opacity-80" />
+                    <span className="flex-1 text-[15px] font-medium">
+                      {'translationKey' in item && item.translationKey
+                        ? t(item.translationKey)
+                        : item.label}
+                    </span>
+                    <ChevronRight aria-hidden className="size-4 shrink-0 opacity-60" />
+                  </button>
+                ))}
+              <button
+                type="button"
+                onClick={logout}
+                disabled={isLoggingOut}
+                className="group flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-white/10 focus-visible:bg-white/10 disabled:opacity-60"
+              >
+                <LogOut aria-hidden className="size-5 shrink-0 opacity-80" />
+                <span className="flex-1 text-[15px] font-medium">{t('nav.logout')}</span>
+                <ChevronRight aria-hidden className="size-4 shrink-0 opacity-60" />
+              </button>
+            </nav>
+          </div>
+        </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
   );

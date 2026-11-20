@@ -40,9 +40,9 @@ export const AdminBranchLayout: React.FC = () => {
           >
             <div className="flex h-9 items-center gap-2 rounded-xl bg-white px-2.5 shadow-xs">
               <div className="grid size-6 place-items-center rounded-lg bg-emerald-100">
-                <span className="text-[10px] font-black text-emerald-800">ALO</span>
+                <span className="text-[10px] font-black text-emerald-800">CN</span>
               </div>
-              <span className="text-xs font-black tracking-tight text-emerald-950">ALOBO</span>
+              <span className="text-xs font-black tracking-tight text-emerald-950">CourtNow</span>
             </div>
 
             <div className="hidden items-center gap-2 text-xs font-semibold text-white/80 sm:flex">
@@ -63,9 +63,7 @@ export const AdminBranchLayout: React.FC = () => {
         {/* Right header actions */}
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Role badge with interactive test switch */}
-          <span
-            className="flex items-center gap-1.5 rounded-xl bg-white/15 px-2.5 py-1.5 text-xs font-bold text-white transition-colors hover:bg-white/25 sm:px-3"
-          >
+          <span className="flex items-center gap-1.5 rounded-xl bg-white/15 px-2.5 py-1.5 text-xs font-bold text-white transition-colors hover:bg-white/25 sm:px-3">
             {permissions.isAdmin ? (
               <>
                 <ShieldCheck className="size-3.5 text-emerald-300" />

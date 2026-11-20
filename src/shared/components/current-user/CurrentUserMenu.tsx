@@ -42,6 +42,8 @@ export const CurrentUserMenu = ({ variant = 'contrast' }: CurrentUserMenuProps) 
   const isCustomer = hasRole('CUSTOMER');
   const canAccessDashboard = hasPermission(PERMISSIONS.DASHBOARD_VIEW);
 
+  console.log(user);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -101,18 +103,25 @@ export const CurrentUserMenu = ({ variant = 'contrast' }: CurrentUserMenuProps) 
             </Link>
           </DropdownMenuItem>
         )}
-        {isCustomer && <DropdownMenuItem asChild>
-          <Link
-            to={paths.myBooking}
-            aria-current={location.pathname === paths.myBooking ? 'page' : undefined}
-          >
-            <CalendarDays aria-hidden="true" className="size-4" />
-            {t('account.myBookings')}
-          </Link>
-        </DropdownMenuItem>}
-        {hasPermission(PERMISSIONS.BOOKING_VIEW) && <DropdownMenuItem asChild>
-          <Link to={paths.bookings}><CalendarDays aria-hidden="true" className="size-4" />{t('account.bookings')}</Link>
-        </DropdownMenuItem>}
+        {isCustomer && (
+          <DropdownMenuItem asChild>
+            <Link
+              to={paths.myBooking}
+              aria-current={location.pathname === paths.myBooking ? 'page' : undefined}
+            >
+              <CalendarDays aria-hidden="true" className="size-4" />
+              {t('account.myBookings')}
+            </Link>
+          </DropdownMenuItem>
+        )}
+        {hasPermission(PERMISSIONS.BOOKING_VIEW) && (
+          <DropdownMenuItem asChild>
+            <Link to={paths.bookings}>
+              <CalendarDays aria-hidden="true" className="size-4" />
+              {t('account.bookings')}
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem asChild>
           <Link
             to={paths.myPlayerMatches}

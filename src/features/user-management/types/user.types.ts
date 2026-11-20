@@ -36,11 +36,11 @@ export interface UserRoleDetail {
   permissionCount: number;
 }
 
-export interface AssignUserRolesRequest {
+export interface UpdateUserRolesRequest {
   roleIds: string[];
 }
 
 export interface UserRoleAssignment {
   userId: string;
-  request: AssignUserRolesRequest;
+  request: UpdateUserRolesRequest;
 }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Check, Loader2, ShieldCheck } from 'lucide-react';
@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { StatusBadge } from '@/components/management';
 import { toast } from '@/lib/toast';
-import { assignUserRoles, getRoles, getUserRoles } from '../api/user.api';
+import { getRoles, getUserRoles, updateUserRoles } from '../api/user.api';
 import { ROLE_QUERY_KEYS, USER_QUERY_KEYS } from '../api/user.query';
 import type { RoleListItem, UserListItem } from '../types/user.types';
 import { RoleBadges } from './RoleBadges';
@@ -47,8 +47,13 @@ export const AssignUserRolesDialog = ({
     staleTime: 60 * 1000,
     retry: 1,
   });
-  const assignMutation = useMutation({
-    mutationFn: (roleIds: string[]) => assignUserRoles(user.id, { roleIds }),
+  useEffect(() => {
+    if (isOpen && userRolesQuery.data) {
+      setSelectedRoleIds(new Set(userRolesQuery.data.map((role) => role.roleId)));
+    }
+  }, [isOpen, user.id, userRolesQuery.data]);
+  const updateMutation = useMutation({
+    mutationFn: (roleIds: string[]) => updateUserRoles(user.id, { roleIds }),
     onSuccess: async () => {
       toast.success(t('userManagement.successTitle'), t('userManagement.successDescription'));
       await Promise.all([
@@ -88,13 +93,19 @@ export const AssignUserRolesDialog = ({
     (role) => role.isActive && !assignedRoleIds.has(role.id),
   );
   const currentDetails = userRolesQuery.data ?? [];
-  const canSubmit =
-    selectedRoleIds.size > 0 &&
+  const currentRoleIds = currentDetails.map((role) => role.roleId);
+  const hasRoleChanges =
+    currentRoleIds.length !== selectedRoleIds.size ||
+    currentRoleIds.some((roleId) => !selectedRoleIds.has(roleId));
+  const canEditRoles =
     !rolesQuery.isLoading &&
     !rolesQuery.isError &&
     !userRolesQuery.isLoading &&
     !userRolesQuery.isError &&
-    !assignMutation.isPending;
+    !updateMutation.isPending;
+  const canSubmit =
+    hasRoleChanges &&
+    canEditRoles;
 
   const toggleRole = (roleId: string, checked: boolean) => {
     setSelectedRoleIds((previous) => {
@@ -108,7 +119,7 @@ export const AssignUserRolesDialog = ({
   const submit = async () => {
     if (!canSubmit) return;
     try {
-      await assignMutation.mutateAsync([...selectedRoleIds]);
+      await updateMutation.mutateAsync([...selectedRoleIds]);
       setSelectedRoleIds(new Set());
       onClose();
     } catch {
@@ -122,9 +133,9 @@ export const AssignUserRolesDialog = ({
       : t('userManagement.unassigned');
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && !assignMutation.isPending && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !updateMutation.isPending && onClose()}>
       <DialogContent
-        closeDisabled={assignMutation.isPending}
+        closeDisabled={updateMutation.isPending}
         className="max-h-[90dvh] w-[calc(100%-2rem)] max-w-2xl overflow-y-auto p-4 sm:p-6"
       >
         <DialogHeader className="pr-8">
@@ -176,6 +187,16 @@ export const AssignUserRolesDialog = ({
                 {currentDetails.map((role) => (
                   <li key={role.roleId} className="rounded-lg bg-white p-3 text-sm">
                     <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedRoleIds.has(role.roleId)}
+                        onChange={(event) => toggleRole(role.roleId, event.target.checked)}
+                        disabled={!canEditRoles}
+                        aria-label={t('userManagement.keepRole', {
+                          role: role.roleName || role.roleCode,
+                        })}
+                        className="size-4 shrink-0 accent-emerald-600"
+                      />
                       <Badge variant="secondary">
                         {role.roleCode || t('userManagement.unknownRole')}
                       </Badge>
@@ -214,9 +235,7 @@ export const AssignUserRolesDialog = ({
             <h3 id="available-roles-heading" className="font-semibold text-slate-900">
               {t('userManagement.availableRoles')}
             </h3>
-            <p className="text-xs text-slate-500">
-              {t('userManagement.currentRolesNote')}
-            </p>
+            <p className="text-xs text-slate-500">{t('userManagement.currentRolesNote')}</p>
           </div>
           {rolesQuery.isLoading ? (
             <p className="rounded-lg border border-slate-200 p-4 text-sm text-slate-500" role="status">
@@ -241,6 +260,7 @@ export const AssignUserRolesDialog = ({
                   role={role}
                   checked={selectedRoleIds.has(role.id)}
                   onCheckedChange={(checked) => toggleRole(role.id, checked)}
+                  disabled={!canEditRoles}
                 />
               ))}
             </ul>
@@ -252,7 +272,7 @@ export const AssignUserRolesDialog = ({
             type="button"
             variant="outline"
             onClick={onClose}
-            disabled={assignMutation.isPending}
+            disabled={updateMutation.isPending}
           >
             {t('userManagement.cancel')}
           </Button>
@@ -260,9 +280,9 @@ export const AssignUserRolesDialog = ({
             type="button"
             onClick={submit}
             disabled={!canSubmit}
-            aria-busy={assignMutation.isPending}
+            aria-busy={updateMutation.isPending}
           >
-            {assignMutation.isPending ? (
+            {updateMutation.isPending ? (
               <>
                 <Loader2 aria-hidden className="size-4 animate-spin" />
                 {t('userManagement.saving')}
@@ -270,7 +290,7 @@ export const AssignUserRolesDialog = ({
             ) : (
               <>
                 <Check aria-hidden className="size-4" />
-                {t('userManagement.assignRoles')}
+                {t('userManagement.saveRoles')}
               </>
             )}
           </Button>
@@ -284,9 +304,10 @@ interface RoleOptionProps {
   role: RoleListItem;
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
+  disabled: boolean;
 }
 
-const RoleOption = ({ role, checked, onCheckedChange }: RoleOptionProps) => {
+const RoleOption = ({ role, checked, onCheckedChange, disabled }: RoleOptionProps) => {
   const { t } = useTranslation();
 
   return (
@@ -296,6 +317,7 @@ const RoleOption = ({ role, checked, onCheckedChange }: RoleOptionProps) => {
           type="checkbox"
           checked={checked}
           onChange={(event) => onCheckedChange(event.target.checked)}
+          disabled={disabled}
           className="mt-1 size-4 shrink-0 accent-emerald-600"
         />
         <span className="min-w-0 flex-1">

@@ -1,8 +1,8 @@
 import { http } from '@/lib/axios';
 import type { ApiResponse, PaginationMetadata } from '@/types/api';
 import type {
-  AssignUserRolesRequest,
   RoleListItem,
+  UpdateUserRolesRequest,
   UserListItem,
   UserRoleDetail,
 } from '../types/user.types';
@@ -68,11 +68,11 @@ export const deleteUser = async (userId: string): Promise<void> => {
   if (response && response.success === false) throw new Error(response.message);
 };
 
-export const assignUserRoles = async (
+export const updateUserRoles = async (
   userId: string,
-  request: AssignUserRolesRequest,
+  request: UpdateUserRolesRequest,
 ): Promise<void> => {
-  const { data: response } = await http.post<ApiResponse<null>>(
+  const { data: response } = await http.put<ApiResponse<unknown>>(
     `/users/${encodeURIComponent(userId)}/roles`,
     request,
   );

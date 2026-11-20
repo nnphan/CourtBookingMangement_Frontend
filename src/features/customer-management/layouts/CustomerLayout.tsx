@@ -51,7 +51,7 @@ export const CustomerLayout: React.FC = () => {
               <div className="grid size-6 place-items-center rounded-lg bg-[#dcfce7]">
                 <span className="text-brand-600 text-[10px] font-black">ALO</span>
               </div>
-              <span className="text-brand-900 text-xs font-black tracking-tight">ALOBO</span>
+              <span className="text-brand-900 text-xs font-black tracking-tight"></span>
             </div>
 
             <div className="hidden items-center gap-2 text-xs font-semibold text-white/80 sm:flex">

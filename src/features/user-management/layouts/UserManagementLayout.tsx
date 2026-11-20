@@ -45,9 +45,9 @@ export const UserManagementLayout: React.FC = () => {
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 items-center gap-2 rounded-xl bg-white px-2.5 shadow-xs">
               <div className="grid size-6 place-items-center rounded-lg bg-[#dcfce7]">
-                <span className="text-brand-600 text-[10px] font-black">ALO</span>
+                <span className="text-brand-600 text-[10px] font-black">AL</span>
               </div>
-              <span className="text-brand-900 text-xs font-black tracking-tight">ALOBO</span>
+              <span className="text-brand-900 text-xs font-black tracking-tight">CourtNow</span>
             </div>
 
             <div className="hidden items-center gap-2 text-xs font-semibold text-white/80 sm:flex">
@@ -72,14 +72,16 @@ export const UserManagementLayout: React.FC = () => {
 
         <div className="flex items-center gap-2 sm:gap-3">
           <LanguageSwitcher variant="contrast" />
-          {hasPermission(PERMISSIONS.DASHBOARD_VIEW) && <button
-            type="button"
-            onClick={() => navigate(paths.dashboard)}
-            className="hidden items-center gap-1.5 rounded-xl bg-white/15 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-white/25 sm:flex"
-          >
-            <LayoutGrid className="size-3.5 text-emerald-200" />
-            <span>Dashboard</span>
-          </button>}
+          {hasPermission(PERMISSIONS.DASHBOARD_VIEW) && (
+            <button
+              type="button"
+              onClick={() => navigate(paths.dashboard)}
+              className="hidden items-center gap-1.5 rounded-xl bg-white/15 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-white/25 sm:flex"
+            >
+              <LayoutGrid className="size-3.5 text-emerald-200" />
+              <span>Dashboard</span>
+            </button>
+          )}
           <CurrentUserMenu />
         </div>
       </header>

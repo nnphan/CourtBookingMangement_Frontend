@@ -57,7 +57,7 @@ export const DiscoveryHeader = () => {
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
               <span className="text-content-primary text-xl font-extrabold tracking-tight">
-                ALOBO
+                CourtNow
               </span>
               <span className="bg-brand-50 text-brand-600 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase">
                 Badminton
@@ -69,54 +69,8 @@ export const DiscoveryHeader = () => {
           </div>
         </Link>
 
-        {/* Center: Search Badminton branch, club name, address... */}
-        <form
-          onSubmit={handleSearchSubmit}
-          className="relative hidden max-w-xl flex-1 md:block"
-          role="search"
-          aria-label="Tìm kiếm câu lạc bộ và sân cầu lông"
-        >
-          <div className="group border-line bg-surface-muted/60 focus-within:border-brand-600 focus-within:bg-surface focus-within:ring-brand-50 hover:border-line-strong hover:bg-surface relative flex h-12 items-center rounded-full border px-4 shadow-xs transition-all focus-within:ring-3">
-            <Search
-              aria-hidden="true"
-              className="text-content-placeholder group-focus-within:text-brand-600 mr-3 size-5 transition-colors"
-            />
-            <input
-              type="text"
-              id="branch-discovery-search-input"
-              value={localInput}
-              onChange={(e) => {
-                setLocalInput(e.target.value);
-                setSearchQuery(e.target.value);
-              }}
-              placeholder="🔍 Search badminton branch, club name, address..."
-              aria-label="Search badminton branch, club name, address..."
-              className="text-content-primary placeholder:text-content-placeholder h-full w-full bg-transparent text-sm font-medium focus:outline-hidden"
-            />
-            {localInput && (
-              <button
-                type="button"
-                onClick={handleClear}
-                aria-label="Xoá tìm kiếm"
-                className="text-content-secondary hover:bg-line hover:text-content-primary focus-visible:outline-brand-600 ml-2 rounded-full p-1 focus-visible:outline-2"
-              >
-                <X className="size-4" aria-hidden="true" />
-              </button>
-            )}
-            <button
-              type="submit"
-              className="bg-brand-600 hover:bg-brand-700 ml-2 flex items-center justify-center rounded-full px-3.5 py-1.5 text-xs font-bold text-white transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:scale-95"
-            >
-              Tìm
-            </button>
-          </div>
-        </form>
-
         {/* Right: Language Switcher, Notifications, Register | Login or Profile */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Language Switcher (EN | VI) */}
-          <LanguageSwitcher />
-
           {/* Notifications Icon */}
           {isAuthenticated && (
             <button
