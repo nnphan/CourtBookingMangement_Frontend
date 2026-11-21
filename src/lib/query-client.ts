@@ -19,6 +19,7 @@ export const queryClient = new QueryClient({
 
 export const queryKeys = {
   auth: { me: ['auth', 'me'] as const },
+  profile: { me: ['profile', 'me'] as const },
   courts: {
     all: ['courts'] as const,
     list: (clubId: string) => ['courts', 'list', clubId] as const,

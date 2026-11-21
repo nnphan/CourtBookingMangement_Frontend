@@ -38,6 +38,7 @@ const CustomerCourtStatusPage = lazy(
   () => import('@/features/customer-court-status/pages/CustomerCourtStatusPage'),
 );
 const MyBookingPage = lazy(() => import('@/features/bookings/pages/MyBookingPage'));
+const MyProfilePage = lazy(() => import('@/features/profile/pages/MyProfilePage'));
 const MomoReturnPage = lazy(() => import('@/features/payments/pages/MomoReturnPage'));
 const DiscoverMatchesPage = lazy(
   () => import('@/features/player-matching/pages/DiscoverMatchesPage'),
@@ -123,6 +124,7 @@ export const router = createBrowserRouter([
         element: <AppLayout />,
         children: [
           { path: paths.dashboard, element: withPermissions(<DashboardPage />, [P.DASHBOARD_VIEW]) },
+          { path: paths.myProfile, element: withSuspense(<MyProfilePage />) },
           { path: paths.courts, element: withPermissions(<CourtsPage />, [P.COURT_VIEW]) },
           { path: paths.bookings, element: withPermissions(<BookingsPage />, [P.BOOKING_VIEW]) },
           { path: paths.posSales, element: withPermissions(<CommercePage />, [P.SALES_VIEW, P.PRODUCT_VIEW, P.INVENTORY_VIEW, P.SALES_REPORT_VIEW], 'any') },

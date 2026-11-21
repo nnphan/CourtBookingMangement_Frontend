@@ -6,6 +6,7 @@ export interface Amenity {
 }
 
 export interface UploadFileData {
+  fileId: string;
   fileName: string;
   url: string;
   contentType: string;
