@@ -307,7 +307,6 @@ export const CourtStatusPage: React.FC = () => {
 
         {/* Right: Language Switcher, Search and Filter Icons */}
         <div className="flex items-center gap-1 sm:gap-2">
-          <LanguageSwitcher variant="contrast" className="mr-1" />
           <CurrentUserMenu />
 
           <button
@@ -388,7 +387,9 @@ export const CourtStatusPage: React.FC = () => {
             <EmptyState
               date={selectedDate}
               onCreateBooking={
-                isPastDate || !canCreate ? undefined : () => handleOpenCreateBooking({ date: selectedDate })
+                isPastDate || !canCreate
+                  ? undefined
+                  : () => handleOpenCreateBooking({ date: selectedDate })
               }
             />
           </div>
@@ -409,10 +410,14 @@ export const CourtStatusPage: React.FC = () => {
                 const found = bookings.find((item) => item.id === b.id);
                 if (found) openDetailDrawer(found);
               }}
-              onEditBooking={canUpdate ? (b) => {
-                const found = bookings.find((item) => item.id === b.id);
-                if (found) openEditDialog(found);
-              } : undefined}
+              onEditBooking={
+                canUpdate
+                  ? (b) => {
+                      const found = bookings.find((item) => item.id === b.id);
+                      if (found) openEditDialog(found);
+                    }
+                  : undefined
+              }
               onCheckIn={canUpdateStatus ? handleCheckIn : undefined}
               onCheckOut={canUpdateStatus ? handleCheckOut : undefined}
               onCreateInvoice={hasPermission(P.PAYMENT_CREATE) ? handleCreateInvoice : undefined}

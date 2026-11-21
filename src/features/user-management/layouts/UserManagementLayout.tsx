@@ -71,7 +71,6 @@ export const UserManagementLayout: React.FC = () => {
         <ManagementNavigation />
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <LanguageSwitcher variant="contrast" />
           {hasPermission(PERMISSIONS.DASHBOARD_VIEW) && (
             <button
               type="button"

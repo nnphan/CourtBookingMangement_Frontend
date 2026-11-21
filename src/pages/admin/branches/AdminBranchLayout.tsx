@@ -77,8 +77,6 @@ export const AdminBranchLayout: React.FC = () => {
             )}
           </span>
 
-          <LanguageSwitcher mode="dropdown" variant="contrast" />
-
           {hasPermission(PERMISSIONS.DASHBOARD_VIEW) && (
             <button
               type="button"

@@ -86,7 +86,6 @@ export const CourtStatusHeader: React.FC<CourtStatusHeaderProps> = memo(
 
           {/* Right Controls: Branch Dropdown & Date Navigation */}
           <div className="flex items-center gap-1.5 sm:gap-2">
-            <LanguageSwitcher variant="contrast" className="hidden sm:inline-flex" />
             {isAuthenticated && <CurrentUserMenu />}
 
             {/* Branch Selector (if multiple branches exist) */}
