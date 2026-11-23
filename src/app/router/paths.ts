@@ -4,6 +4,8 @@ export const paths = {
   register: '/uRegister',
   forgotPassword: '/uForgotPassword',
   dashboard: '/dashboard',
+  staffManagement: '/staff-management',
+  staffDetail: (id: string = ':staffId') => `/staff-management/${id}`,
   posSales: '/pos-sales',
   posManagement: '/pos-management',
   posCategories: '/pos-management/categories',

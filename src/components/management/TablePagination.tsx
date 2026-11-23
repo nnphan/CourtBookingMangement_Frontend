@@ -68,7 +68,7 @@ export const TablePagination: React.FC<TablePaginationProps> = ({
           <Select value={String(pageSize)} onValueChange={(val) => onPageSizeChange(Number(val))}>
             <SelectTrigger
               aria-label={t('management.pagination.rowsPerPage')}
-              className="h-9 w-20 rounded-lg bg-white border-slate-200 text-sm font-semibold"
+              className="h-11 w-20 rounded-lg bg-white border-slate-200 text-sm font-semibold"
             >
               <SelectValue placeholder={String(pageSize)} />
             </SelectTrigger>
@@ -89,20 +89,17 @@ export const TablePagination: React.FC<TablePaginationProps> = ({
           variant="outline"
           size="sm"
           onClick={() => onPageChange(pageNumber - 1)}
-          disabled={hasPreviousPage ?? pageNumber <= 1}
-          className="h-9 px-3 rounded-lg"
+          disabled={hasPreviousPage !== undefined ? !hasPreviousPage : pageNumber <= 1}
+          className="h-11 px-3 rounded-lg"
         >
           <ChevronLeft aria-hidden className="size-4" />
           {t('management.pagination.previous')}
         </Button>
 
-        <div className="flex items-center gap-1 mx-1">
+        <span className="px-2 sm:hidden">{formatNumber(pageNumber)} / {formatNumber(totalPages)}</span>
+        <div className="hidden sm:flex items-center gap-1 mx-1">
           {Array.from({ length: Math.min(totalPages, 5) }).map((_, idx) => {
-            let p = idx + 1;
-            if (totalPages > 5 && pageNumber > 3) {
-              p = pageNumber - 2 + idx;
-              if (p > totalPages) p = totalPages - (4 - idx);
-            }
+            const p = Math.max(1, Math.min(pageNumber - 2, totalPages - 4)) + idx;
             const isSelected = p === pageNumber;
             return (
               <button
@@ -111,7 +108,7 @@ export const TablePagination: React.FC<TablePaginationProps> = ({
                 onClick={() => onPageChange(p)}
                 aria-current={isSelected ? 'page' : undefined}
                 className={cn(
-                  'size-9 rounded-lg text-sm font-semibold transition-all',
+                  'size-11 rounded-lg text-sm font-semibold transition-all',
                   isSelected
                     ? 'bg-primary text-white shadow-xs'
                     : 'text-slate-700 hover:bg-slate-200/70',
@@ -128,8 +125,8 @@ export const TablePagination: React.FC<TablePaginationProps> = ({
           variant="outline"
           size="sm"
           onClick={() => onPageChange(pageNumber + 1)}
-          disabled={hasNextPage ?? pageNumber >= totalPages}
-          className="h-9 px-3 rounded-lg"
+          disabled={hasNextPage !== undefined ? !hasNextPage : pageNumber >= totalPages}
+          className="h-11 px-3 rounded-lg"
         >
           {t('management.pagination.next')}
           <ChevronRight aria-hidden className="size-4" />

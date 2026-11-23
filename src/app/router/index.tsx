@@ -11,6 +11,8 @@ const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage'));
 const RegisterPage = lazy(() => import('@/features/auth/pages/RegisterPage'));
 const ForgotPasswordPage = lazy(() => import('@/features/auth/pages/ForgotPasswordPage'));
 const DashboardPage = lazy(() => import('@/features/dashboard/pages/DashboardPage'));
+const StaffManagementPage = lazy(() => import('@/features/staff-management/pages/StaffManagementPage'));
+const StaffDetailPage = lazy(() => import('@/features/staff-management/pages/StaffDetailPage'));
 const CommercePage = lazy(() => import('@/features/pos-sales/pages/CommercePage'));
 const CommerceManagementPage = lazy(
   () => import('@/features/pos-sales/pages/CommerceManagementPage'),
@@ -124,6 +126,8 @@ export const router = createBrowserRouter([
         element: <AppLayout />,
         children: [
           { path: paths.dashboard, element: withPermissions(<DashboardPage />, [P.DASHBOARD_VIEW]) },
+          { path: paths.staffManagement, element: withSuspense(<StaffManagementPage />) },
+          { path: paths.staffDetail(), element: withSuspense(<StaffDetailPage />) },
           { path: paths.myProfile, element: withSuspense(<MyProfilePage />) },
           { path: paths.courts, element: withPermissions(<CourtsPage />, [P.COURT_VIEW]) },
           { path: paths.bookings, element: withPermissions(<BookingsPage />, [P.BOOKING_VIEW]) },

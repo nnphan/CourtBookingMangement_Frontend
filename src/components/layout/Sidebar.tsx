@@ -33,9 +33,11 @@ import { hasCurrentUserRole } from '@/shared/utils/current-user';
 import { USER_ROLES } from '@/shared/constants/roles';
 import { PERMISSIONS as P } from '@/shared/constants/permissions';
 import { useAuthorization } from '@/features/auth/authorization';
+import { useStaffAccess } from '@/features/staff-management/hooks/useStaffManagement';
+import { cn } from '@/lib/utils';
 
 import { paths } from '@/app/router/paths';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -70,6 +72,13 @@ const menuItems = [
     translationKey: 'navigation.roles',
     path: paths.adminRoles,
     adminOnly: true,
+  },
+  {
+    icon: User,
+    label: 'Quản lý nhân viên',
+    translationKey: 'staffManagement.title',
+    path: paths.staffManagement,
+    requiresStaffAccess: true,
   },
   { icon: Users, label: 'Quản lý khách hàng', path: paths.customers, permission: P.CUSTOMER_VIEW },
   {
@@ -116,6 +125,10 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const canAccessAdminRoutes =
     hasHydrated && authenticated && hasCurrentUserRole(user, USER_ROLES.ADMIN);
   const { hasPermission, hasAnyPermission } = useAuthorization();
+  const staffAccess = useStaffAccess(isOpen);
+  const staffAccessFailed =
+    staffAccess.isError && !('status' in staffAccess.error && staffAccess.error.status === 403);
+  const { pathname } = useLocation();
   const navigate = useNavigate();
   const previousFocus = useRef<HTMLElement | null>(null);
 
@@ -178,6 +191,12 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                     !item.anyPermissions ||
                     (hasHydrated && authenticated && hasAnyPermission(item.anyPermissions)),
                 )
+                .filter(
+                  (item) =>
+                    !('requiresStaffAccess' in item) ||
+                    !item.requiresStaffAccess ||
+                    (staffAccess.isSuccess && !staffAccess.isFetching),
+                )
                 .map((item, i) => (
                   <button
                     key={i}
@@ -188,7 +207,18 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                         onClose();
                       }
                     }}
-                    className="group flex w-full cursor-pointer items-center gap-3 border-b border-white/5 px-4 py-3.5 text-left transition-colors hover:bg-white/10 focus-visible:bg-white/10"
+                    aria-current={
+                      'requiresStaffAccess' in item &&
+                      (pathname === item.path || pathname.startsWith(`${item.path}/`))
+                        ? 'page'
+                        : undefined
+                    }
+                    className={cn(
+                      'group flex w-full cursor-pointer items-center gap-3 border-b border-white/5 px-4 py-3.5 text-left transition-colors hover:bg-white/10 focus-visible:bg-white/10',
+                      'requiresStaffAccess' in item &&
+                        (pathname === item.path || pathname.startsWith(`${item.path}/`)) &&
+                        'bg-white/20 font-bold',
+                    )}
                   >
                     <item.icon aria-hidden className="size-5 shrink-0 opacity-80" />
                     <span className="flex-1 text-[15px] font-medium">
@@ -199,6 +229,14 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                     <ChevronRight aria-hidden className="size-4 shrink-0 opacity-60" />
                   </button>
                 ))}
+              {staffAccessFailed && (
+                <div role="alert" className="px-4 py-3 text-sm">
+                  <p>{t('staffManagement.accessError')}</p>
+                  <button type="button" className="mt-1 font-semibold underline" onClick={() => void staffAccess.refetch()}>
+                    {t('staffManagement.retry')}
+                  </button>
+                </div>
+              )}
               <button
                 type="button"
                 onClick={logout}

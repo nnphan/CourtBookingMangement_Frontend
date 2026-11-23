@@ -4,18 +4,20 @@ import { cn } from '@/lib/utils';
 
 interface DashboardCardProps {
   title: string;
+  description?: string;
   icon: LucideIcon;
   gradientClass: string;
   to?: string;
   onClick?: () => void;
 }
 
-export const DashboardCard = ({ title, icon: Icon, gradientClass, to, onClick }: DashboardCardProps) => {
+export const DashboardCard = ({ title, description, icon: Icon, gradientClass, to, onClick }: DashboardCardProps) => {
   const content = (
     <>
       <div className="relative z-10 flex flex-col gap-2">
-        <Icon className="size-6 text-white" strokeWidth={2.5} />
+        <Icon aria-hidden="true" className="size-6 text-white" strokeWidth={2.5} />
         <h3 className="mt-2 text-sm font-bold text-white leading-tight sm:text-base">{title}</h3>
+        {description && <p className="text-sm text-white">{description}</p>}
       </div>
       
       {/* Watermark Icon */}

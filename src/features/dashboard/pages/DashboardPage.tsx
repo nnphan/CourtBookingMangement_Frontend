@@ -15,6 +15,8 @@ import { DashboardCard } from '@/features/dashboard/components/DashboardCard';
 import { paths } from '@/app/router/paths';
 import { useAuthorization } from '@/features/auth/authorization';
 import { PERMISSIONS as P } from '@/shared/constants/permissions';
+import { useTranslation } from 'react-i18next';
+import { useStaffAccess } from '@/features/staff-management/hooks/useStaffManagement';
 
 const cards = [
   {
@@ -89,6 +91,15 @@ const cards = [
     permission: P.SALES_VIEW,
   },
   {
+    title: 'Quản lý nhân viên',
+    translationKey: 'staffManagement.title',
+    descriptionKey: 'staffManagement.dashboardDescription',
+    icon: UserCog,
+    gradient: 'bg-gradient-customer',
+    path: paths.staffManagement,
+    requiresStaffAccess: true,
+  },
+  {
     title: 'Quản lý khách hàng',
     icon: Users,
     gradient: 'bg-gradient-customer',
@@ -99,19 +110,33 @@ const cards = [
 
 export const DashboardPage = () => {
   const { hasPermission, hasRole } = useAuthorization();
+  const { t } = useTranslation();
+  const staffAccess = useStaffAccess();
+  const staffAccessFailed =
+    staffAccess.isError && !('status' in staffAccess.error && staffAccess.error.status === 403);
   return (
     <div className="h-full w-full pt-4 sm:pt-8">
+      {staffAccessFailed && (
+        <div role="alert" className="mb-4">
+          <p>{t('staffManagement.accessError')}</p>
+          <button type="button" className="font-semibold text-emerald-700 underline" onClick={() => void staffAccess.refetch()}>
+            {t('staffManagement.retry')}
+          </button>
+        </div>
+      )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {cards
           .filter(
             (card) =>
               (!('adminOnly' in card) || !card.adminOnly || hasRole('ADMIN')) &&
-              (!('permission' in card) || !card.permission || hasPermission(card.permission)),
+              (!('permission' in card) || !card.permission || hasPermission(card.permission)) &&
+              (!('requiresStaffAccess' in card) || !card.requiresStaffAccess || (staffAccess.isSuccess && !staffAccess.isFetching)),
           )
           .map((card, i) => (
             <DashboardCard
               key={i}
-              title={card.title}
+              title={'translationKey' in card && card.translationKey ? t(card.translationKey) : card.title}
+              description={'descriptionKey' in card && card.descriptionKey ? t(card.descriptionKey) : undefined}
               icon={card.icon}
               gradientClass={card.gradient}
               to={card.path}
