@@ -10,6 +10,7 @@ export interface ApiErrorShape {
   /** Server-side per-field messages, keyed by form field name. */
   fields?: Record<string, string>;
   traceId?: string;
+  retryAfterSeconds?: number;
 }
 
 export interface ValidationError {

@@ -20,12 +20,14 @@ export const ResendStaffActivationDialog = ({ userId, email, onClose, returnFocu
   const submitting = useRef(false);
   const [result, setResult] = useState<CreateStaffResponse | null>(null);
   const [errorKey, setErrorKey] = useState('');
+  const [retryAfterSeconds, setRetryAfterSeconds] = useState<number | null>(null);
   const [uncertain, setUncertain] = useState(false);
 
   const submit = async () => {
     if (submitting.current || uncertain) return;
     submitting.current = true;
     setErrorKey('');
+    setRetryAfterSeconds(null);
     try {
       setResult(await resend.mutateAsync(userId));
     } catch (error) {
@@ -38,6 +40,16 @@ export const ResendStaffActivationDialog = ({ userId, email, onClose, returnFocu
         setErrorKey('staffManagement.detail.resendConflict');
       } else if (apiError.code === 'STAFF_DELIVERY_NOT_CONFIGURED') {
         setErrorKey('staffManagement.detail.resendNotConfigured');
+      } else if (apiError.code === 'INVITATION_RESEND_TOO_SOON') {
+        setRetryAfterSeconds(apiError.retryAfterSeconds ?? null);
+        setErrorKey(apiError.retryAfterSeconds
+          ? 'staffManagement.detail.resendTooSoonWithRetry'
+          : 'staffManagement.detail.resendTooSoon');
+      } else if (apiError.code === 'INVITATION_RATE_LIMITED' || apiError.status === 429) {
+        setRetryAfterSeconds(apiError.retryAfterSeconds ?? null);
+        setErrorKey(apiError.retryAfterSeconds
+          ? 'staffManagement.detail.resendRateLimitedWithRetry'
+          : 'staffManagement.detail.resendRateLimited');
       } else {
         setUncertain(true);
         setErrorKey('staffManagement.detail.resendUnknown');
@@ -62,15 +74,14 @@ export const ResendStaffActivationDialog = ({ userId, email, onClose, returnFocu
           <DialogTitle>{t('staffManagement.detail.resendTitle')}</DialogTitle>
           <DialogDescription>{t('staffManagement.detail.resendDescription', { email })}</DialogDescription>
         </DialogHeader>
-        <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          {t('staffManagement.create.activationPrerequisite')}
-        </p>
         {result && (
           <p role="status" className={result.invitationDeliveryStatus === 'SENT' ? 'text-sm text-emerald-700' : 'text-sm text-amber-800'}>
             {t(result.invitationDeliveryStatus === 'SENT' ? 'staffManagement.detail.resendSent' : 'staffManagement.detail.resendFailed')}
           </p>
         )}
-        {errorKey && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{t(errorKey)}</p>}
+        {errorKey && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          {t(errorKey, retryAfterSeconds === null ? undefined : { seconds: retryAfterSeconds })}
+        </p>}
         <div className="flex flex-wrap justify-end gap-2">
           <Button type="button" variant="outline" className="min-h-11" disabled={resend.isPending} onClick={onClose}>
             {t(result || uncertain ? 'staffManagement.create.done' : 'staffManagement.create.cancel')}

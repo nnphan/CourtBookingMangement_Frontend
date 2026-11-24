@@ -24,6 +24,12 @@ const StaffStatuses = ({ staff }: { staff: StaffListItem }) => {
     staff.activationStatus === 'ACTIVE' ? 'active'
       : staff.activationStatus === 'PENDING_ACTIVATION' ? 'pending'
         : staff.activationStatus === 'EXPIRED' ? 'blocked' : 'inactive';
+  const deliveryTone =
+    staff.invitationDeliveryStatus === 'SENT' ? 'active'
+      : staff.invitationDeliveryStatus === 'FAILED' ? 'blocked' : 'pending';
+  const showDeliveryStatus =
+    (staff.activationStatus === 'PENDING_ACTIVATION' || staff.activationStatus === 'EXPIRED') &&
+    staff.invitationDeliveryStatus !== null;
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -33,6 +39,11 @@ const StaffStatuses = ({ staff }: { staff: StaffListItem }) => {
       <StatusBadge status={activationTone}>
         {t(`staffManagement.activationValues.${staff.activationStatus}`)}
       </StatusBadge>
+      {showDeliveryStatus && staff.invitationDeliveryStatus && (
+        <StatusBadge status={deliveryTone}>
+          {t(`staffManagement.deliveryValues.${staff.invitationDeliveryStatus}`)}
+        </StatusBadge>
+      )}
     </div>
   );
 };

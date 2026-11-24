@@ -100,6 +100,11 @@ http.interceptors.response.use(
       },
       {},
     );
+    const retryAfterHeader = error.response?.headers?.get('Retry-After');
+    const retryAfterSeconds =
+      typeof retryAfterHeader === 'string' && /^\d+$/.test(retryAfterHeader)
+        ? Number(retryAfterHeader)
+        : undefined;
     const shaped: ApiErrorShape = {
       status: error.response?.status ?? 0,
       code:
@@ -107,6 +112,7 @@ http.interceptors.response.use(
       message: error.response?.data?.message ?? 'error.network',
       fields: error.response?.data?.errors ?? validationFields,
       traceId: error.response?.data?.traceId,
+      retryAfterSeconds,
     };
     return Promise.reject(shaped);
   },

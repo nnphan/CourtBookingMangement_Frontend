@@ -38,12 +38,17 @@
       "resendNotFound": "Tài khoản không khả dụng hoặc không đủ điều kiện nhận lời mời kích hoạt.",
       "resendConflict": "Tài khoản đã thay đổi và không thể gửi lời mời. Hãy làm mới thông tin.",
       "resendNotConfigured": "Chưa cấu hình gửi lời mời. Không có lời mời mới được tạo; hãy liên hệ quản trị viên.",
+      "resendTooSoon": "Lời mời vừa được gửi gần đây. Vui lòng đợi trước khi yêu cầu gửi lại.",
+      "resendTooSoonWithRetry": "Lời mời vừa được gửi gần đây. Vui lòng đợi {{seconds}} giây trước khi yêu cầu gửi lại.",
+      "resendRateLimited": "Đã đạt giới hạn gửi lại lời mời. Vui lòng đợi trước khi thử lại.",
+      "resendRateLimitedWithRetry": "Đã đạt giới hạn gửi lại lời mời. Vui lòng thử lại sau {{seconds}} giây.",
+      "invitationDelivery": "Trạng thái gửi lời mời",
+      "deliveryFailed": "Không thể gửi email mời. Bạn có thể thử lại sau thời gian chờ.",
       "resendUnknown": "Không xác nhận được kết quả. Lời mời mới có thể đã được tạo và các liên kết trước bị thu hồi. Hãy kiểm tra với người nhận trước khi thử lại."
     },
     "create": {
       "title": "Thêm nhân viên",
       "explanation": "Liên kết kích hoạt sẽ được gửi qua email. Nhân viên tự đặt mật khẩu; không cần chọn vai trò.",
-      "activationPrerequisite": "Trước khi gửi lời mời, hãy đảm bảo môi trường triển khai có trang kích hoạt đã cấu hình. Ứng dụng này chưa có trang đó.",
       "noPermission": "Bạn không có quyền tạo nhân viên tại các chi nhánh hiện có.",
       "fields": {
         "displayName": "Tên hiển thị",
@@ -128,6 +133,49 @@
       "ACTIVE": "Đã kích hoạt",
       "INACTIVE": "Đã vô hiệu hóa",
       "EXPIRED": "Lời mời hết hạn"
+    },
+    "deliveryValues": {
+      "PENDING": "Đang chờ gửi email",
+      "SENT": "Đã gửi email",
+      "FAILED": "Gửi email thất bại"
+    }
+  },
+  "staffActivation": {
+    "title": "Kích hoạt tài khoản nhân viên",
+    "invalidLink": "Liên kết kích hoạt bị thiếu hoặc không đúng định dạng.",
+    "retry": "Thử lại",
+    "signIn": "Đến trang đăng nhập",
+    "states": {
+      "loading": "Đang kiểm tra lời mời...",
+      "invalid": "Liên kết kích hoạt không hợp lệ. Hãy liên hệ chủ chi nhánh nếu bạn cần lời mời mới.",
+      "expired": "Lời mời đã hết hạn. Hãy liên hệ chủ chi nhánh để yêu cầu lời mời khác.",
+      "used": "Lời mời này đã được sử dụng. Hãy đăng nhập hoặc liên hệ chủ chi nhánh.",
+      "revoked": "Lời mời này đã được thay thế. Hãy sử dụng email lời mời mới nhất.",
+      "rateLimited": "Bạn đã thử quá nhiều lần. Vui lòng đợi một chút rồi thử lại.",
+      "validationError": "Không thể xác minh lời mời. Hãy kiểm tra kết nối rồi thử lại.",
+      "activationError": "Không thể kích hoạt tài khoản. Vui lòng thử lại.",
+      "success": "Tài khoản nhân viên đã được kích hoạt. Bạn có thể đăng nhập."
+    },
+    "account": {
+      "title": "Thông tin lời mời",
+      "name": "Họ tên",
+      "branches": "Chi nhánh được phân công",
+      "noBranches": "Không có thông tin chi nhánh.",
+      "expiresAt": "Lời mời hết hạn"
+    },
+    "form": {
+      "errorSummary": "Có lỗi cần xử lý",
+      "password": "Tạo mật khẩu",
+      "confirmPassword": "Xác nhận mật khẩu",
+      "passwordRequirements": "Dùng ít nhất 12 ký tự, tối đa 72 byte UTF-8 và ít nhất ba nhóm: chữ hoa, chữ thường, chữ số và ký hiệu.",
+      "submit": "Kích hoạt tài khoản",
+      "submitting": "Đang kích hoạt..."
+    },
+    "errors": {
+      "invalidLink": "Liên kết kích hoạt không hợp lệ.",
+      "passwordPolicy": "Mật khẩu cần ít nhất 12 ký tự, tối đa 72 byte UTF-8 và gồm ít nhất ba nhóm ký tự.",
+      "confirmPasswordRequired": "Vui lòng xác nhận mật khẩu.",
+      "passwordMismatch": "Mật khẩu xác nhận không khớp."
     }
   },
   "playerMatch": {

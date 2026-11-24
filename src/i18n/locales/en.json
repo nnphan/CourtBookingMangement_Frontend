@@ -38,12 +38,17 @@
       "resendNotFound": "This account is unavailable or not eligible for an activation invitation.",
       "resendConflict": "The account changed and the invitation could not be sent. Refresh the details.",
       "resendNotConfigured": "Invitation delivery is not configured. No new invitation was issued; contact an administrator.",
+      "resendTooSoon": "An invitation was sent recently. Please wait before requesting another.",
+      "resendTooSoonWithRetry": "An invitation was sent recently. Please wait {{seconds}} seconds before requesting another.",
+      "resendRateLimited": "The invitation resend limit has been reached. Please wait before trying again.",
+      "resendRateLimitedWithRetry": "The invitation resend limit has been reached. Please try again in {{seconds}} seconds.",
+      "invitationDelivery": "Invitation delivery",
+      "deliveryFailed": "The invitation email could not be delivered. You can try again after the cooldown.",
       "resendUnknown": "The outcome could not be confirmed. A new invitation may have been issued and previous links revoked. Check with the recipient before trying again."
     },
     "create": {
       "title": "Add staff",
       "explanation": "An activation link will be sent by email. The staff member sets their own password; no role selection is needed.",
-      "activationPrerequisite": "Before inviting staff, ensure the deployment provides the configured activation page. This application does not yet include one.",
       "noPermission": "You do not have permission to create staff in any available branch.",
       "fields": {
         "displayName": "Display name",
@@ -128,6 +133,49 @@
       "ACTIVE": "Activated",
       "INACTIVE": "Deactivated",
       "EXPIRED": "Invitation expired"
+    },
+    "deliveryValues": {
+      "PENDING": "Email pending",
+      "SENT": "Email sent",
+      "FAILED": "Email failed"
+    }
+  },
+  "staffActivation": {
+    "title": "Activate your Staff account",
+    "invalidLink": "This activation link is missing or malformed.",
+    "retry": "Try again",
+    "signIn": "Go to sign in",
+    "states": {
+      "loading": "Checking your invitation...",
+      "invalid": "This activation link is invalid. Contact your branch owner if you need a new invitation.",
+      "expired": "This invitation has expired. Contact your branch owner to request another one.",
+      "used": "This invitation has already been used. Sign in or contact your branch owner.",
+      "revoked": "This invitation has been replaced. Use the newest invitation email.",
+      "rateLimited": "There have been too many attempts. Please wait a moment and try again.",
+      "validationError": "We could not verify this invitation. Check your connection and try again.",
+      "activationError": "We could not activate your account. Please try again.",
+      "success": "Your Staff account is active. You can now sign in."
+    },
+    "account": {
+      "title": "Invitation details",
+      "name": "Name",
+      "branches": "Assigned branches",
+      "noBranches": "No branch details were provided.",
+      "expiresAt": "Invitation expires"
+    },
+    "form": {
+      "errorSummary": "There is a problem",
+      "password": "Create password",
+      "confirmPassword": "Confirm password",
+      "passwordRequirements": "Use at least 12 characters, no more than 72 UTF-8 bytes, and at least three of uppercase letters, lowercase letters, digits, and symbols.",
+      "submit": "Activate account",
+      "submitting": "Activating..."
+    },
+    "errors": {
+      "invalidLink": "This activation link is invalid.",
+      "passwordPolicy": "Use at least 12 characters, no more than 72 UTF-8 bytes, and at least three character types.",
+      "confirmPasswordRequired": "Confirm your password.",
+      "passwordMismatch": "Passwords do not match."
     }
   },
   "playerMatch": {

@@ -51,6 +51,8 @@ const StaffDetailPage = () => {
   const activationTone = person.activationStatus === 'ACTIVE' ? 'active'
     : person.activationStatus === 'PENDING_ACTIVATION' ? 'pending'
       : person.activationStatus === 'EXPIRED' ? 'blocked' : 'inactive';
+  const deliveryTone = person.invitationDeliveryStatus === 'SENT' ? 'active'
+    : person.invitationDeliveryStatus === 'FAILED' ? 'blocked' : 'pending';
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 py-4">
@@ -65,9 +67,22 @@ const StaffDetailPage = () => {
         <dl className="grid gap-4 text-sm sm:grid-cols-2">
           <div><dt className="font-semibold text-slate-700">{t('staffManagement.create.fields.email')}</dt><dd className="break-all text-slate-900">{person.email}</dd></div>
           <div><dt className="font-semibold text-slate-700">{t('staffManagement.create.fields.phoneNumber')}</dt><dd className="text-slate-900">{person.phoneNumber || '—'}</dd></div>
+          {pending && person.invitationDeliveryStatus && (
+            <div>
+              <dt className="font-semibold text-slate-700">{t('staffManagement.detail.invitationDelivery')}</dt>
+              <dd className="mt-1">
+                <StatusBadge status={deliveryTone}>
+                  {t(`staffManagement.deliveryValues.${person.invitationDeliveryStatus}`)}
+                </StatusBadge>
+              </dd>
+            </div>
+          )}
           <div><dt className="font-semibold text-slate-700">{t('staffManagement.columns.created')}</dt><dd className="text-slate-900">{formatDate(person.createdAt)}</dd></div>
           <div><dt className="font-semibold text-slate-700">{t('staffManagement.columns.lastLogin')}</dt><dd className="text-slate-900">{formatDate(person.lastLoginAt, { withTime: true })}</dd></div>
         </dl>
+        {pending && person.invitationDeliveryStatus === 'FAILED' && (
+          <p className="text-sm text-amber-800">{t('staffManagement.detail.deliveryFailed')}</p>
+        )}
         {pending && (
           <div className="space-y-2 border-t border-slate-100 pt-4">
             <Button ref={resendButton} type="button" size="sm" className="min-h-11" disabled={!canResend} onClick={() => setResendOpen(true)}>

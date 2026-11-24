@@ -2,6 +2,7 @@ import type { PaginationMetadata } from '@/types/api';
 
 export type StaffStatus = 'ACTIVE' | 'INACTIVE';
 export type StaffActivationStatus = 'PENDING_ACTIVATION' | 'ACTIVE' | 'INACTIVE' | 'EXPIRED';
+export type StaffInvitationDeliveryStatus = 'PENDING' | 'SENT' | 'FAILED';
 export type StaffSortField =
   | 'displayName'
   | 'email'
@@ -44,6 +45,7 @@ export interface StaffDetail {
   phoneNumber: string | null;
   status: StaffStatus;
   activationStatus: StaffActivationStatus;
+  invitationDeliveryStatus: StaffInvitationDeliveryStatus | null;
   branches: StaffBranch[];
   lastLoginAt: string | null;
   createdAt: string;

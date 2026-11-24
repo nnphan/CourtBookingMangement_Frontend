@@ -108,9 +108,6 @@ export const StaffCreateDialog = ({ branches, open, onOpenChange }: Props) => {
           <DialogTitle>{t('staffManagement.create.title')}</DialogTitle>
           <DialogDescription>{t('staffManagement.create.explanation')}</DialogDescription>
         </DialogHeader>
-        <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          {t('staffManagement.create.activationPrerequisite')}
-        </p>
         {result ? (
           <div className="space-y-4" role="status">
             <p className="font-semibold text-emerald-700">{t('staffManagement.create.created')}</p>

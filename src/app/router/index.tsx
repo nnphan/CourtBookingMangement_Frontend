@@ -10,6 +10,9 @@ import { RouteErrorBoundary } from '@/components/common/RouteErrorBoundary';
 const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage'));
 const RegisterPage = lazy(() => import('@/features/auth/pages/RegisterPage'));
 const ForgotPasswordPage = lazy(() => import('@/features/auth/pages/ForgotPasswordPage'));
+const StaffActivationPage = lazy(
+  () => import('@/features/staff-activation/pages/StaffActivationPage'),
+);
 const DashboardPage = lazy(() => import('@/features/dashboard/pages/DashboardPage'));
 const StaffManagementPage = lazy(() => import('@/features/staff-management/pages/StaffManagementPage'));
 const StaffDetailPage = lazy(() => import('@/features/staff-management/pages/StaffDetailPage'));
@@ -89,6 +92,11 @@ export const router = createBrowserRouter([
   {
     path: paths.momoReturn,
     element: withSuspense(<MomoReturnPage />),
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: paths.staffActivation,
+    element: withSuspense(<StaffActivationPage />),
     errorElement: <RouteErrorBoundary />,
   },
   {

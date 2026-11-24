@@ -3,6 +3,7 @@ export const paths = {
   login: '/uLogin',
   register: '/uRegister',
   forgotPassword: '/uForgotPassword',
+  staffActivation: '/staff/activate',
   dashboard: '/dashboard',
   staffManagement: '/staff-management',
   staffDetail: (id: string = ':staffId') => `/staff-management/${id}`,
