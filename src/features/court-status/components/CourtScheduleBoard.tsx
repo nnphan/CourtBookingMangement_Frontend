@@ -1,6 +1,7 @@
 import React, { memo, useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, Lock, AlertTriangle } from 'lucide-react';
+import { Lock, AlertTriangle, Loader2 } from 'lucide-react';
+import type { RealtimeSlotState } from '../hooks/useRealtimeCourtSelection';
 import { cn } from '@/lib/utils';
 import {
   generateTimelineHours,
@@ -8,6 +9,7 @@ import {
   calculateCurrentTimeIndicator,
 } from '../utils/timeline.utils';
 import { isPastSlot, isBookedSlot } from '../utils/time-selection.utils';
+import { computeSlotEndTime } from '../utils/court-slot-selection.utils';
 import { getCourtStatusInfo } from '../types/court-status.types';
 import { CourtStatusTimelineHeader } from '../shared/components/CourtStatusTimelineHeader';
 import { CourtStatusCourtNameCell } from '../shared/components/CourtStatusCourtNameCell';
@@ -54,8 +56,9 @@ export interface CourtScheduleBoardProps {
   slotInterval?: number;
   zoomLevel?: number;
   onZoomChange?: (zoom: number) => void;
-  // Multi-court, independent multi-slot selection
-  selectedSlotKeys: Set<string>;
+  branchToday?: string;
+  getRealtimeState?: (courtId: string, startTime: string) => RealtimeSlotState | undefined;
+  selectionReady?: boolean;
   onToggleSlot: (court: CourtScheduleBoardCourt, slotTime: string) => void;
   // Staff / management actions (optional - passed only by staff/admin pages)
   onSelectBooking?: (booking: CourtScheduleBoardBooking) => void;
@@ -93,8 +96,9 @@ export const CourtScheduleBoard: React.FC<CourtScheduleBoardProps> = memo(
     closeTime = '23:00:00',
     slotInterval = 60,
     zoomLevel = 1.0,
-    onZoomChange,
-    selectedSlotKeys,
+    branchToday,
+    getRealtimeState,
+    selectionReady = true,
     onToggleSlot,
     onSelectBooking,
     onEditBooking,
@@ -103,7 +107,6 @@ export const CourtScheduleBoard: React.FC<CourtScheduleBoardProps> = memo(
     onCreateInvoice,
     onCancelBooking,
     children,
-    emptyMessage,
     className,
   }) => {
     const { t } = useTranslation();
@@ -153,12 +156,13 @@ export const CourtScheduleBoard: React.FC<CourtScheduleBoardProps> = memo(
 
     // Check if viewing a past date
     const isPastDate = useMemo(() => {
+      if (branchToday) return selectedDate < branchToday;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const target = new Date(selectedDate);
       target.setHours(0, 0, 0, 0);
       return target.getTime() < today.getTime();
-    }, [selectedDate]);
+    }, [branchToday, selectedDate]);
 
     // Update scroll shadows
     const updateScrollShadows = useCallback(() => {
@@ -281,13 +285,11 @@ export const CourtScheduleBoard: React.FC<CourtScheduleBoardProps> = memo(
             {/* Grid Rows */}
             <div className="flex flex-col divide-y divide-slate-100">
               {courts.map((court) => {
-                const statusInfo = getCourtStatusInfo(court.status);
+                const statusInfo = getCourtStatusInfo(court.status ?? 'active');
                 const normalizedStatus = (court.status || 'active').trim().toLowerCase();
-                const isMaintenanceOrInactive =
-                  normalizedStatus === 'maintenance' || normalizedStatus === 'inactive';
+                const isMaintenanceOrInactive = normalizedStatus !== 'active';
 
                 const courtBookings = bookings.filter((b) => b.courtId === court.id);
-                console.log(courtBookings);
 
                 return (
                   <div
@@ -326,23 +328,16 @@ export const CourtScheduleBoard: React.FC<CourtScheduleBoardProps> = memo(
                     >
                       {/* Background Hourly Grid Cells */}
                       {timelineHours.map((hour) => {
-                        const isPast =
-                          isPastDate ||
-                          isMaintenanceOrInactive ||
-                          isPastSlot(selectedDate, hour);
+                        const realtime = getRealtimeState?.(court.id, hour);
+                        const blocked = isMaintenanceOrInactive || realtime === 'BLOCKED';
+                        const isPast = realtime === 'PAST' ||
+                          (!branchToday && (isPastDate || isPastSlot(selectedDate, hour)));
                         const isBooked = isBookedSlot(
                           court.id,
                           hour,
                           scheduleItemsForCollision,
+                          computeSlotEndTime(hour),
                         );
-
-                        // O(1) set lookup for selection
-                        const slotKey = `${court.id}:${selectedDate}:${hour}:00`;
-                        const shortKey = `${court.id}:${selectedDate}:${hour}`;
-                        const isSelected =
-                          selectedSlotKeys.has(slotKey) ||
-                          selectedSlotKeys.has(shortKey) ||
-                          selectedSlotKeys.has(`${court.id}:${selectedDate}:${hour}:00:00`);
 
                         // 1. Booked Slot
                         if (isBooked) {
@@ -351,6 +346,7 @@ export const CourtScheduleBoard: React.FC<CourtScheduleBoardProps> = memo(
                               key={hour}
                               role="gridcell"
                               aria-disabled="true"
+                              aria-label={`${court.name} ${hour}: Đã đặt`}
                               style={{ width: `${hourWidth}px` }}
                               className="pointer-events-none relative h-full shrink-0 cursor-not-allowed border-r border-slate-100/80 bg-slate-50/20 select-none"
                             />
@@ -358,42 +354,54 @@ export const CourtScheduleBoard: React.FC<CourtScheduleBoardProps> = memo(
                         }
 
                         // 2. Disabled / Past Slot
-                        if (isPast) {
+                        if (isPast || blocked) {
+                          const label = blocked ? 'Tạm khóa' : 'Đã qua';
                           return (
                             <div
                               key={hour}
                               role="gridcell"
                               aria-disabled="true"
-                              title={`Khung giờ ${hour} không thể đặt lịch.`}
+                              aria-label={`${court.name} ${hour}: ${label}`}
+                              title={`${hour}: ${label}`}
                               style={{ width: `${hourWidth}px` }}
                               className="group/cell pointer-events-none relative h-full shrink-0 cursor-not-allowed border-r border-slate-200/60 opacity-50 select-none bg-[repeating-linear-gradient(45deg,#f8fafc,#f8fafc_6px,#e2e8f0_6px,#e2e8f0_10px)]"
                             >
-                              <div className="absolute inset-0 flex items-center justify-center opacity-40">
-                                <Lock className="size-3 text-slate-400" />
+                              <div className="absolute inset-0 flex items-center justify-center gap-1 text-xs text-slate-600">
+                                <Lock aria-hidden="true" className="size-3" />
+                                {label}
                               </div>
                             </div>
                           );
                         }
 
-                        // 3. Selected Slot
-                        if (isSelected) {
+                        if (realtime) {
+                          const label = {
+                            HOLDING: 'Đang giữ sân...',
+                            RELEASING: 'Đang bỏ chọn...',
+                            HELD_BY_ME: 'Sân đang được chọn',
+                            HELD_BY_OTHER: 'Đang được giữ',
+                          }[realtime];
+                          const owned = realtime === 'HELD_BY_ME';
                           return (
                             <button
                               key={hour}
                               type="button"
                               role="gridcell"
-                              aria-selected="true"
-                              aria-pressed="true"
-                              aria-label={`Bỏ chọn ${court.name} lúc ${hour}`}
-                              style={{ width: `${hourWidth}px` }}
+                              disabled={!owned || !selectionReady}
+                              aria-disabled={!owned || !selectionReady}
+                              aria-selected={owned}
+                              aria-label={`${court.name} ${hour}: ${label}`}
+                              style={{ width: hourWidth }}
                               onClick={() => onToggleSlot(court, hour)}
-                              className="group/cell relative z-10 flex h-full shrink-0 cursor-pointer items-center justify-center border-r border-emerald-500 bg-emerald-600 font-bold text-white shadow-xs transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
-                              title={`Bấm để bỏ chọn ${court.name} lúc ${hour}`}
+                              className={cn(
+                                'flex h-full shrink-0 items-center justify-center gap-1 border-r px-1 text-xs font-semibold focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500',
+                                owned ? 'bg-emerald-100 text-emerald-900' : 'bg-slate-200 text-slate-700',
+                              )}
                             >
-                              <div className="flex items-center gap-1 text-[11px] font-bold tracking-tight text-white drop-shadow-xs">
-                                <span>{hour}</span>
-                                <Check className="size-3.5 stroke-[3]" />
-                              </div>
+                              {realtime === 'HOLDING' || realtime === 'RELEASING'
+                                ? <Loader2 aria-hidden="true" className="size-3 shrink-0 animate-spin" />
+                                : null}
+                              {label}
                             </button>
                           );
                         }
@@ -406,7 +414,9 @@ export const CourtScheduleBoard: React.FC<CourtScheduleBoardProps> = memo(
                             role="gridcell"
                             aria-selected="false"
                             aria-pressed="false"
-                            aria-label={`Chọn ${court.name} lúc ${hour}`}
+                            disabled={!selectionReady}
+                            aria-disabled={!selectionReady}
+                            aria-label={`${court.name} ${hour}: ${selectionReady ? 'Còn trống' : 'Chỉ xem'}`}
                             style={{ width: `${hourWidth}px` }}
                             onClick={() => onToggleSlot(court, hour)}
                             className="group/cell relative h-full shrink-0 cursor-pointer border-r border-slate-100/90 bg-white transition-colors hover:bg-emerald-50 active:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
@@ -414,7 +424,7 @@ export const CourtScheduleBoard: React.FC<CourtScheduleBoardProps> = memo(
                           >
                             <div className="pointer-events-none absolute inset-0 hidden items-center justify-center group-hover/cell:flex">
                               <span className="rounded border border-emerald-200 bg-white/95 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 shadow-2xs">
-                                + {hour}
+                                Còn trống
                               </span>
                             </div>
                           </button>

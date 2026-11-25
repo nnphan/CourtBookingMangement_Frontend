@@ -41,3 +41,8 @@ export const isExpired = (token: string, skewSeconds = 30) => {
   if (!payload?.exp) return true;
   return payload.exp * 1000 - skewSeconds * 1000 <= Date.now();
 };
+
+export function getUsableAccessToken() {
+  const token = tokenStorage.read()?.accessToken;
+  return typeof token === 'string' && !isExpired(token) ? token : undefined;
+}

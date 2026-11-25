@@ -380,12 +380,6 @@ export interface MatchItem {
   createdAt?: string;
 }
 
-export interface PlayerMatchingStats {
-  openMatches: number;
-  activePlayers?: number;
-  completedMatches?: number;
-}
-
 export interface PlayerMatchingFilterParams {
   pageNumber?: number;
   pageSize?: number;
@@ -399,4 +393,3 @@ export interface PlayerMatchingFilterParams {
 }
 
 export type PlayerMatchingResponse = ApiResponse<MatchItem[]>;
-export type PlayerMatchingStatsResponse = ApiResponse<PlayerMatchingStats>;

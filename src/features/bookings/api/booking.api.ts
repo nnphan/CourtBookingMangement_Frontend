@@ -1,4 +1,5 @@
 import { http } from '@/lib/axios';
+import { courtSelectionGuestHeaders } from '@/lib/court-selection-session';
 import type {
   CreateBookingRequest,
   CreateBookingResponse,
@@ -39,7 +40,10 @@ export const bookingApi = {
       const response = await http.post<ApiSuccessResponse<CreateBookingResponse>>(
         '/api/bookings',
         payload,
-        { headers: { 'Idempotency-Key': requestDebugId } },
+        { headers: {
+          'Idempotency-Key': requestDebugId,
+          ...courtSelectionGuestHeaders(payload.selectionHoldId ? payload.ownerSessionId : undefined),
+        } },
       );
 
       if (import.meta.env.DEV) {

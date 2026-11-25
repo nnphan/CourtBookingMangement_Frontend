@@ -5,7 +5,7 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from 'axios';
 import { env } from '@/lib/env';
-import { tokenStorage, isExpired } from '@/lib/token-storage';
+import { getUsableAccessToken, tokenStorage } from '@/lib/token-storage';
 import type { ApiErrorShape } from '@/types/api';
 import type { ValidationError } from '@/types/api';
 
@@ -27,15 +27,9 @@ export const http: AxiosInstance = axios.create({
 
 /* ---------------------------------------------------------------- request */
 http.interceptors.request.use((config) => {
-  const tokens = tokenStorage.read();
-  if (
-    tokens?.accessToken &&
-    typeof tokens.accessToken === 'string' &&
-    tokens.accessToken !== 'undefined' &&
-    tokens.accessToken !== 'null' &&
-    !isExpired(tokens.accessToken)
-  ) {
-    config.headers.set('Authorization', `Bearer ${tokens.accessToken}`);
+  const accessToken = getUsableAccessToken();
+  if (accessToken) {
+    config.headers.set('Authorization', `Bearer ${accessToken}`);
   } else {
     config.headers.delete('Authorization');
   }

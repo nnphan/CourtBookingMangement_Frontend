@@ -22,6 +22,8 @@ export interface BookingScheduleDetail {
 }
 
 export interface MultiCourtBookingSelection {
+  selectionHoldId?: string;
+  ownerSessionId?: string;
   details?: BookingScheduleDetail[];
   branchId: string;
   branchName?: string;
@@ -44,6 +46,8 @@ export interface CreateBookingDetailRequest {
  * for an authenticated caller that has a Customer profile.
  */
 export interface CreateBookingRequest {
+  selectionHoldId?: string;
+  ownerSessionId?: string;
   branchId: string;
   bookingType: BookingTypeApi;
   paymentMethod: PaymentMethodApi;

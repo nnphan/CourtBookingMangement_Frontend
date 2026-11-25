@@ -13,7 +13,8 @@ import {
   type CourtScheduleBoardBooking,
 } from '@/features/court-status/components/CourtScheduleBoard';
 import { SelectedScheduleSummary } from '@/features/court-status/components/SelectedScheduleSummary';
-import { useCourtSlotSelection } from '@/features/court-status/hooks/useCourtSlotSelection';
+import { CourtSelectionStatus } from '@/features/court-status/components/CourtSelectionStatus';
+import { useRealtimeCourtSelection } from '@/features/court-status/hooks/useRealtimeCourtSelection';
 import { StatusLegend } from '../components/StatusLegend';
 import { CustomerNoticeBanner } from '../components/CustomerNoticeBanner';
 import { CourtPriceModal } from '../components/CourtPriceModal';
@@ -53,20 +54,7 @@ export const CustomerCourtStatusPage: React.FC = () => {
   const setSelectedDate = useCustomerCourtStatusStore((s) => s.setSelectedDate);
   const zoomLevel = useCustomerCourtStatusStore((s) => s.zoomLevel);
   const setZoomLevel = useCustomerCourtStatusStore((s) => s.setZoomLevel);
-  const [isCreateBookingOpen, setIsCreateBookingOpen] = useState(false);
-
-  // Unified multi-court, multi-time-slot selection state
-  const {
-    selectedSlotKeys,
-    normalizedRanges,
-    totalDurationHours,
-    totalCourtCount,
-    hasSelection,
-    toggleSlot,
-    removeRange,
-    removeCourt,
-    clearSelection,
-  } = useCourtSlotSelection({ defaultSlotDurationMinutes: 60 });
+  const [dialogHoldId, setDialogHoldId] = useState<string | null>(null);
 
   // Single Source of Truth Date Resolution
   const routeDate = useMemo(() => {
@@ -89,11 +77,6 @@ export const CustomerCourtStatusPage: React.FC = () => {
   }, [routeDate, searchStoreDate, storeDate]);
 
   const activeBranchId = targetBranchId || selectedBranchId;
-
-  // Clear selections when date or branch changes
-  useEffect(() => {
-    clearSelection();
-  }, [activeBranchId, selectedDate, clearSelection]);
 
   // Sync route parameter branchId into Zustand store
   useEffect(() => {
@@ -226,17 +209,14 @@ export const CustomerCourtStatusPage: React.FC = () => {
   }, [scheduleItems, selectedDate]);
 
   // Handle cell slot toggle
-  const handleToggleSlot = useCallback(
-    (court: CourtScheduleBoardCourt, slotTime: string) => {
-      toggleSlot({
-        courtId: court.id,
-        courtName: court.name,
-        bookingDate: selectedDate,
-        startTime: slotTime,
-      });
-    },
-    [toggleSlot, selectedDate],
-  );
+  const refreshBookings = useCallback(() => { void refetch(); }, [refetch]);
+  const realtime = useRealtimeCourtSelection(activeBranchId, selectedDate, boardCourts, refreshBookings);
+  const { normalizedRanges, totalDurationHours, totalCourtCount, removeRange, removeCourt, clearSelection } = realtime;
+  const { holdId, ownerSessionId } = realtime;
+  const hasSelection = normalizedRanges.length > 0;
+  const handleToggleSlot = (court: CourtScheduleBoardCourt, slotTime: string) => {
+    realtime.toggleSlot(court.id, slotTime);
+  };
 
   // Multi-court booking selection mapped losslessly to CreateBookingDialog
   const bookingSelection = useMemo<MultiCourtBookingSelection | null>(() => {
@@ -254,6 +234,8 @@ export const CustomerCourtStatusPage: React.FC = () => {
 
     return {
       branchId: activeBranchId,
+      selectionHoldId: holdId ?? undefined,
+      ownerSessionId,
       branchName: branchName || currentBranch.branchName,
       bookingDate: formatBookingDateToApi(selectedDate),
       startTime: formatTimeToApi(primaryRange.startTime),
@@ -267,7 +249,7 @@ export const CustomerCourtStatusPage: React.FC = () => {
         endTime: formatTimeToApi(range.endTime),
       })),
     };
-  }, [normalizedRanges, activeBranchId, branchName, currentBranch.branchName, selectedDate]);
+  }, [normalizedRanges, holdId, ownerSessionId, activeBranchId, branchName, currentBranch.branchName, selectedDate]);
 
   const invalidateCourtStatus = useCallback(() => {
     if (!activeBranchId) return;
@@ -276,11 +258,6 @@ export const CustomerCourtStatusPage: React.FC = () => {
       exact: true,
     });
   }, [activeBranchId, queryClient, selectedDate]);
-
-  const handleBookingCreated = useCallback(() => {
-    clearSelection();
-    invalidateCourtStatus();
-  }, [clearSelection, invalidateCourtStatus]);
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-[#0d6838] text-white">
@@ -349,19 +326,23 @@ export const CustomerCourtStatusPage: React.FC = () => {
               closeTime={closeTime}
               zoomLevel={zoomLevel}
               onZoomChange={setZoomLevel}
-              selectedSlotKeys={selectedSlotKeys}
+              getRealtimeState={realtime.getState}
+              branchToday={realtime.branchToday}
+              selectionReady={realtime.ready}
               onToggleSlot={handleToggleSlot}
             />
 
+            <CourtSelectionStatus connected={realtime.connected} remaining={realtime.remaining} />
             {/* Selected Schedule Summary Bar */}
             {hasSelection && (
               <SelectedScheduleSummary
                 ranges={normalizedRanges}
                 totalDurationHours={totalDurationHours}
                 totalCourtCount={totalCourtCount}
+                disabled={realtime.busy}
                 onRemoveRange={removeRange}
                 onClearAll={clearSelection}
-                onConfirm={() => setIsCreateBookingOpen(true)}
+                onConfirm={() => setDialogHoldId(holdId ?? null)}
                 confirmLabel="Tiếp tục đặt sân"
               />
             )}
@@ -374,12 +355,13 @@ export const CustomerCourtStatusPage: React.FC = () => {
 
       {/* Create Booking Dialog */}
       <CreateBookingDialog
-        isOpen={isCreateBookingOpen}
-        onClose={() => setIsCreateBookingOpen(false)}
+        key={dialogHoldId ?? 'closed'}
+        isOpen={Boolean(dialogHoldId)}
+        onClose={() => setDialogHoldId(null)}
         mode="CUSTOMER"
-        selection={bookingSelection}
+        selection={dialogHoldId === holdId ? bookingSelection : null}
         onRemoveCourt={removeCourt}
-        onBookingCreated={handleBookingCreated}
+        onBookingCreated={invalidateCourtStatus}
         onBookingConflict={invalidateCourtStatus}
       />
 

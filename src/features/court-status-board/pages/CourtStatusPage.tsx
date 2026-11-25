@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useEffect } from 'react';
+import React, { useCallback, useMemo, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Filter } from 'lucide-react';
@@ -17,7 +17,8 @@ import {
   type CourtScheduleBoardBooking,
 } from '@/features/court-status/components/CourtScheduleBoard';
 import { SelectedScheduleSummary } from '@/features/court-status/components/SelectedScheduleSummary';
-import { useCourtSlotSelection } from '@/features/court-status/hooks/useCourtSlotSelection';
+import { CourtSelectionStatus } from '@/features/court-status/components/CourtSelectionStatus';
+import { useRealtimeCourtSelection } from '@/features/court-status/hooks/useRealtimeCourtSelection';
 import { BookingDetailDrawer } from '../components/BookingDetailDrawer';
 import { CreateBookingDialog } from '@/features/bookings/components/CreateBookingDialog';
 import { EditBookingDialog } from '../components/EditBookingDialog';
@@ -26,7 +27,6 @@ import { CourtStatusBoardSkeleton } from '../components/CourtStatusBoardSkeleton
 import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
 import type { BookingItem } from '../types/booking';
-import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 import { CurrentUserMenu } from '@/shared/components/current-user';
 import { ManagementNavigation } from '@/components/navigation';
 import { formatBookingDateToApi, formatTimeToApi } from '@/features/bookings/utils/booking.mapper';
@@ -110,33 +110,14 @@ export const CourtStatusPage: React.FC = () => {
   const openDetailDrawer = useCourtStatusStore((s) => s.openDetailDrawer);
   const closeDetailDrawer = useCourtStatusStore((s) => s.closeDetailDrawer);
 
-  // Independent multi-court, multi-time-slot selection state
-  const {
-    selectedSlotKeys,
-    normalizedRanges,
-    totalDurationHours,
-    totalCourtCount,
-    hasSelection,
-    toggleSlot,
-    removeRange,
-    removeCourt,
-    clearSelection,
-  } = useCourtSlotSelection({ defaultSlotDurationMinutes: slotInterval || 60 });
-
-  // Clear selections when branch or date changes
-  useEffect(() => {
-    clearSelection();
-  }, [selectedBranch, selectedDate, clearSelection]);
-
   const handleBack = useCallback(() => {
     navigate(-1);
   }, [navigate]);
 
   const isPastDate = useMemo(() => SchedulerService.isPastDate(selectedDate), [selectedDate]);
-
   const filteredCourts = useMemo(() => {
     if (!selectedCourtGroup || selectedCourtGroup === 'all') return courts;
-    return courts.filter((c) => c.courtGroupId === selectedCourtGroup);
+    return courts.filter((court) => court.courtGroupId === selectedCourtGroup);
   }, [courts, selectedCourtGroup]);
 
   // Board adapters
@@ -169,17 +150,15 @@ export const CourtStatusPage: React.FC = () => {
     }));
   }, [bookings, selectedDate]);
 
-  const handleToggleSlot = useCallback(
-    (court: CourtScheduleBoardCourt, slotTime: string) => {
-      toggleSlot({
-        courtId: court.id,
-        courtName: court.name,
-        bookingDate: selectedDate,
-        startTime: slotTime,
-      });
-    },
-    [toggleSlot, selectedDate],
-  );
+  const refreshBookings = useCallback(() => { void refetch(); }, [refetch]);
+  const realtime = useRealtimeCourtSelection(selectedBranch, selectedDate, boardCourts, refreshBookings, 60, canCreate);
+  const { normalizedRanges, totalDurationHours, totalCourtCount, removeRange, removeCourt, clearSelection } = realtime;
+  const { holdId, ownerSessionId } = realtime;
+  const [dialogHoldId, setDialogHoldId] = useState<string | null>(null);
+  const hasSelection = normalizedRanges.length > 0;
+  const handleToggleSlot = (court: CourtScheduleBoardCourt, slotTime: string) => {
+    realtime.toggleSlot(court.id, slotTime);
+  };
 
   const handleOpenCreateBooking = useCallback(
     (initial?: {
@@ -199,6 +178,7 @@ export const CourtStatusPage: React.FC = () => {
         );
         return;
       }
+      setDialogHoldId(holdId ?? null);
       openCreateDialog({
         branchId: initial?.branchId ?? selectedBranch,
         date: targetDate,
@@ -206,7 +186,7 @@ export const CourtStatusPage: React.FC = () => {
         ...initial,
       });
     },
-    [openCreateDialog, selectedDate, selectedBranch, t],
+    [openCreateDialog, selectedDate, selectedBranch, holdId, t],
   );
 
   const handleCancelBooking = useCallback(
@@ -261,6 +241,8 @@ export const CourtStatusPage: React.FC = () => {
 
       return {
         branchId: selectedBranch,
+        selectionHoldId: holdId ?? undefined,
+        ownerSessionId,
         bookingDate: formatBookingDateToApi(selectedDate),
         startTime: formatTimeToApi(primaryRange.startTime),
         endTime: formatTimeToApi(primaryRange.endTime),
@@ -287,7 +269,7 @@ export const CourtStatusPage: React.FC = () => {
       endTime: defaults?.endTime ? formatTimeToApi(defaults.endTime) : '09:00:00',
       courts: fallbackCourts,
     };
-  }, [normalizedRanges, selectedBranch, selectedDate, createDialogDefaultValues, courts]);
+  }, [normalizedRanges, holdId, ownerSessionId, selectedBranch, selectedDate, createDialogDefaultValues, courts]);
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-[#0d6838] text-white">
@@ -404,7 +386,9 @@ export const CourtStatusPage: React.FC = () => {
               slotInterval={slotInterval}
               zoomLevel={zoomLevel}
               onZoomChange={setZoomLevel}
-              selectedSlotKeys={selectedSlotKeys}
+              getRealtimeState={realtime.getState}
+              branchToday={realtime.branchToday}
+              selectionReady={realtime.ready && canCreate}
               onToggleSlot={canCreate ? handleToggleSlot : () => undefined}
               onSelectBooking={(b) => {
                 const found = bookings.find((item) => item.id === b.id);
@@ -424,15 +408,21 @@ export const CourtStatusPage: React.FC = () => {
               onCancelBooking={canCancel ? handleCancelBooking : undefined}
             />
 
+            <CourtSelectionStatus connected={realtime.connected} remaining={realtime.remaining} />
             {/* Selected Schedule Summary Bar */}
             {canCreate && hasSelection && (
               <SelectedScheduleSummary
                 ranges={normalizedRanges}
                 totalDurationHours={totalDurationHours}
                 totalCourtCount={totalCourtCount}
+                disabled={realtime.busy}
                 onRemoveRange={removeRange}
                 onClearAll={clearSelection}
-                onConfirm={() => openCreateDialog()}
+                onConfirm={() => {
+                  if (!holdId) return;
+                  setDialogHoldId(holdId);
+                  openCreateDialog();
+                }}
                 confirmLabel={t('courtStatus.bottom.book', 'Đặt lịch')}
               />
             )}
@@ -468,12 +458,14 @@ export const CourtStatusPage: React.FC = () => {
       ) : canCreate && !editingBooking ? (
         <CreateBookingDialog
           isOpen={isCreateDialogOpen}
-          onClose={closeCreateDialog}
+          onClose={() => {
+            setDialogHoldId(null);
+            closeCreateDialog();
+          }}
           mode="ADMIN"
-          selection={createSelection}
+          selection={dialogHoldId && dialogHoldId !== holdId ? null : createSelection}
           onRemoveCourt={removeCourt}
           onBookingCreated={() => {
-            clearSelection();
             void refetch();
           }}
         />

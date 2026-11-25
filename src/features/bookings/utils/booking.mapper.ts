@@ -243,6 +243,10 @@ export const toCreateBookingRequest = (
 
   return {
     branchId: selection.branchId,
+    ...(selection.selectionHoldId && {
+      selectionHoldId: selection.selectionHoldId,
+      ownerSessionId: selection.ownerSessionId,
+    }),
     bookingType: values.bookingType ?? 'FLEXIBLE',
     paymentMethod: values.paymentMethod,
     notes: values.notes?.trim() ?? '',

@@ -19,6 +19,7 @@ export const courtStatusService = {
         Date: date,
         branchId,
         date,
+        includeCustomerData: true,
       },
     });
 

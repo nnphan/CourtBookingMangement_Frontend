@@ -225,18 +225,13 @@ export const router = createBrowserRouter([
         ],
       },
       {
-        element: <AdminOnlyRoute />,
+        path: paths.adminBranches,
+        element: withPermissions(<AdminBranchLayout />, [P.BRANCH_VIEW]),
         children: [
-          {
-            path: paths.adminBranches,
-            element: withPermissions(<AdminBranchLayout />, [P.BRANCH_VIEW]),
-            children: [
-              { index: true, element: withSuspense(<BranchListPage />) },
-              { path: 'create', element: withPermissions(<BranchCreatePage />, [P.BRANCH_CREATE]) },
-              { path: ':id', element: withSuspense(<BranchDetailPage />) },
-              { path: ':id/edit', element: withPermissions(<BranchEditPage />, [P.BRANCH_UPDATE]) },
-            ],
-          },
+          { index: true, element: withSuspense(<BranchListPage />) },
+          { path: 'create', element: withPermissions(<BranchCreatePage />, [P.BRANCH_CREATE]) },
+          { path: ':id', element: withSuspense(<BranchDetailPage />) },
+          { path: ':id/edit', element: withPermissions(<BranchEditPage />, [P.BRANCH_UPDATE]) },
         ],
       },
     ],

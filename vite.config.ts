@@ -11,6 +11,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': { target: process.env.VITE_PROXY_TARGET ?? 'http://localhost:8080', changeOrigin: true },
+      '/hubs': { target: process.env.VITE_PROXY_TARGET ?? 'http://localhost:8080', changeOrigin: true, ws: true },
     },
   },
   build: { outDir: 'dist', sourcemap: false, target: 'es2022' },

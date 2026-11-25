@@ -14,7 +14,6 @@ import type {
   ParticipatingPlayerMatchesParams,
   PlayerMatchingFilterParams,
   PlayerMatchingResponse,
-  PlayerMatchingStatsResponse,
   PlayerMatchingProfile,
   PlayerMatchPreferences,
   UpdatePlayerMatchingProfileRequest,
@@ -304,35 +303,6 @@ export const playerMatchingApi = {
 
   createPlayerMatch: async (payload: CreatePlayerMatchRequest): Promise<void> => {
     await http.post('/api/player-matches', payload);
-  },
-
-  /**
-   * Get open match stats for badge counter and promotion
-   * Endpoint: GET /api/player-matching/stats
-   */
-  getStats: async (): Promise<PlayerMatchingStatsResponse> => {
-    try {
-      const response = await http.get<PlayerMatchingStatsResponse>('/player-matching/stats');
-      if (response?.data?.success) {
-        return response.data;
-      }
-    } catch {
-      // Graceful fallback to mock stats when backend endpoint is not yet deployed
-    }
-
-    const openCount = MOCK_MATCHES.filter((m) => m.status === 'OPEN').length;
-    return {
-      success: true,
-      message: 'Request completed successfully.',
-      data: {
-        openMatches: openCount,
-        activePlayers: 42,
-        completedMatches: 128,
-      },
-      metadata: null,
-      traceId: 'mock-stats-trace',
-      timestamp: new Date().toISOString(),
-    };
   },
 
   /**

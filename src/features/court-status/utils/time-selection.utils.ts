@@ -115,14 +115,18 @@ export const isBookedSlot = (
   courtId: string,
   slotTime: string,
   scheduleItems: CourtScheduleItemDto[],
+  slotEndTime?: string,
 ): boolean => {
   const slotMinutes = timeToMinutes(slotTime);
+  const slotEndMinutes = slotEndTime ? timeToMinutes(slotEndTime) : undefined;
 
   return scheduleItems.some((item) => {
     if (item.courtId !== courtId || !isBlockingScheduleItem(item)) return false;
     const startMin = timeToMinutes(item.startTime);
     const endMin = timeToMinutes(item.endTime);
-    return slotMinutes >= startMin && slotMinutes < endMin;
+    return slotEndMinutes === undefined
+      ? slotMinutes >= startMin && slotMinutes < endMin
+      : slotMinutes < endMin && startMin < slotEndMinutes;
   });
 };
 

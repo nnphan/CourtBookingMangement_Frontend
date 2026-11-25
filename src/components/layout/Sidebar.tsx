@@ -50,7 +50,6 @@ const menuItems = [
     label: 'Quản lý chi nhánh (Branches)',
     path: paths.adminBranches,
     anyPermissions: [P.BRANCH_CREATE, P.BRANCH_VIEW],
-    adminOnly: false,
   },
   {
     icon: Building2,
@@ -232,7 +231,11 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
               {staffAccessFailed && (
                 <div role="alert" className="px-4 py-3 text-sm">
                   <p>{t('staffManagement.accessError')}</p>
-                  <button type="button" className="mt-1 font-semibold underline" onClick={() => void staffAccess.refetch()}>
+                  <button
+                    type="button"
+                    className="mt-1 font-semibold underline"
+                    onClick={() => void staffAccess.refetch()}
+                  >
                     {t('staffManagement.retry')}
                   </button>
                 </div>

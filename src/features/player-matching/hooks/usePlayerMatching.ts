@@ -24,7 +24,6 @@ import { BOOKING_QUERY_KEYS } from '@/features/bookings/api/booking.query';
 
 export const playerMatchingKeys = {
   all: ['player-matching'] as const,
-  stats: () => [...playerMatchingKeys.all, 'stats'] as const,
   featured: () => [...playerMatchingKeys.all, 'featured'] as const,
   lists: () => [...playerMatchingKeys.all, 'list'] as const,
   list: (filters: Omit<PlayerMatchingFilterParams, 'pageNumber'>) =>
@@ -263,18 +262,6 @@ export const useCancelPlayerMatchJoinRequest = () => {
     retry: false,
     onSuccess: (_result, matchId) => invalidateJoinRequestQueries(queryClient, matchId),
     onError: (_error, matchId) => invalidateJoinRequestQueries(queryClient, matchId),
-  });
-};
-
-/**
- * Hook to retrieve open match stats for badge counter
- * Endpoint: GET /api/player-matching/stats
- */
-export const useMatchStats = () => {
-  return useQuery({
-    queryKey: playerMatchingKeys.stats(),
-    queryFn: () => playerMatchingApi.getStats(),
-    staleTime: 1000 * 60 * 3, // 3 minutes
   });
 };
 

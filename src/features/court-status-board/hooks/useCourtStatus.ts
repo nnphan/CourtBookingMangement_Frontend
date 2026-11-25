@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { courtStatusService } from '@/services/court-status.service';
+import { useAuthStore } from '@/features/auth/store/auth.store';
 import { courtStatusApi } from '../api/court-status.api';
 import type { CourtStatusResponse, CourtStatusCourt, CourtScheduleItem } from '@/types/court-status';
 import type { CourtStatusFilterParams } from '../types/common';
@@ -84,10 +85,11 @@ export const useCourtStatus = (
   const courtGroupId =
     typeof paramsOrBranchId === 'object' ? paramsOrBranchId.courtGroupId : undefined;
 
-  const isEnabled = Boolean(branchId && date);
+  const userId = useAuthStore((state) => state.user?.id);
+  const isEnabled = Boolean(branchId && date && userId);
 
   const query = useQuery<CourtStatusResponse>({
-    queryKey: QUERY_KEYS.COURT_STATUS(branchId, date),
+    queryKey: [...QUERY_KEYS.COURT_STATUS(branchId, date), 'management', userId],
     queryFn: () => courtStatusService.getCourtStatus(branchId, date),
     enabled: isEnabled,
     staleTime: 30_000,

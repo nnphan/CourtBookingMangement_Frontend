@@ -32,7 +32,6 @@ const cards = [
     gradient: 'bg-gradient-social',
     path: paths.adminBranches,
     permission: P.BRANCH_VIEW,
-    adminOnly: true,
   },
   {
     title: 'Quản lý chủ sân',
@@ -119,7 +118,11 @@ export const DashboardPage = () => {
       {staffAccessFailed && (
         <div role="alert" className="mb-4">
           <p>{t('staffManagement.accessError')}</p>
-          <button type="button" className="font-semibold text-emerald-700 underline" onClick={() => void staffAccess.refetch()}>
+          <button
+            type="button"
+            className="font-semibold text-emerald-700 underline"
+            onClick={() => void staffAccess.refetch()}
+          >
             {t('staffManagement.retry')}
           </button>
         </div>
@@ -130,13 +133,21 @@ export const DashboardPage = () => {
             (card) =>
               (!('adminOnly' in card) || !card.adminOnly || hasRole('ADMIN')) &&
               (!('permission' in card) || !card.permission || hasPermission(card.permission)) &&
-              (!('requiresStaffAccess' in card) || !card.requiresStaffAccess || (staffAccess.isSuccess && !staffAccess.isFetching)),
+              (!('requiresStaffAccess' in card) ||
+                !card.requiresStaffAccess ||
+                (staffAccess.isSuccess && !staffAccess.isFetching)),
           )
           .map((card, i) => (
             <DashboardCard
               key={i}
-              title={'translationKey' in card && card.translationKey ? t(card.translationKey) : card.title}
-              description={'descriptionKey' in card && card.descriptionKey ? t(card.descriptionKey) : undefined}
+              title={
+                'translationKey' in card && card.translationKey
+                  ? t(card.translationKey)
+                  : card.title
+              }
+              description={
+                'descriptionKey' in card && card.descriptionKey ? t(card.descriptionKey) : undefined
+              }
               icon={card.icon}
               gradientClass={card.gradient}
               to={card.path}
