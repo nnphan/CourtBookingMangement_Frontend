@@ -131,9 +131,6 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const navigate = useNavigate();
   const previousFocus = useRef<HTMLElement | null>(null);
 
-  console.log(user);
-  console.log(hasPermission);
-
   return (
     <DialogPrimitive.Root
       open={isOpen}

@@ -787,7 +787,8 @@
     "roles": {
       "customer": "Khách hàng",
       "staff": "Nhân viên",
-      "branchManager": "Quản lý chi nhánh",
+      "branchManager": "Quản lý chi nhánh 111",
+      "branchOwner": "Chủ chi nhánh",
       "admin": "Quản trị viên",
       "user": "Người dùng"
     }

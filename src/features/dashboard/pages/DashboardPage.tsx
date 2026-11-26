@@ -97,6 +97,7 @@ const cards = [
     gradient: 'bg-gradient-customer',
     path: paths.staffManagement,
     requiresStaffAccess: true,
+    permission: P.SALES_VIEW,
   },
   {
     title: 'Quản lý khách hàng',

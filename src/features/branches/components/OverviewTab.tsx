@@ -13,15 +13,9 @@ export interface OverviewTabProps {
   onZoomImage?: (url: string) => void;
 }
 
-export const OverviewTab: React.FC<OverviewTabProps> = ({
-  branch,
-  onEdit,
-  onZoomImage,
-}) => {
+export const OverviewTab: React.FC<OverviewTabProps> = ({ branch, onEdit, onZoomImage }) => {
   const { t } = useTranslation('branch');
   const fullAddress = buildFullAddress(branch.address, branch.district, branch.city);
-
-  console.log(branch.branchAmenities);
 
   const { data: amenityCatalog = [] } = useAmenities();
 
@@ -36,8 +30,6 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
       return found ? [found] : [];
     });
   }, [branch.branchAmenities, branch.amenityIds, amenityCatalog]);
-
-
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -54,9 +46,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             <span className="block text-xs font-bold tracking-wider text-slate-400 uppercase">
               {t('details.overview.branchName', 'Tên chi nhánh')}
             </span>
-            <span className="mt-0.5 block text-base font-bold text-slate-900">
-              {branch.name}
-            </span>
+            <span className="mt-0.5 block text-base font-bold text-slate-900">{branch.name}</span>
           </div>
 
           {/* Contact Phone */}
@@ -86,9 +76,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             <span className="block text-xs font-bold tracking-wider text-slate-400 uppercase">
               {t('details.overview.city', 'Tỉnh / Thành phố')}
             </span>
-            <span className="mt-0.5 block font-semibold text-slate-800">
-              {branch.city || '-'}
-            </span>
+            <span className="mt-0.5 block font-semibold text-slate-800">{branch.city || '-'}</span>
           </div>
 
           {/* District */}

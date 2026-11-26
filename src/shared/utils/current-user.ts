@@ -1,7 +1,8 @@
 import type { User } from '@/types/auth';
 import type { AppRole } from '@/shared/constants/roles';
 
-export type CurrentUserRole = 'customer' | 'staff' | 'branchManager' | 'admin' | 'user';
+export type CurrentUserRole =
+  'customer' | 'staff' | 'branchManager' | 'branchOwner' | 'admin' | 'user';
 
 export function getUserInitials(fullName?: string | null): string {
   const parts = fullName?.trim().split(/\s+/).filter(Boolean) ?? [];
@@ -26,8 +27,11 @@ export function getCurrentUserRole(user: Pick<User, 'role' | 'roles'> | null): C
   );
 
   if (roles.has('SUPER_ADMIN') || roles.has('ADMIN')) return 'admin';
-  if (roles.has('BRANCH_OWNER') || roles.has('BRANCH_MANAGER') || roles.has('OWNER')) {
+  if (roles.has('BRANCH_MANAGER')) {
     return 'branchManager';
+  }
+  if (roles.has('BRANCH_OWNER')) {
+    return 'branchOwner';
   }
   if (roles.has('STAFF') || roles.has('RECEPTIONIST')) return 'staff';
   if (roles.has('CUSTOMER')) return 'customer';

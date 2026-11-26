@@ -31,6 +31,7 @@ export const PERMISSIONS = {
   PAYMENT_VIEW: 'payment.view',
   PAYMENT_CREATE: 'payment.create',
   REPORT_VIEW: 'report.view',
+  STAFF_VIEW: 'staff.view',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

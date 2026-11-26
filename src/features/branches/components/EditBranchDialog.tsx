@@ -1,15 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  Building2,
-  Phone,
-  MapPin,
-  Clock,
-  Grid3X3,
-  DollarSign,
-  Plus,
-  Trash2,
-} from 'lucide-react';
+import { Building2, Phone, MapPin, Clock, Grid3X3, DollarSign, Plus, Trash2 } from 'lucide-react';
 import type {
   BranchDetailDto,
   BranchCourtDto,
@@ -35,11 +26,7 @@ export interface EditBranchDialogProps {
   onClose: () => void;
 }
 
-export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({
-  branch,
-  isOpen,
-  onClose,
-}) => {
+export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({ branch, isOpen, onClose }) => {
   const { t } = useTranslation('branch');
   const { mutateAsync: updateBranchMutation, isPending } = useUpdateBranch();
   const { data: amenityCatalog = [] } = useAmenities();
@@ -87,13 +74,9 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({
       setSupportsInstantBooking(branch.supportsInstantBooking ?? true);
 
       // Amenity IDs
-      console.log(branch);
-      const initialAmenityIds =
-        branch.branchAmenities?.map(
-          (amenity) => amenity.id
-        ) ?? [];
+
+      const initialAmenityIds = branch.branchAmenities?.map((amenity) => amenity.id) ?? [];
       setSelectedAmenityIds(initialAmenityIds);
-      console.log(initialAmenityIds);
 
       // Images
       const normalizedImgs = normalizeBranchImages(branch.images);
@@ -122,7 +105,9 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({
       if (branch.branchPricings && branch.branchPricings.length > 0) {
         const normal = branch.branchPricings.find((p) => p.pricingType?.toUpperCase() === 'NORMAL');
         const peak = branch.branchPricings.find((p) => p.pricingType?.toUpperCase() === 'PEAK');
-        const weekend = branch.branchPricings.find((p) => p.pricingType?.toUpperCase() === 'WEEKEND');
+        const weekend = branch.branchPricings.find(
+          (p) => p.pricingType?.toUpperCase() === 'WEEKEND',
+        );
         if (normal) setNormalPrice(normal.pricePerHour);
         if (peak) setPeakPrice(peak.pricePerHour);
         if (weekend) setWeekendPrice(weekend.pricePerHour);
@@ -237,7 +222,7 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && !isPending && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-900">
             <Building2 className="size-5 text-emerald-600" />
@@ -248,11 +233,11 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({
         <form onSubmit={handleSubmit} className="space-y-6 pt-3">
           {/* Section 1: Basic Info */}
           <div className="space-y-4">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b pb-1.5">
+            <h4 className="border-b pb-1.5 text-xs font-bold tracking-wider text-slate-400 uppercase">
               1. Thông tin chung
             </h4>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="text-xs font-semibold text-slate-700">Tên chi nhánh *</label>
                 <input
@@ -267,13 +252,13 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({
               <div>
                 <label className="text-xs font-semibold text-slate-700">Số điện thoại *</label>
                 <div className="relative mt-1">
-                  <Phone className="absolute left-3 top-2.5 size-4 text-slate-400" />
+                  <Phone className="absolute top-2.5 left-3 size-4 text-slate-400" />
                   <input
                     type="tel"
                     required
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
-                    className="h-9.5 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
+                    className="h-9.5 w-full rounded-xl border border-slate-200 bg-slate-50 pr-3 pl-9 text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
                   />
                 </div>
               </div>
@@ -281,13 +266,13 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({
               <div className="sm:col-span-2">
                 <label className="text-xs font-semibold text-slate-700">Địa chỉ cụ thể *</label>
                 <div className="relative mt-1">
-                  <MapPin className="absolute left-3 top-2.5 size-4 text-slate-400" />
+                  <MapPin className="absolute top-2.5 left-3 size-4 text-slate-400" />
                   <input
                     type="text"
                     required
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    className="h-9.5 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
+                    className="h-9.5 w-full rounded-xl border border-slate-200 bg-slate-50 pr-3 pl-9 text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
                   />
                 </div>
               </div>
@@ -351,7 +336,7 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({
 
           {/* Section 2: Operating Hours */}
           <div className="space-y-4">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b pb-1.5 flex items-center gap-1.5">
+            <h4 className="flex items-center gap-1.5 border-b pb-1.5 text-xs font-bold tracking-wider text-slate-400 uppercase">
               <Clock className="size-3.5 text-emerald-600" />
               2. Giờ hoạt động
             </h4>
@@ -381,12 +366,12 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({
 
           {/* Section 3: Pricing */}
           <div className="space-y-4">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b pb-1.5 flex items-center gap-1.5">
+            <h4 className="flex items-center gap-1.5 border-b pb-1.5 text-xs font-bold tracking-wider text-slate-400 uppercase">
               <DollarSign className="size-3.5 text-emerald-600" />
               3. Bảng giá thuê sân (VNĐ/giờ)
             </h4>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div>
                 <label className="text-xs font-semibold text-slate-700">Giờ thường (05h-17h)</label>
                 <input
@@ -398,7 +383,9 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-slate-700">Giờ cao điểm (17h-23h)</label>
+                <label className="text-xs font-semibold text-slate-700">
+                  Giờ cao điểm (17h-23h)
+                </label>
                 <input
                   type="number"
                   step="5000"
@@ -422,7 +409,7 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({
 
           {/* Section 4: Courts */}
           <div className="space-y-4">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b pb-1.5 flex items-center gap-1.5">
+            <h4 className="flex items-center gap-1.5 border-b pb-1.5 text-xs font-bold tracking-wider text-slate-400 uppercase">
               <Grid3X3 className="size-3.5 text-emerald-600" />
               4. Danh sách sân ({courts.length})
             </h4>
@@ -436,12 +423,12 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({
                 className="h-9 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs"
               />
               <Button type="button" size="sm" variant="outline" onClick={handleAddCourt}>
-                <Plus className="size-3.5 mr-1" />
+                <Plus className="mr-1 size-3.5" />
                 Thêm
               </Button>
             </div>
 
-            <div className="space-y-2 max-h-40 overflow-y-auto">
+            <div className="max-h-40 space-y-2 overflow-y-auto">
               {courts.map((court, idx) => (
                 <div
                   key={idx}
@@ -452,17 +439,18 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({
                     <button
                       type="button"
                       onClick={() => handleToggleCourtActive(idx)}
-                      className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${court.isActive
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : 'bg-red-50 text-red-700 border-red-200'
-                        }`}
+                      className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
+                        court.isActive
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                          : 'border-red-200 bg-red-50 text-red-700'
+                      }`}
                     >
                       {court.isActive ? 'Hoạt động' : 'Ngưng hoạt động'}
                     </button>
                     <button
                       type="button"
                       onClick={() => handleRemoveCourt(idx)}
-                      className="text-red-500 hover:text-red-700 p-1"
+                      className="p-1 text-red-500 hover:text-red-700"
                     >
                       <Trash2 className="size-3.5" />
                     </button>
@@ -474,7 +462,7 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({
 
           {/* Section 5: Amenities */}
           <div className="space-y-4">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b pb-1.5">
+            <h4 className="border-b pb-1.5 text-xs font-bold tracking-wider text-slate-400 uppercase">
               5. Tiện ích
             </h4>
 
@@ -486,10 +474,11 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({
                     key={amenity.id}
                     type="button"
                     onClick={() => toggleAmenity(amenity.id)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${isSelected
-                      ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                      }`}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-all ${
+                      isSelected
+                        ? 'border-emerald-700 bg-emerald-700 text-white shadow-2xs'
+                        : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                    }`}
                   >
                     {amenity.name}
                   </button>
@@ -500,7 +489,7 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({
 
           {/* Section 6: Images */}
           <div className="space-y-4">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b pb-1.5">
+            <h4 className="border-b pb-1.5 text-xs font-bold tracking-wider text-slate-400 uppercase">
               6. Hình ảnh ({images.length})
             </h4>
 
@@ -513,19 +502,22 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({
                 className="h-9 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs"
               />
               <Button type="button" size="sm" variant="outline" onClick={handleAddImage}>
-                <Plus className="size-3.5 mr-1" />
+                <Plus className="mr-1 size-3.5" />
                 Thêm ảnh
               </Button>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 max-h-36 overflow-y-auto">
+            <div className="grid max-h-36 grid-cols-3 gap-2 overflow-y-auto">
               {images.map((img, idx) => (
-                <div key={idx} className="relative aspect-video rounded-lg overflow-hidden border border-slate-200 group">
-                  <img src={img} alt="" className="w-full h-full object-cover" />
+                <div
+                  key={idx}
+                  className="group relative aspect-video overflow-hidden rounded-lg border border-slate-200"
+                >
+                  <img src={img} alt="" className="h-full w-full object-cover" />
                   <button
                     type="button"
                     onClick={() => handleRemoveImage(idx)}
-                    className="absolute top-1 right-1 size-5 bg-black/60 rounded text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-1 right-1 flex size-5 items-center justify-center rounded bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
                   >
                     <Trash2 className="size-3" />
                   </button>
@@ -535,7 +527,7 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({
           </div>
 
           {/* Footer Actions */}
-          <DialogFooter className="gap-2 pt-2 border-t border-slate-100">
+          <DialogFooter className="gap-2 border-t border-slate-100 pt-2">
             <Button
               type="button"
               variant="outline"

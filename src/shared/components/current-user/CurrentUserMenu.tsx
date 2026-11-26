@@ -41,8 +41,8 @@ export const CurrentUserMenu = ({ variant = 'contrast' }: CurrentUserMenuProps) 
   const roleLabel = t(`account.roles.${roleKey}`);
   const isCustomer = hasRole('CUSTOMER');
   const canAccessDashboard = hasPermission(PERMISSIONS.DASHBOARD_VIEW);
-
-  console.log(user);
+  console.log(roleKey);
+  console.log(roleLabel);
 
   return (
     <DropdownMenu>
