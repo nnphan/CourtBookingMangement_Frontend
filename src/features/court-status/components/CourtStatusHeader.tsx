@@ -9,7 +9,6 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
-import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 import { CurrentUserMenu } from '@/shared/components/current-user';
 import { useAuthStore } from '@/features/auth/store/auth.store';
 
@@ -84,10 +83,8 @@ export const CourtStatusHeader: React.FC<CourtStatusHeaderProps> = memo(
             </span>
           </div>
 
-          {/* Right Controls: Branch Dropdown & Date Navigation */}
+          {/* Branch, date and account controls */}
           <div className="flex items-center gap-1.5 sm:gap-2">
-            {isAuthenticated && <CurrentUserMenu />}
-
             {/* Branch Selector (if multiple branches exist) */}
             {branches.length > 1 && onBranchChange && (
               <Select value={selectedBranchId} onValueChange={onBranchChange}>
@@ -156,6 +153,7 @@ export const CourtStatusHeader: React.FC<CourtStatusHeaderProps> = memo(
                 <ChevronRight className="size-3.5" />
               </button>
             </div>
+            {isAuthenticated && <CurrentUserMenu />}
           </div>
         </header>
       </div>

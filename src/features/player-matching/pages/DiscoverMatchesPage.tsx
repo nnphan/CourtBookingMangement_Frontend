@@ -117,7 +117,7 @@ export const DiscoverMatchesPage = () => {
             : code === 'PREFERENCE_WEIGHT_TOTAL_INVALID'
               ? t('playerMatch.scoring.errors.invalidWeights')
               : code === 'SEARCH_CRITERIA_INVALID'
-                ? t('playerMatch.scoring.errors.invalidCriteria')
+                ? (getErrorMessage(error) ?? t('playerMatch.scoring.errors.invalidCriteria'))
                 : status === 401
                   ? t('playerMatch.scoring.errors.unauthorized')
                   : t('playerMatch.scoring.errors.generic');
@@ -197,10 +197,10 @@ export const DiscoverMatchesPage = () => {
   return (
     <div className="bg-surface selection:bg-brand-100 selection:text-brand-900 flex min-h-screen flex-col font-sans">
       {/* Top Header */}
-      <DiscoveryHeader />
+      <DiscoveryHeader wide />
 
       {/* Main Container */}
-      <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-[100rem] flex-1 space-y-6 px-3 py-6 sm:px-4 lg:px-6">
         {/* Navigation Breadcrumb & Back Link */}
         <div className="text-content-secondary flex items-center gap-2 text-xs font-semibold">
           <Link
@@ -329,7 +329,7 @@ export const DiscoverMatchesPage = () => {
 
       {/* Footer */}
       <footer className="border-line bg-surface mt-16 border-t py-8">
-        <div className="text-content-secondary mx-auto max-w-7xl px-4 text-center text-xs sm:px-6 lg:px-8">
+        <div className="text-content-secondary mx-auto max-w-[100rem] px-3 text-center text-xs sm:px-4 lg:px-6">
           <p>{t('playerMatch.discovery.footer')}</p>
         </div>
       </footer>

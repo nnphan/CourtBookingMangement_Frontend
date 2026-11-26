@@ -24,7 +24,7 @@ export const ManagementNavigation: React.FC<ManagementNavigationProps> = ({ clas
       )}
     >
       {items.map((item) => (
-        <NavigationItem key={item.key} item={item} />
+        <NavigationItem key={item.path} item={item} />
       ))}
     </nav>
   );

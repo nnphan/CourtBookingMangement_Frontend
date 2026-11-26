@@ -9,6 +9,7 @@
     "language": "Language"
   },
   "staffManagement": {
+    "noOwnedBranches": "Your account has no linked branches to manage.",
     "title": "Staff management",
     "dashboardDescription": "Create accounts, assign branches, and manage staff access.",
     "unavailable": "Staff management is under development.",
@@ -343,10 +344,12 @@
       "signInRequired": "Sign in to get personalized match recommendations.",
       "signIn": "Sign in",
       "profileRequired": "Create a player-matching profile to use personalized search.",
+      "searchWithoutProfile": "You can search now. Add a matching profile to personalize skill and room eligibility.",
       "profileLoadError": "Your matching profile could not be loaded.",
       "preferencesLoadError": "Your saved matching preferences could not be loaded.",
       "matchingDisabled": "Enable player matching in your profile before searching.",
       "profileLink": "Set up matching profile",
+      "editProfileCriteria": "Edit skill level and gender in your matching profile",
       "branchesLoadError": "Unable to load branches. Retry before searching.",
       "branches": "Preferred branches",
       "branchesHelp": "Select one or more active branches. The first branch is your primary choice; reorder selections to adjust priority.",
@@ -367,20 +370,21 @@
       "weightsDescription": "Adjust how much each factor contributes. The total must equal exactly 100%.",
       "weights": {
         "skill": "Skill",
-        "time": "Time",
+        "time": "Time window",
         "branch": "Branch",
-        "gender": "Gender policy"
+        "gender": "Gender"
       },
       "weightTotal": "Weight total: {{total}}%",
       "validation": {
         "branches": "Select at least one branch.",
-        "timeRange": "Enter a valid time range and a minimum overlap that fits within it.",
+        "timeRange": "Select both times and make sure the end is after the start.",
         "gameTypes": "Select at least one game type.",
         "weightRange": "Each weight must be a percentage from 0 to 100 with at most one decimal place.",
         "weightTotal": "Weights must total exactly 100%.",
         "maximumFee": "Maximum fee must be zero or greater."
       },
       "validationSummary": "Search validation errors",
+      "resetWeights": "Reset weights",
       "saveDefaults": "Save scoring weights and branch/time/fee preferences as my defaults",
       "search": "Find recommendations",
       "searching": "Finding matches...",
@@ -402,19 +406,23 @@
       "breakdownTitle": "Score breakdown",
       "components": {
         "skill": "Skill fit",
-        "time": "Time overlap",
+        "time": "Time window",
         "branch": "Branch priority",
-        "gender": "Room policy"
+        "gender": "Gender"
       },
       "componentScore": "{{component}} score",
       "reasons": {
         "SKILL_MATCH": "The room's rating range is a strong fit.",
+        "EXACT_START_TIME": "The room starts at your preferred time.",
+        "START_WITHIN_30_MINUTES": "The room starts within 30 minutes of your preferred time.",
         "FULL_TIME_OVERLAP": "The room fully overlaps your preferred time.",
         "PRIMARY_BRANCH": "This is your primary branch choice.",
         "ACCEPTED_BRANCH": "This is one of your selected branches."
       },
       "reasonFallback": "This room matches one of your search preferences.",
       "warnings": {
+        "START_DIFFERS_OVER_30_MINUTES": "The room starts more than 30 minutes from your preferred time.",
+        "NO_TIME_OVERLAP": "The room does not overlap your selected time window.",
         "PARTIAL_TIME_OVERLAP": "The room only partially overlaps your preferred time."
       },
       "warningFallback": "Review this match detail before sending a join request.",
@@ -442,8 +450,9 @@
       "allSkillLevels": "All skill levels",
       "genderPreference": "Gender preference",
       "allGenders": "All preferences",
-      "city": "City",
-      "district": "District",
+      "branch": "Branch",
+      "allBranches": "All branches",
+      "retryBranches": "Retry loading branches",
       "sort": "Sort by",
       "sortLatest": "Recently created",
       "sortOldest": "Oldest first",
@@ -819,6 +828,22 @@
     "label": "Management navigation"
   },
   "userManagement": {
+    "create": {
+      "title": "Add user",
+      "description": "Enter the account details and initial password.",
+      "name": "Full name",
+      "phone": "Phone number",
+      "password": "Initial password",
+      "roles": "Roles",
+      "cancel": "Cancel",
+      "saving": "Creating...",
+      "success": "User created",
+      "failed": "Unable to create the account.",
+      "emailTaken": "This email is already registered.",
+      "phoneTaken": "This phone number is already registered.",
+      "rolesUnavailable": "The role list is unavailable or a selected role is inactive.",
+      "phoneRequired": "A customer account requires a phone number."
+    },
     "title": "User Management",
     "description": "Manage user accounts, activity status, and assigned roles across the system.",
     "userCount": "{{count}} users",

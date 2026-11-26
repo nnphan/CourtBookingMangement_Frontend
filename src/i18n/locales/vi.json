@@ -9,6 +9,7 @@
     "language": "Ngôn ngữ"
   },
   "staffManagement": {
+    "noOwnedBranches": "Tài khoản chưa được liên kết với chi nhánh sở hữu.",
     "title": "Quản lý nhân viên",
     "dashboardDescription": "Tạo tài khoản, phân công chi nhánh và quản lý quyền truy cập của nhân viên.",
     "unavailable": "Chức năng quản lý nhân viên đang được phát triển.",
@@ -343,12 +344,14 @@
       "signInRequired": "Đăng nhập để nhận đề xuất trận đấu cá nhân hóa.",
       "signIn": "Đăng nhập",
       "profileRequired": "Tạo hồ sơ ghép trận để sử dụng tính năng tìm kiếm cá nhân hóa.",
+      "searchWithoutProfile": "Bạn có thể tìm trận ngay. Thêm hồ sơ ghép trận để nhận gợi ý theo trình độ và điều kiện tham gia.",
       "profileLoadError": "Không thể tải hồ sơ ghép trận của bạn.",
       "preferencesLoadError": "Không thể tải lựa chọn ghép trận đã lưu.",
       "matchingDisabled": "Hãy bật tính năng ghép trận trong hồ sơ trước khi tìm kiếm.",
       "profileLink": "Thiết lập hồ sơ ghép trận",
+      "editProfileCriteria": "Sửa trình độ và giới tính trong hồ sơ ghép trận",
       "branchesLoadError": "Không thể tải chi nhánh. Hãy thử lại trước khi tìm kiếm.",
-      "branches": "Chi nhánh ưu tiên",
+      "branches": "Chi nhánh",
       "branchesHelp": "Chọn một hoặc nhiều chi nhánh đang hoạt động. Chi nhánh đầu tiên là lựa chọn chính; hãy đổi thứ tự để thay đổi mức ưu tiên.",
       "branchUnavailable": "Không khả dụng",
       "noBranches": "Hiện không có chi nhánh nào khả dụng để tìm kiếm cá nhân hóa.",
@@ -357,9 +360,9 @@
       "moveBranchUp": "Đưa {{name}} lên trước",
       "moveBranchDown": "Đưa {{name}} xuống sau",
       "removeBranch": "Bỏ chọn {{name}}",
-      "matchDate": "Ngày đấu (không bắt buộc)",
-      "preferredStartTime": "Giờ bắt đầu mong muốn",
-      "preferredEndTime": "Giờ kết thúc mong muốn",
+      "matchDate": "Ngày đấu",
+      "preferredStartTime": "Thời gian bắt đầu",
+      "preferredEndTime": "Thời gian kết thúc",
       "minimumOverlap": "Thời gian trùng tối thiểu (phút)",
       "maximumFee": "Phí tối đa mỗi người (VND, không bắt buộc)",
       "gameTypes": "Thể thức",
@@ -367,20 +370,21 @@
       "weightsDescription": "Điều chỉnh mức đóng góp của từng yếu tố. Tổng trọng số phải chính xác bằng 100%.",
       "weights": {
         "skill": "Trình độ",
-        "time": "Thời gian",
+        "time": "Khung giờ",
         "branch": "Chi nhánh",
-        "gender": "Chính sách phòng"
+        "gender": "Giới tính"
       },
       "weightTotal": "Tổng trọng số: {{total}}%",
       "validation": {
         "branches": "Hãy chọn ít nhất một chi nhánh.",
-        "timeRange": "Nhập khung giờ hợp lệ và thời gian trùng tối thiểu không vượt quá khung giờ đó.",
+        "timeRange": "Chọn cả giờ bắt đầu và giờ kết thúc. Giờ kết thúc phải sau giờ bắt đầu.",
         "gameTypes": "Hãy chọn ít nhất một thể thức.",
         "weightRange": "Mỗi trọng số phải từ 0 đến 100 và có tối đa một chữ số thập phân.",
         "weightTotal": "Tổng trọng số phải chính xác bằng 100%.",
         "maximumFee": "Phí tối đa phải bằng hoặc lớn hơn 0."
       },
       "validationSummary": "Lỗi xác thực tìm kiếm",
+      "resetWeights": "Đặt lại mức ưu tiên",
       "saveDefaults": "Lưu trọng số và lựa chọn chi nhánh/thời gian/phí làm mặc định",
       "search": "Tìm trận được đề xuất",
       "searching": "Đang tìm trận...",
@@ -402,19 +406,23 @@
       "breakdownTitle": "Chi tiết điểm số",
       "components": {
         "skill": "Mức phù hợp trình độ",
-        "time": "Thời gian trùng",
+        "time": "Khung giờ",
         "branch": "Ưu tiên chi nhánh",
-        "gender": "Chính sách phòng"
+        "gender": "Giới tính"
       },
       "componentScore": "Điểm {{component}}",
       "reasons": {
         "SKILL_MATCH": "Khoảng trình độ của phòng phù hợp.",
+        "EXACT_START_TIME": "Phòng bắt đầu đúng giờ bạn mong muốn.",
+        "START_WITHIN_30_MINUTES": "Giờ bắt đầu lệch không quá 30 phút.",
         "FULL_TIME_OVERLAP": "Thời gian của phòng trùng hoàn toàn với giờ bạn mong muốn.",
         "PRIMARY_BRANCH": "Đây là chi nhánh ưu tiên chính của bạn.",
         "ACCEPTED_BRANCH": "Đây là một trong các chi nhánh bạn đã chọn."
       },
       "reasonFallback": "Phòng này phù hợp với một lựa chọn tìm kiếm của bạn.",
       "warnings": {
+        "START_DIFFERS_OVER_30_MINUTES": "Giờ bắt đầu lệch hơn 30 phút.",
+        "NO_TIME_OVERLAP": "Khung giờ của phòng không trùng với khung giờ bạn chọn.",
         "PARTIAL_TIME_OVERLAP": "Thời gian của phòng chỉ trùng một phần với giờ bạn mong muốn."
       },
       "warningFallback": "Hãy xem lại chi tiết trận trước khi gửi yêu cầu tham gia.",
@@ -440,10 +448,11 @@
       "endTime": "Giờ kết thúc",
       "skillLevel": "Trình độ",
       "allSkillLevels": "Tất cả trình độ",
-      "genderPreference": "Giới tính mong muốn",
+      "genderPreference": "Giới tính",
       "allGenders": "Tất cả lựa chọn",
-      "city": "Thành phố",
-      "district": "Quận / huyện",
+      "branch": "Chi nhánh",
+      "allBranches": "Tất cả chi nhánh",
+      "retryBranches": "Thử tải lại chi nhánh",
       "sort": "Sắp xếp",
       "sortLatest": "Mới tạo gần đây",
       "sortOldest": "Cũ nhất trước",
@@ -820,6 +829,22 @@
     "label": "Điều hướng quản lý"
   },
   "userManagement": {
+    "create": {
+      "title": "Thêm người dùng",
+      "description": "Nhập thông tin tài khoản và mật khẩu ban đầu.",
+      "name": "Họ và tên",
+      "phone": "Số điện thoại",
+      "password": "Mật khẩu ban đầu",
+      "roles": "Vai trò",
+      "cancel": "Hủy",
+      "saving": "Đang tạo...",
+      "success": "Đã thêm người dùng",
+      "failed": "Không thể tạo tài khoản.",
+      "emailTaken": "Email này đã được sử dụng.",
+      "phoneTaken": "Số điện thoại này đã được sử dụng.",
+      "rolesUnavailable": "Không thể tải vai trò hoặc vai trò đã ngừng hoạt động.",
+      "phoneRequired": "Tài khoản khách hàng cần số điện thoại."
+    },
     "title": "Quản lý người dùng",
     "description": "Quản lý tài khoản, trạng thái hoạt động và vai trò của người dùng trong hệ thống.",
     "userCount": "{{count}} người dùng",

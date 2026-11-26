@@ -44,3 +44,12 @@ export interface UserRoleAssignment {
   userId: string;
   request: UpdateUserRolesRequest;
 }
+
+export interface ProvisionUserRequest {
+  fullName: string;
+  email: string;
+  phoneNumber: string | null;
+  password: string;
+  isActive: boolean;
+  roleIds: string[];
+}

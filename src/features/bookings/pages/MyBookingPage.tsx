@@ -226,7 +226,7 @@ export const MyBookingPage = () => {
               <Button
                 type="button"
                 className="min-h-11 gap-2 shadow-xs"
-                onClick={() => navigate(paths.root)}
+                onClick={() => navigate(paths.bookingBranches)}
               >
                 <Plus aria-hidden="true" className="size-4" />
                 Đặt sân mới
@@ -332,7 +332,7 @@ export const MyBookingPage = () => {
               title="Bạn chưa có lịch đặt sân nào."
               description="Hãy chọn chi nhánh và khung giờ phù hợp để bắt đầu đặt sân."
               actionLabel="Đặt sân ngay"
-              onAction={() => navigate(paths.root)}
+              onAction={() => navigate(paths.bookingBranches)}
             />
           ) : visibleBookings.length === 0 ? (
             <MyBookingEmptyState
@@ -365,7 +365,7 @@ export const MyBookingPage = () => {
                   setSearch('');
                   setDebouncedSearch('');
                 } else if (activeTab === 'all') {
-                  navigate(paths.root);
+                  navigate(paths.bookingBranches);
                 } else {
                   setActiveTab('all');
                 }

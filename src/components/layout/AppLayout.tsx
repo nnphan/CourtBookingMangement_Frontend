@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { Outlet, useLocation } from 'react-router';
-import { Menu, Lightbulb } from 'lucide-react';
+import { Menu, MessageCircle } from 'lucide-react';
 import { Sidebar } from '@/components/layout/Sidebar';
-import { BottomNav } from '@/components/layout/BottomNav';
-import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 import { CurrentUserMenu } from '@/shared/components/current-user';
 import { paths } from '@/app/router/paths';
 import { cn } from '@/lib/utils';
@@ -63,16 +61,23 @@ export const AppLayout = () => {
       {/* Main Content Area */}
       <main
         className={cn(
-          'mx-auto w-full min-w-0 flex-1 px-4 pb-[calc(5rem+env(safe-area-inset-bottom,0px))]',
+          'mx-auto w-full min-w-0 flex-1 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]',
           isPosWorkspace ? 'max-w-[1800px] lg:px-6 lg:pb-6 2xl:px-8' : 'max-w-6xl',
         )}
       >
         <Outlet />
       </main>
 
-      <div className={isPosWorkspace ? 'lg:hidden' : undefined}>
-        <BottomNav chatInline={isPosWorkspace} />
-      </div>
+      <button
+        type="button"
+        aria-label="Chat"
+        className={cn(
+          'bg-brand-600 hover:bg-brand-700 fixed right-4 bottom-4 z-30 grid size-12 place-items-center rounded-full text-white shadow-lg',
+          isPosWorkspace && 'lg:hidden',
+        )}
+      >
+        <MessageCircle aria-hidden className="size-6" />
+      </button>
     </div>
   );
 };

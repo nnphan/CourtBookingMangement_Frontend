@@ -26,12 +26,12 @@ export function getCurrentUserRole(user: Pick<User, 'role' | 'roles'> | null): C
       .filter(Boolean),
   );
 
-  if (roles.has('SUPER_ADMIN') || roles.has('ADMIN')) return 'admin';
-  if (roles.has('BRANCH_MANAGER')) {
-    return 'branchManager';
-  }
+  if (roles.has('ADMIN')) return 'admin';
   if (roles.has('BRANCH_OWNER')) {
     return 'branchOwner';
+  }
+  if (roles.has('BRANCH_MANAGER')) {
+    return 'branchManager';
   }
   if (roles.has('STAFF') || roles.has('RECEPTIONIST')) return 'staff';
   if (roles.has('CUSTOMER')) return 'customer';

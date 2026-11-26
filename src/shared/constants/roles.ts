@@ -1,9 +1,8 @@
 /** Role hierarchy, highest privilege first. */
 export const ROLE_PRIORITY = [
-  'SUPER_ADMIN',
   'ADMIN',
   'BRANCH_OWNER',
-  'STAFF',
+  'BRANCH_MANAGER',
   'CUSTOMER',
 ] as const;
 
@@ -16,10 +15,9 @@ export type AppRole = (typeof ROLE_PRIORITY)[number];
 export const DEFAULT_ROLE: AppRole = 'CUSTOMER';
 
 export const ROLE_LABELS: Record<AppRole, string> = {
-  SUPER_ADMIN: 'Super Admin',
   ADMIN: 'Admin',
   BRANCH_OWNER: 'Branch Owner',
-  STAFF: 'Staff',
+  BRANCH_MANAGER: 'Branch Manager',
   CUSTOMER: 'Customer',
 };
 

@@ -164,7 +164,7 @@ export const posSalesApi = {
 
   async getInventory(
     branchId: string,
-    params: { search?: string; lowStockOnly?: boolean; page?: number; pageSize?: number } = {},
+    params: { search?: string; categoryId?: string; stockStatus?: string; lowStockOnly?: boolean; page?: number; pageSize?: number } = {},
   ) {
     const response = await http.get<SuccessEnvelope<InventoryBalance[]>>(
       `/branches/${branchId}/inventory`,
@@ -173,11 +173,19 @@ export const posSalesApi = {
     return pagedOf(response);
   },
 
+  async getInventoryCategories(branchId: string) {
+    const response = await http.get<SuccessEnvelope<Array<{ id: string; name: string }>>>(
+      `/branches/${branchId}/inventory/categories`,
+    );
+    return dataOf(response);
+  },
+
   async getMovements(
     branchId: string,
     params: {
       productId?: string;
       movementType?: string;
+      includeDraftReceipts?: boolean;
       from?: string;
       to?: string;
       page?: number;
@@ -266,6 +274,10 @@ export const posSalesApi = {
       `/branches/${branchId}/inventory/goods-receipts/${receiptId}/cancel`,
     );
     return dataOf(response);
+  },
+
+  async updatePostedReceiptSupplier(branchId: string, receiptId: string, supplierName: string | null) {
+    await http.patch(`/branches/${branchId}/inventory/goods-receipts/${receiptId}/supplier`, { supplierName });
   },
 
   async postReceipt(branchId: string, receiptId: string) {

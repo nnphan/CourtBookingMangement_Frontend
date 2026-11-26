@@ -139,7 +139,7 @@ const RoleForm = ({ mode, role, onClose, onCreated }: RoleFormProps) => {
       code: role?.code ?? '',
       name: role?.name ?? '',
       description: role?.description ?? '',
-      isActive: role?.isActive ?? true,
+      isActive: true,
       permissions: role?.permissions ?? [],
     },
   });
@@ -285,15 +285,6 @@ const RoleForm = ({ mode, role, onClose, onCreated }: RoleFormProps) => {
           </p>
         )}
       </div>
-      <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-        <input
-          type="checkbox"
-          className="size-4 accent-emerald-600"
-          {...register('isActive')}
-        />
-        {t('role.fields.isActive')}
-      </label>
-
       <Controller
         control={control}
         name="permissions"

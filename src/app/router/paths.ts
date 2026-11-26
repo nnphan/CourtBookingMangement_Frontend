@@ -1,5 +1,6 @@
 export const paths = {
   root: '/',
+  bookingBranches: '/#branches-section',
   login: '/uLogin',
   register: '/uRegister',
   forgotPassword: '/uForgotPassword',

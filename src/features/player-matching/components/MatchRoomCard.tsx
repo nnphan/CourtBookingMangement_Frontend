@@ -51,11 +51,32 @@ export const MatchRoomCard = ({
     score: match.matchScore.toFixed(1),
     level: levelLabel,
   });
+  const weights = match.weights ?? appliedWeights;
   const scoreParts = [
-    ['skill', match.scoreBreakdown.skillScore, appliedWeights.skillWeight],
-    ['time', match.scoreBreakdown.timeScore, appliedWeights.timeWeight],
-    ['branch', match.scoreBreakdown.branchScore, appliedWeights.branchWeight],
-    ['gender', match.scoreBreakdown.genderScore, appliedWeights.genderWeight],
+    [
+      'skill',
+      match.scoreBreakdown.skillScore,
+      weights.skillWeight,
+      match.scoreBreakdown.skillContribution,
+    ],
+    [
+      'time',
+      match.scoreBreakdown.timeScore,
+      weights.timeWeight,
+      match.scoreBreakdown.timeContribution,
+    ],
+    [
+      'branch',
+      match.scoreBreakdown.branchScore,
+      weights.branchWeight,
+      match.scoreBreakdown.branchContribution,
+    ],
+    [
+      'gender',
+      match.scoreBreakdown.genderScore,
+      weights.genderWeight,
+      match.scoreBreakdown.genderContribution,
+    ],
   ] as const;
 
   const handleJoin = () => {
@@ -155,14 +176,16 @@ export const MatchRoomCard = ({
             {t('playerMatch.scoring.breakdownTitle')}
           </p>
           <ul className="grid gap-3 sm:grid-cols-2">
-            {scoreParts.map(([key, value, weight]) => (
+            {scoreParts.map(([key, value, weight, contribution]) => (
               <li key={key} className="min-w-0 space-y-1">
                 <div className="flex items-center justify-between gap-2 text-xs">
                   <span className="text-content-secondary truncate">
                     {t(`playerMatch.scoring.components.${key}`)} · {weight}%
                   </span>
                   <span className="text-content-primary shrink-0 font-semibold tabular-nums">
-                    {value.toFixed(1)}
+                    {contribution === undefined
+                      ? value.toFixed(1)
+                      : `${value.toFixed(1)} ? ${weight}% = ${contribution.toFixed(1)}`}
                   </span>
                 </div>
                 <div

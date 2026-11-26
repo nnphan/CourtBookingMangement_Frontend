@@ -81,8 +81,7 @@ export interface PlayerMatchSearchParams {
   endTime?: string;
   skillLevel?: PlayerMatchSkillLevel;
   genderPreference?: PlayerMatchGenderPreference;
-  city?: string;
-  district?: string;
+  branchId?: string;
   sortBy?: PlayerMatchSort;
   page: number;
   pageSize: number;
@@ -246,13 +245,18 @@ export interface PlayerMatchPreferences {
 }
 
 export interface PlayerMatchScoringCriteria {
+  keyword?: string;
+  skillLevel?: PlayerMatchSkillLevel;
+  genderPreference?: PlayerMatchGenderPreference;
+  startTime?: string;
+  endTime?: string;
   branchIds: string[];
   matchDate?: string;
-  preferredStartTime: string;
-  preferredEndTime: string;
-  minimumTimeOverlapMinutes: number;
-  gameTypes: PlayerMatchGameType[];
-  maximumParticipationFee: number | null;
+  preferredStartTime?: string;
+  preferredEndTime?: string;
+  minimumTimeOverlapMinutes?: number;
+  gameTypes?: PlayerMatchGameType[];
+  maximumParticipationFee?: number | null;
   preferences: PlayerMatchPreferenceWeights;
 }
 
@@ -267,6 +271,10 @@ export interface PlayerMatchScoreBreakdown {
   timeScore: number;
   branchScore: number;
   genderScore: number;
+  skillContribution?: number;
+  timeContribution?: number;
+  branchContribution?: number;
+  genderContribution?: number;
 }
 
 export interface PersonalizedPlayerMatch {
@@ -290,6 +298,7 @@ export interface PersonalizedPlayerMatch {
   matchScore: number;
   matchLevel: string;
   scoreBreakdown: PlayerMatchScoreBreakdown;
+  weights?: PlayerMatchPreferenceWeights;
   reasons: string[];
   warnings: string[];
   joinRequestStatus: string | null;

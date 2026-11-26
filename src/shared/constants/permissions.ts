@@ -1,4 +1,6 @@
 export const PERMISSIONS = {
+  USER_CREATE: 'user.create',
+  ROLE_CREATE: 'role.create',
   DASHBOARD_VIEW: 'dashboard.view',
   BRANCH_VIEW: 'branch.view',
   BRANCH_CREATE: 'branch.create',

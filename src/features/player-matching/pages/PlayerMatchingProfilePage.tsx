@@ -41,8 +41,8 @@ const INITIAL_VALUES: ProfileFormValues = {
   isProfilePublic: false,
   isMatchingEnabled: false,
   preferences: {
-    skillWeight: 50,
-    timeWeight: 20,
+    skillWeight: 40,
+    timeWeight: 30,
     branchWeight: 20,
     genderWeight: 10,
   },

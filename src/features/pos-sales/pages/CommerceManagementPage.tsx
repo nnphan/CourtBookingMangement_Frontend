@@ -1,11 +1,9 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft,
-  BarChart3,
   Boxes,
-  ClipboardList,
   FileText,
   Package,
   Plus,
@@ -15,20 +13,23 @@ import {
   Truck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { TablePagination } from '@/components/management';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardBody } from '@/components/ui/card';
 import { queryClient } from '@/lib/query-client';
 import { toast } from '@/lib/toast';
 import { useAuthorization } from '@/features/auth/authorization';
 import { PERMISSIONS as P } from '@/shared/constants/permissions';
 import { paths } from '@/app/router/paths';
+import { inventoryWorkspaceTitle, productCatalogTitle } from '@/components/layout/management-navigation';
 import { posSalesApi } from '../api';
+import { loadInventory } from '../inventory-overview';
 import { PosWorkspaceHeader, PosWorkspaceTabs } from '../components/PosWorkspaceShell';
-import type { BranchProduct, InventoryBalance, Product, ProductCategory, SalesReport, StockMovement } from '../types';
+import type { Product, ProductCategory, StockMovement } from '../types';
 
 type Section =
   | 'categories'
   | 'products'
-  | 'branch-products'
   | 'inventory'
   | 'movements'
   | 'receipts'
@@ -36,7 +37,6 @@ type Section =
   | 'receipt-detail'
   | 'orders'
   | 'order-detail'
-  | 'dashboard'
   | 'invoice';
 
 const sectionLinks: Array<{
@@ -46,15 +46,15 @@ const sectionLinks: Array<{
   icon: typeof Tags;
   permissions: string[];
 }> = [
-  { section: 'dashboard', path: paths.posDashboard, label: 'Báo cáo bán hàng', icon: BarChart3, permissions: [P.SALES_REPORT_VIEW] },
   { section: 'categories', path: paths.posCategories, label: 'Danh mục', icon: Tags, permissions: [P.PRODUCT_VIEW] },
   { section: 'products', path: paths.posProducts, label: 'Sản phẩm', icon: Package, permissions: [P.PRODUCT_VIEW] },
-  { section: 'branch-products', path: paths.posBranchProducts, label: 'Cấu hình chi nhánh', icon: ClipboardList, permissions: [P.PRODUCT_VIEW, P.PRODUCT_UPDATE] },
   { section: 'inventory', path: paths.posInventory, label: 'Tồn kho', icon: Boxes, permissions: [P.INVENTORY_VIEW] },
-  { section: 'movements', path: paths.posMovements, label: 'Biến động kho', icon: RefreshCw, permissions: [P.INVENTORY_VIEW] },
-  { section: 'receipts', path: paths.posReceipts, label: 'Phiếu nhập', icon: Truck, permissions: [P.INVENTORY_VIEW] },
-  { section: 'orders', path: paths.posOrders, label: 'Đơn bán hàng', icon: FileText, permissions: [P.SALES_VIEW] },
+  { section: 'receipts', path: paths.posReceipts, label: 'Nhập', icon: Truck, permissions: [P.INVENTORY_VIEW] },
+  { section: 'movements', path: paths.posMovements, label: 'Xuất', icon: RefreshCw, permissions: [P.INVENTORY_VIEW] },
 ];
+
+const catalogSections = ['categories', 'products'];
+const inventorySections = ['inventory', 'movements', 'receipts'];
 
 const queryKeys = {
   categories: ['pos-sales', 'management', 'categories'] as const,
@@ -66,7 +66,6 @@ const queryKeys = {
   receipt: (branchId: string, receiptId: string) => ['pos-sales', 'management', 'receipt', branchId, receiptId] as const,
   orders: (branchId: string) => ['pos-sales', 'management', 'orders', branchId] as const,
   order: (branchId: string, orderId: string) => ['pos-sales', 'management', 'order', branchId, orderId] as const,
-  report: (branchId: string, from: string, to: string) => ['pos-sales', 'management', 'report', branchId, from, to] as const,
   invoice: (branchId: string, invoiceId: string) => ['pos-sales', 'management', 'invoice', branchId, invoiceId] as const,
 };
 
@@ -162,7 +161,7 @@ const Table = ({ children }: { children: ReactNode }) => (
   </div>
 );
 
-const TableHead = ({ children }: { children: ReactNode }) => (
+const TableHead = ({ children }: { children?: ReactNode }) => (
   <th className="whitespace-nowrap bg-slate-50 px-4 py-3 font-bold text-slate-600">{children}</th>
 );
 
@@ -181,35 +180,45 @@ const ManagementFrame = ({
   setBranchId: (id: string) => void;
   children: ReactNode;
 }) => {
-  const { hasAllPermissions, hasAnyPermission } = useAuthorization();
+  const { hasAllPermissions } = useAuthorization();
+  const activeSection = section === 'receipt-detail' || section === 'receipt-edit'
+    ? 'receipts' : section === 'order-detail' || section === 'invoice' ? 'orders' : section;
+  const workspace = catalogSections.includes(activeSection)
+    ? {
+        title: productCatalogTitle,
+        sections: catalogSections,
+      }
+    : inventorySections.includes(activeSection)
+      ? {
+          title: inventoryWorkspaceTitle,
+          sections: inventorySections,
+        }
+      : {
+          title: 'Đơn bán hàng',
+          sections: [],
+        };
   const visibleLinks = sectionLinks.filter((link) =>
-    hasAllPermissions(link.permissions),
+    workspace.sections.includes(link.section) && hasAllPermissions(link.permissions),
   );
 
   return (
     <div className="pos-workspace min-w-0 space-y-4 py-4 sm:py-5">
       <PosWorkspaceHeader
-        title="POS & Kho hàng"
-        description="Danh mục, sản phẩm, tồn kho và giao dịch của chi nhánh đang chọn."
+        title={workspace.title}
         branchId={branchId}
         onBranchChange={setBranchId}
-        backLink={
-          hasAnyPermission([P.SALES_VIEW, P.PRODUCT_VIEW, P.INVENTORY_VIEW, P.SALES_REPORT_VIEW]) && <Link to={paths.posSales} className="mb-3 inline-flex items-center gap-1 text-sm font-semibold text-emerald-700 hover:text-emerald-900">
-            <ArrowLeft className="size-4" /> POS / bán hàng
-          </Link>
-        }
       />
-      <PosWorkspaceTabs
-        ariaLabel="Quản lý POS"
+      {visibleLinks.length > 0 && <PosWorkspaceTabs
+        ariaLabel={workspace.title}
         tabs={visibleLinks.map(({ section: linkSection, path, label, icon }) => ({
           id: linkSection,
           to: path,
           label,
           icon,
-          active: section === linkSection,
+          active: activeSection === linkSection,
         }))}
-      />
-      {!branchId ? (
+      />}
+      {!branchId && section !== 'categories' && section !== 'products' ? (
         <Card><CardBody><EmptyPanel>Vui lòng chọn chi nhánh được phân quyền để xem dữ liệu.</EmptyPanel></CardBody></Card>
       ) : children}
     </div>
@@ -217,26 +226,29 @@ const ManagementFrame = ({
 };
 
 const CommerceManagementPage = ({ section }: { section: Section }) => {
+  const [params, setParams] = useSearchParams();
+  const requestedOrderBranch = section === 'orders' || section === 'order-detail' || section === 'invoice'
+    ? params.get('branchId') : null;
   const [branchId, setBranchId] = useState(() => localStorage.getItem('pos-sales.branchId') ?? '');
   const handleBranchChange = (nextBranchId: string) => {
     setBranchId(nextBranchId);
     localStorage.setItem('pos-sales.branchId', nextBranchId);
+    if (requestedOrderBranch) setParams({ branchId: nextBranchId }, { replace: true });
   };
+  const activeBranchId = requestedOrderBranch || branchId;
 
   return (
-    <ManagementFrame section={section} branchId={branchId} setBranchId={handleBranchChange}>
+    <ManagementFrame section={section} branchId={activeBranchId} setBranchId={handleBranchChange}>
       {section === 'categories' && <CategoriesPage />}
-      {section === 'products' && <ProductsPage />}
-      {section === 'branch-products' && <BranchProductsPage branchId={branchId} />}
-      {section === 'inventory' && <InventoryPage branchId={branchId} />}
-      {section === 'movements' && <MovementsPage branchId={branchId} />}
-      {section === 'receipts' && <ReceiptsPage branchId={branchId} />}
+      {section === 'products' && <ProductsPage branchId={branchId} />}
+      {section === 'inventory' && <InventoryPage key={branchId} branchId={branchId} />}
+      {section === 'movements' && <StockHistory key={branchId} branchId={branchId} direction="out" />}
+      {section === 'receipts' && <StockHistory key={branchId} branchId={branchId} direction="in" />}
       {section === 'receipt-edit' && <ReceiptEditorPage branchId={branchId} />}
       {section === 'receipt-detail' && <ReceiptDetailPage branchId={branchId} />}
-      {section === 'orders' && <OrdersPage branchId={branchId} />}
-      {section === 'order-detail' && <OrderDetailPage branchId={branchId} />}
-      {section === 'dashboard' && <SalesDashboardPage branchId={branchId} />}
-      {section === 'invoice' && <InvoicePage branchId={branchId} />}
+      {section === 'orders' && <OrdersPage branchId={activeBranchId} />}
+      {section === 'order-detail' && <OrderDetailPage branchId={activeBranchId} />}
+      {section === 'invoice' && <InvoicePage branchId={activeBranchId} />}
     </ManagementFrame>
   );
 };
@@ -246,6 +258,7 @@ const CategoriesPage = () => {
   const canUpdate = useCan(P.PRODUCT_UPDATE);
   const canDeactivate = useCan(P.PRODUCT_DEACTIVATE);
   const categoriesQuery = useQuery({ queryKey: queryKeys.categories, queryFn: () => posSalesApi.getCategories() });
+  const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ProductCategory | null>(null);
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
@@ -263,6 +276,7 @@ const CategoriesPage = () => {
       await invalidateCatalogViews();
       toast.success(editing ? 'Danh mục đã được cập nhật.' : 'Danh mục đã được tạo.');
       reset();
+      setFormOpen(false);
     },
     onError: notifyError,
   });
@@ -273,45 +287,62 @@ const CategoriesPage = () => {
   });
   const onSubmit = (event: FormEvent) => { event.preventDefault(); save.mutate(); };
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.8fr)]">
+    <div className="space-y-5">
       <Card><CardBody className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-black text-slate-900">Danh mục sản phẩm</h2>
+          {canCreate && <Button type="button" onClick={() => { reset(); setFormOpen(true); }}>
+            <Plus aria-hidden className="size-4" />Thêm danh mục mới
+          </Button>}
+        </div>
         {categoriesQuery.isLoading ? <p role="status" className="py-8 text-center text-sm text-slate-500">Đang tải danh mục...</p>
           : categoriesQuery.isError ? <ErrorPanel error={categoriesQuery.error} retry={() => void categoriesQuery.refetch()} />
             : categoriesQuery.data?.length ? (
-              <Table><thead><tr><TableHead>Mã</TableHead><TableHead>Tên</TableHead><TableHead>Thứ tự</TableHead><TableHead>Trạng thái</TableHead><TableHead>Thao tác</TableHead></tr></thead>
+              <Table><thead><tr><TableHead>Mã danh mục</TableHead><TableHead>Tên danh mục</TableHead><TableHead>Thứ tự</TableHead><TableHead>Trạng thái</TableHead><TableHead>Thao tác</TableHead></tr></thead>
                 <tbody>{categoriesQuery.data.map((category) => <tr key={category.id}>
                   <TableCell>{category.code}</TableCell><TableCell>{category.name}</TableCell><TableCell>{category.displayOrder}</TableCell>
                   <TableCell>{category.isActive ? 'Đang hoạt động' : 'Đã ẩn'}</TableCell>
                   <TableCell><div className="flex gap-2">
-                    {canUpdate && <Button size="sm" variant="outline" onClick={() => { setEditing(category); setCode(category.code); setName(category.name); setDescription(category.description ?? ''); setDisplayOrder(String(category.displayOrder)); setIsActive(category.isActive); }}>Sửa</Button>}
+                    {canUpdate && <Button size="sm" variant="outline" onClick={() => { setFormOpen(true); setEditing(category); setCode(category.code); setName(category.name); setDescription(category.description ?? ''); setDisplayOrder(String(category.displayOrder)); setIsActive(category.isActive); }}>Sửa</Button>}
                     {canDeactivate && category.isActive && <Button size="sm" variant="outline" onClick={() => { if (window.confirm(`Ngừng hoạt động danh mục "${category.name}"?`)) deactivate.mutate(category.id); }}>Ngừng</Button>}
                   </div></TableCell>
                 </tr>)}</tbody>
               </Table>
             ) : <EmptyPanel>Chưa có danh mục sản phẩm.</EmptyPanel>}
       </CardBody></Card>
-      {(canCreate || (canUpdate && editing !== null)) && <Card><CardBody>
-        <h2 className="mb-4 text-lg font-black text-slate-900">{editing ? 'Cập nhật danh mục' : 'Tạo danh mục'}</h2>
+      {formOpen && (
+        <Dialog open onOpenChange={(open) => { if (!open && !save.isPending) setFormOpen(false); }}>
+          <DialogContent closeDisabled={save.isPending} className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+            <DialogHeader><DialogTitle>{editing ? 'Cập nhật danh mục' : 'Thêm danh mục mới'}</DialogTitle></DialogHeader>
         <form className="space-y-3" onSubmit={onSubmit}>
           <Field label="Mã danh mục" value={code} onChange={setCode} required />
           <Field label="Tên danh mục" value={name} onChange={setName} required />
           <Field label="Mô tả" value={description} onChange={setDescription} />
           <Field label="Thứ tự hiển thị" type="number" value={displayOrder} onChange={setDisplayOrder} min={0} step={1} required />
           <label className="flex items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" checked={isActive} onChange={(event) => setIsActive(event.target.checked)} /> Đang hoạt động</label>
-          <div className="flex gap-2"><Button type="submit" disabled={save.isPending}><Save className="size-4" />{save.isPending ? 'Đang lưu...' : 'Lưu'}</Button>{editing && <Button type="button" variant="outline" onClick={reset}>Hủy sửa</Button>}</div>
+          <div className="flex gap-2"><Button type="submit" disabled={save.isPending}><Save className="size-4" />{save.isPending ? 'Đang lưu...' : 'Lưu'}</Button><Button type="button" variant="outline" disabled={save.isPending} onClick={() => setFormOpen(false)}>Hủy</Button></div>
         </form>
-      </CardBody></Card>}
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
 
-const ProductsPage = () => {
+const ProductsPage = ({ branchId }: { branchId: string }) => {
+  const canViewInventory = useCan(P.INVENTORY_VIEW);
+  const balances = useQuery({
+    queryKey: [...queryKeys.inventory(branchId), 'product-list'],
+    queryFn: () => loadInventory((page) => posSalesApi.getInventory(branchId, { page })),
+    enabled: !!branchId && canViewInventory,
+  });
+  const stockByProduct = new Map(balances.data?.map((item) => [item.productId, item.quantityOnHand]));
   const canCreate = useCan(P.PRODUCT_CREATE);
   const canUpdate = useCan(P.PRODUCT_UPDATE);
   const canDeactivate = useCan(P.PRODUCT_DEACTIVATE);
   const categoriesQuery = useQuery({ queryKey: queryKeys.categories, queryFn: () => posSalesApi.getCategories() });
   const productsQuery = useQuery({ queryKey: queryKeys.products, queryFn: () => posSalesApi.searchCatalogProducts({ pageSize: 100 }) });
+  const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [categoryId, setCategoryId] = useState('');
   const [sku, setSku] = useState('');
@@ -336,6 +367,7 @@ const ProductsPage = () => {
       await invalidateCatalogViews();
       toast.success(editing ? 'Sản phẩm đã được cập nhật.' : 'Sản phẩm đã được tạo.');
       reset();
+      setFormOpen(false);
     },
     onError: notifyError,
   });
@@ -346,7 +378,7 @@ const ProductsPage = () => {
   });
   const onSubmit = (event: FormEvent) => { event.preventDefault(); save.mutate(); };
   const startEdit = (product: Product) => {
-    setEditing(product); setCategoryId(product.categoryId); setSku(product.sku); setBarcode(product.barcode ?? '');
+    setFormOpen(true); setEditing(product); setCategoryId(product.categoryId); setSku(product.sku); setBarcode(product.barcode ?? '');
     setName(product.name); setDescription(product.description ?? ''); setUnit(product.unit);
     setCost(product.defaultCostPrice === null ? '' : String(product.defaultCostPrice));
     setPrice(String(product.defaultSellingPrice)); setTrackInventory(product.trackInventory); setActive(product.isActive);
@@ -354,24 +386,33 @@ const ProductsPage = () => {
   return (
     <div className="space-y-5">
       <Card><CardBody className="space-y-4">
-        <h2 className="text-lg font-black text-slate-900">Danh mục sản phẩm dùng chung</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-black text-slate-900">Danh sách sản phẩm</h2>
+          {canCreate && <Button type="button" onClick={() => { reset(); setFormOpen(true); }}>
+            <Plus aria-hidden className="size-4" />Thêm sản phẩm mới
+          </Button>}
+        </div>
+        {balances.isError && <ErrorPanel error={balances.error} retry={() => void balances.refetch()} />}
         {productsQuery.isLoading || categoriesQuery.isLoading ? <p role="status" className="py-8 text-center text-sm text-slate-500">Đang tải sản phẩm...</p>
           : productsQuery.isError ? <ErrorPanel error={productsQuery.error} retry={() => void productsQuery.refetch()} />
             : categoriesQuery.isError ? <ErrorPanel error={categoriesQuery.error} retry={() => void categoriesQuery.refetch()} />
               : productsQuery.data?.items.length ? (
-                <Table><thead><tr><TableHead>SKU / Barcode</TableHead><TableHead>Sản phẩm</TableHead><TableHead>Danh mục</TableHead><TableHead>Giá mặc định</TableHead><TableHead>Tồn kho</TableHead><TableHead>Trạng thái</TableHead><TableHead>Thao tác</TableHead></tr></thead>
+                <Table><thead><tr><TableHead>SKU / Barcode</TableHead><TableHead>Danh mục</TableHead><TableHead>Tên sản phẩm</TableHead><TableHead>Đơn vị</TableHead><TableHead>Giá bán</TableHead><TableHead>Tồn kho</TableHead><TableHead>Trạng thái</TableHead><TableHead>Thao tác</TableHead></tr></thead>
                   <tbody>{productsQuery.data.items.map((product) => <tr key={product.id}>
                     <TableCell><span className="font-semibold">{product.sku}</span><br />{product.barcode ?? '—'}</TableCell>
-                    <TableCell>{product.name}<br /><span className="text-xs text-slate-500">{product.unit}</span></TableCell>
-                    <TableCell>{product.categoryName}</TableCell><TableCell>{amount(product.defaultSellingPrice)}</TableCell>
-                    <TableCell>{product.trackInventory ? 'Theo dõi' : 'Không'}</TableCell><TableCell>{product.isActive ? 'Hoạt động' : 'Đã ẩn'}</TableCell>
+                    <TableCell>{product.categoryName}</TableCell>
+                    <TableCell>{product.name}</TableCell><TableCell>{product.unit}</TableCell>
+                    <TableCell>{amount(product.defaultSellingPrice)}</TableCell>
+                    <TableCell>{stockByProduct.get(product.id) ?? '—'}</TableCell><TableCell>{product.isActive ? 'Hoạt động' : 'Đã ẩn'}</TableCell>
                     <TableCell><div className="flex gap-2">{canUpdate && <Button size="sm" variant="outline" onClick={() => startEdit(product)}>Sửa</Button>}{canDeactivate && product.isActive && <Button size="sm" variant="outline" onClick={() => { if (window.confirm(`Ngừng hoạt động sản phẩm "${product.name}"?`)) deactivate.mutate(product.id); }}>Ngừng</Button>}</div></TableCell>
                   </tr>)}</tbody>
                 </Table>
               ) : <EmptyPanel>Chưa có sản phẩm trong danh mục.</EmptyPanel>}
       </CardBody></Card>
-      {(canCreate || (canUpdate && editing !== null)) && <Card><CardBody>
-        <h2 className="mb-4 text-lg font-black text-slate-900">{editing ? 'Cập nhật sản phẩm' : 'Tạo sản phẩm'}</h2>
+      {formOpen && (
+        <Dialog open onOpenChange={(open) => { if (!open && !save.isPending) setFormOpen(false); }}>
+          <DialogContent closeDisabled={save.isPending} className="max-h-[90dvh] overflow-y-auto sm:max-w-3xl">
+            <DialogHeader><DialogTitle>{editing ? 'Cập nhật sản phẩm' : 'Thêm sản phẩm mới'}</DialogTitle></DialogHeader>
         <form className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" onSubmit={onSubmit}>
           <label className="block"><span className={labelClass}>Danh mục</span><select className={inputClass} value={categoryId} onChange={(event) => setCategoryId(event.target.value)} required><option value="">Chọn danh mục</option>{categoriesQuery.data?.filter((category) => category.isActive).map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
           <Field label="SKU" value={sku} onChange={setSku} required />
@@ -385,176 +426,147 @@ const ProductsPage = () => {
             <label className="flex items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" checked={trackInventory} onChange={(event) => setTrackInventory(event.target.checked)} /> Theo dõi tồn kho</label>
             <label className="flex items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" checked={active} onChange={(event) => setActive(event.target.checked)} /> Đang hoạt động</label>
             <Button type="submit" disabled={save.isPending || !categoriesQuery.data?.length}><Save className="size-4" />{save.isPending ? 'Đang lưu...' : 'Lưu sản phẩm'}</Button>
-            {editing && <Button type="button" variant="outline" onClick={reset}>Hủy sửa</Button>}
+            <Button type="button" variant="outline" disabled={save.isPending} onClick={() => setFormOpen(false)}>Hủy</Button>
           </div>
         </form>
-      </CardBody></Card>}
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
 
-const BranchProductsPage = ({ branchId }: { branchId: string }) => {
-  const productsQuery = useQuery({ queryKey: queryKeys.branchProducts(branchId), queryFn: () => posSalesApi.getBranchProducts(branchId) });
-  const catalogQuery = useQuery({ queryKey: queryKeys.products, queryFn: () => posSalesApi.searchCatalogProducts({ pageSize: 100 }) });
-  const [drafts, setDrafts] = useState<Record<string, { sellingPrice: string; costPrice: string; isAvailableForSale: boolean; displayOrder: string }>>({});
-  const configure = useMutation({
-    mutationFn: ({ productId, value }: { productId: string; value: BranchProduct }) => {
-      const draft = drafts[productId];
-      return posSalesApi.configureBranchProduct(branchId, productId, {
-        sellingPrice: Number(draft?.sellingPrice ?? value.sellingPrice),
-        costPrice: draft?.costPrice === '' ? undefined : Number(draft?.costPrice ?? value.costPrice ?? 0),
-        isAvailableForSale: draft?.isAvailableForSale ?? value.isAvailableForSale,
-        displayOrder: Number(draft?.displayOrder ?? value.displayOrder),
-      });
-    },
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.branchProducts(branchId) }),
-        queryClient.invalidateQueries({ queryKey: ['pos-sales', 'products', branchId] }),
-        queryClient.invalidateQueries({ queryKey: ['pos-sales', 'catalog'] }),
-      ]);
-      toast.success('Cấu hình chi nhánh đã lưu.');
-    },
-    onError: notifyError,
-  });
-  const configuredById = new Map((productsQuery.data ?? []).map((product) => [product.productId, product]));
-  const products = (catalogQuery.data?.items ?? []).filter((product) => product.isActive);
-  const draftFor = (product: Product, configured?: BranchProduct) => drafts[product.id] ?? {
-    sellingPrice: String(configured?.sellingPrice ?? product.defaultSellingPrice),
-    costPrice: configured?.costPrice == null
-      ? product.defaultCostPrice === null ? '' : String(product.defaultCostPrice)
-      : String(configured.costPrice),
-    isAvailableForSale: configured?.isAvailableForSale ?? false,
-    displayOrder: String(configured?.displayOrder ?? 0),
-  };
-  return <Card><CardBody className="space-y-4">
-    <div><h2 className="text-lg font-black text-slate-900">Giá và trạng thái theo chi nhánh</h2><p className="text-sm text-slate-500">Giá và trạng thái được cấu hình riêng cho chi nhánh đang chọn.</p></div>
-    {productsQuery.isLoading || catalogQuery.isLoading ? <p role="status" className="py-8 text-center text-sm text-slate-500">Đang tải cấu hình...</p>
-      : productsQuery.isError ? <ErrorPanel error={productsQuery.error} retry={() => void productsQuery.refetch()} />
-        : catalogQuery.isError ? <ErrorPanel error={catalogQuery.error} retry={() => void catalogQuery.refetch()} />
-          : products.length ? <Table><thead><tr><TableHead>SKU / sản phẩm</TableHead><TableHead>Giá bán</TableHead><TableHead>Giá vốn</TableHead><TableHead>Thứ tự</TableHead><TableHead>Trạng thái bán</TableHead><TableHead></TableHead></tr></thead>
-          <tbody>{products.map((product) => {
-            const configured = configuredById.get(product.id);
-            const draft = draftFor(product, configured);
-            const rowProduct: BranchProduct = {
-              productId: product.id,
-              categoryId: product.categoryId,
-              categoryName: product.categoryName,
-              sku: product.sku,
-              barcode: product.barcode,
-              name: product.name,
-              unit: product.unit,
-              trackInventory: product.trackInventory,
-              sellingPrice: Number(draft.sellingPrice),
-              costPrice: draft.costPrice === '' ? null : Number(draft.costPrice),
-              isAvailableForSale: draft.isAvailableForSale,
-              displayOrder: Number(draft.displayOrder),
-            };
-            return <tr key={product.id}><TableCell>{product.sku}<br />{product.name}{configured ? '' : <span className="ml-2 text-xs text-amber-700">Chưa cấu hình</span>}</TableCell>
-              <TableCell><input aria-label={`Giá bán ${product.name}`} className={`${inputClass} min-w-32`} type="number" min={0} step="0.01" value={draft.sellingPrice} onChange={(event) => setDrafts((current) => ({ ...current, [product.id]: { ...draft, sellingPrice: event.target.value } }))} /></TableCell>
-              <TableCell><input aria-label={`Giá vốn ${product.name}`} className={`${inputClass} min-w-32`} type="number" min={0} step="0.01" value={draft.costPrice} onChange={(event) => setDrafts((current) => ({ ...current, [product.id]: { ...draft, costPrice: event.target.value } }))} /></TableCell>
-              <TableCell><input aria-label={`Thứ tự ${product.name}`} className={`${inputClass} min-w-20`} type="number" min={0} step={1} value={draft.displayOrder} onChange={(event) => setDrafts((current) => ({ ...current, [product.id]: { ...draft, displayOrder: event.target.value } }))} /></TableCell>
-              <TableCell><label className="flex items-center gap-2"><input type="checkbox" checked={draft.isAvailableForSale} onChange={(event) => setDrafts((current) => ({ ...current, [product.id]: { ...draft, isAvailableForSale: event.target.checked } }))} /> Cho bán</label></TableCell>
-              <TableCell><Button size="sm" onClick={() => configure.mutate({ productId: product.id, value: rowProduct })} disabled={configure.isPending}>Lưu</Button></TableCell>
-            </tr>;
-          })}</tbody></Table> : <EmptyPanel>Chưa có sản phẩm cấu hình cho chi nhánh.</EmptyPanel>}
-  </CardBody></Card>;
+const stockStatusLabels = {
+  IN_STOCK: 'Còn hàng',
+  LOW_STOCK: 'Sắp hết',
+  OUT_OF_STOCK: 'Hết hàng',
 };
+const inventoryDate = (value: string) => new Date(value).toLocaleString('vi-VN', {
+  timeZone: 'Asia/Ho_Chi_Minh',
+});
 
-const InventoryPage = ({ branchId }: { branchId: string }) => {
-  const canAdjust = useCan(P.INVENTORY_ADJUST);
-  const inventoryQuery = useQuery({ queryKey: queryKeys.inventory(branchId), queryFn: () => posSalesApi.getInventory(branchId) });
-  const [reorder, setReorder] = useState<Record<string, string>>({});
-  const [productId, setProductId] = useState('');
-  const [movementType, setMovementType] = useState('ADJUSTMENT_IN');
-  const [quantity, setQuantity] = useState('');
-  const [notes, setNotes] = useState('');
-  const saveReorder = useMutation({
-    mutationFn: ({ item, value }: { item: InventoryBalance; value: string }) => posSalesApi.setReorderLevel(branchId, item.productId, Number(value)),
-    onSuccess: async () => { await invalidateInventoryViews(branchId); toast.success('Ngưỡng đặt hàng đã cập nhật.'); },
-    onError: notifyError,
-  });
-  const adjust = useMutation({
-    mutationFn: () => posSalesApi.adjustInventory(branchId, { productId, movementType, quantity: Number(quantity), notes }),
-    onSuccess: async () => {
-      await invalidateInventoryViews(branchId);
-      toast.success('Điều chỉnh tồn kho đã ghi nhận.'); setQuantity(''); setNotes('');
-    },
-    onError: notifyError,
-  });
-  const onAdjust = (event: FormEvent) => { event.preventDefault(); adjust.mutate(); };
-  return <div className="space-y-5">
-    <Card><CardBody className="space-y-4">
-      <h2 className="text-lg font-black text-slate-900">Tồn kho chi nhánh</h2>
-      {inventoryQuery.isLoading ? <p role="status" className="py-8 text-center text-sm text-slate-500">Đang tải tồn kho...</p>
-        : inventoryQuery.isError ? <ErrorPanel error={inventoryQuery.error} retry={() => void inventoryQuery.refetch()} />
-          : inventoryQuery.data?.items.length ? <Table><thead><tr><TableHead>SKU / sản phẩm</TableHead><TableHead>Hiện có</TableHead><TableHead>Đã giữ</TableHead><TableHead>Có thể bán</TableHead>{canAdjust && <><TableHead>Ngưỡng đặt hàng</TableHead><TableHead></TableHead></>}</tr></thead>
-            <tbody>{inventoryQuery.data.items.map((item) => <tr key={item.productId}>
-              <TableCell>{item.sku}<br />{item.productName}</TableCell><TableCell>{item.quantityOnHand} {item.unit}</TableCell><TableCell>{item.quantityReserved}</TableCell><TableCell>{item.availableQuantity}</TableCell>
-              {canAdjust && <><TableCell><input aria-label={`Ngưỡng ${item.productName}`} className={`${inputClass} min-w-24`} type="number" min={0} step="0.001" value={reorder[item.productId] ?? String(item.reorderLevel)} onChange={(event) => setReorder((current) => ({ ...current, [item.productId]: event.target.value }))} /></TableCell>
-              <TableCell><Button size="sm" variant="outline" disabled={saveReorder.isPending} onClick={() => saveReorder.mutate({ item, value: reorder[item.productId] ?? String(item.reorderLevel) })}>Lưu</Button></TableCell></>}
-            </tr>)}</tbody></Table> : <EmptyPanel>Chưa có dữ liệu tồn kho cho chi nhánh.</EmptyPanel>}
-    </CardBody></Card>
-    {canAdjust && <Card><CardBody>
-      <h2 className="mb-4 text-lg font-black text-slate-900">Điều chỉnh tồn kho</h2>
-      <form className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" onSubmit={onAdjust}>
-        <label className="block"><span className={labelClass}>Sản phẩm</span><select className={inputClass} value={productId} onChange={(event) => setProductId(event.target.value)} required><option value="">Chọn sản phẩm</option>{inventoryQuery.data?.items.map((item) => <option key={item.productId} value={item.productId}>{item.sku} — {item.productName}</option>)}</select></label>
-        <label className="block"><span className={labelClass}>Loại điều chỉnh</span><select className={inputClass} value={movementType} onChange={(event) => setMovementType(event.target.value)}><option value="ADJUSTMENT_IN">Tăng tồn</option><option value="ADJUSTMENT_OUT">Giảm tồn</option><option value="DAMAGE">Hư hỏng</option></select></label>
-        <Field label="Số lượng (dương)" type="number" value={quantity} onChange={setQuantity} min={0.001} step="0.001" required />
-        <Field label="Ghi chú" value={notes} onChange={setNotes} required />
-        <div className="sm:col-span-2 lg:col-span-4"><Button type="submit" disabled={adjust.isPending || !inventoryQuery.data?.items.length}><Plus className="size-4" />{adjust.isPending ? 'Đang ghi nhận...' : 'Ghi nhận điều chỉnh'}</Button></div>
-      </form>
-    </CardBody></Card>}
-  </div>;
-};
-
-const MovementsPage = ({ branchId }: { branchId: string }) => {
-  const [productId, setProductId] = useState('');
-  const [movementType, setMovementType] = useState('');
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
-  const productsQuery = useQuery({ queryKey: queryKeys.branchProducts(branchId), queryFn: () => posSalesApi.getBranchProducts(branchId) });
-  const filterKey = [productId, movementType, from, to].join('|');
-  const movementsQuery = useQuery({
-    queryKey: queryKeys.movements(branchId, filterKey),
-    queryFn: () => posSalesApi.getMovements(branchId, {
-      productId: productId || undefined,
-      movementType: movementType || undefined,
-      from: from || undefined,
-      to: to || undefined,
-    }),
-  });
-  return <Card><CardBody className="space-y-4">
-    <div><h2 className="text-lg font-black text-slate-900">Lịch sử biến động kho</h2><p className="text-sm text-slate-500">Mọi thay đổi tồn được ghi thành stock movement theo chi nhánh.</p></div>
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <label className="block"><span className={labelClass}>Sản phẩm</span><select className={inputClass} value={productId} onChange={(event) => setProductId(event.target.value)}><option value="">Tất cả</option>{productsQuery.data?.map((item) => <option key={item.productId} value={item.productId}>{item.sku} — {item.name}</option>)}</select></label>
-      <label className="block"><span className={labelClass}>Loại biến động</span><select className={inputClass} value={movementType} onChange={(event) => setMovementType(event.target.value)}><option value="">Tất cả</option>{['OPENING_BALANCE', 'GOODS_RECEIPT', 'SALE', 'SALE_RETURN', 'ADJUSTMENT_IN', 'ADJUSTMENT_OUT', 'DAMAGE', 'TRANSFER_IN', 'TRANSFER_OUT'].map((value) => <option key={value}>{value}</option>)}</select></label>
-      <Field label="Từ ngày" type="date" value={from} onChange={setFrom} />
-      <Field label="Đến ngày" type="date" value={to} onChange={setTo} />
-    </div>
-    {movementsQuery.isLoading ? <p role="status" className="py-8 text-center text-sm text-slate-500">Đang tải biến động...</p>
-      : movementsQuery.isError ? <ErrorPanel error={movementsQuery.error} retry={() => void movementsQuery.refetch()} />
-        : movementsQuery.data?.items.length ? <MovementTable movements={movementsQuery.data.items} /> : <EmptyPanel>Không có biến động kho phù hợp.</EmptyPanel>}
-  </CardBody></Card>;
-};
-
-const MovementTable = ({ movements }: { movements: StockMovement[] }) => (
-  <Table><thead><tr><TableHead>Thời gian</TableHead><TableHead>Sản phẩm</TableHead><TableHead>Loại</TableHead><TableHead>Thay đổi</TableHead><TableHead>Tồn trước → sau</TableHead><TableHead>Tham chiếu / ghi chú</TableHead></tr></thead>
-    <tbody>{movements.map((movement) => <tr key={movement.id}><TableCell>{new Date(movement.createdAt).toLocaleString('vi-VN')}</TableCell><TableCell>{movement.sku}<br />{movement.productName}</TableCell><TableCell>{movement.movementType}</TableCell><TableCell>{movement.quantity} {movement.quantity < 0 ? '−' : '+'}</TableCell><TableCell>{movement.quantityBefore} → {movement.quantityAfter}</TableCell><TableCell>{movement.referenceType ?? '—'}{movement.notes ? <><br />{movement.notes}</> : null}</TableCell></tr>)}</tbody>
-  </Table>
+const WarehousePagination = ({
+  metadata, page, pageSize, onPageChange, onPageSizeChange,
+}: {
+  metadata: { totalCount: number; totalPages: number };
+  page: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
+}) => (
+  <TablePagination pageNumber={page} pageSize={pageSize} totalCount={metadata.totalCount}
+    totalPages={metadata.totalPages} itemsLabel="dòng" onPageChange={onPageChange} onPageSizeChange={onPageSizeChange} />
 );
 
-const ReceiptsPage = ({ branchId }: { branchId: string }) => {
+const InventoryPage = ({ branchId }: { branchId: string }) => {
+  const [search, setSearch] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [stockStatus, setStockStatus] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const categories = useQuery({
+    queryKey: [...queryKeys.inventory(branchId), 'categories'],
+    queryFn: () => posSalesApi.getInventoryCategories(branchId),
+  });
+  const criteria = { search: search.trim() || undefined, categoryId: categoryId || undefined,
+    stockStatus: stockStatus || undefined, page, pageSize };
+  const inventory = useQuery({
+    queryKey: [...queryKeys.inventory(branchId), criteria],
+    queryFn: () => posSalesApi.getInventory(branchId, criteria),
+  });
+
+  return (
+    <Card><CardBody className="space-y-4">
+      <h2 className="text-lg font-black text-slate-900">Tồn kho chi nhánh</h2>
+      <div className="grid gap-3 md:grid-cols-3">
+        <Field label="Tìm theo tên sản phẩm" value={search}
+          onChange={(value) => { setSearch(value); setPage(1); }} />
+        <label className="block">
+          <span className={labelClass}>Danh mục</span>
+          <select aria-label="Danh mục" className={inputClass} value={categoryId} disabled={categories.isLoading || categories.isError}
+            onChange={(event) => { setCategoryId(event.target.value); setPage(1); }}>
+            <option value="">Tất cả danh mục</option>
+            {categories.data?.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+          </select>
+        </label>
+        <label className="block">
+          <span className={labelClass}>Trạng thái tồn kho</span>
+          <select aria-label="Trạng thái tồn kho" className={inputClass} value={stockStatus}
+            onChange={(event) => { setStockStatus(event.target.value); setPage(1); }}>
+            <option value="">Tất cả trạng thái</option>
+            {Object.entries(stockStatusLabels).map(([code, label]) => <option key={code} value={code}>{label}</option>)}
+          </select>
+        </label>
+      </div>
+      {categories.isError && <ErrorPanel error={categories.error} retry={() => void categories.refetch()} />}
+      {inventory.isLoading ? <EmptyPanel>Đang tải tồn kho...</EmptyPanel>
+        : inventory.isError ? <ErrorPanel error={inventory.error} retry={() => void inventory.refetch()} />
+        : !inventory.data?.items.length ? <EmptyPanel>Không có sản phẩm phù hợp.</EmptyPanel>
+        : <Table>
+            <thead><tr><TableHead>Danh mục</TableHead><TableHead>Tên sản phẩm</TableHead><TableHead>Đơn vị</TableHead><TableHead>Tồn hiện tại</TableHead><TableHead>Trạng thái</TableHead></tr></thead>
+            <tbody>{inventory.data.items.map((item) => {
+              const state = item.quantityOnHand <= 0 ? 'OUT_OF_STOCK'
+                : item.quantityOnHand <= item.reorderLevel ? 'LOW_STOCK' : 'IN_STOCK';
+              return <tr key={item.productId}>
+                <TableCell>{item.categoryName}</TableCell><TableCell>{item.productName}</TableCell>
+                <TableCell>{item.unit}</TableCell><TableCell>{item.quantityOnHand}</TableCell>
+                <TableCell>{stockStatusLabels[state]}</TableCell>
+              </tr>;
+            })}</tbody>
+          </Table>}
+      {inventory.data?.metadata && <WarehousePagination metadata={inventory.data.metadata} page={page} pageSize={pageSize}
+        onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />}
+    </CardBody></Card>
+  );
+};
+
+const StockHistory = ({ branchId, direction }: { branchId: string; direction: 'in' | 'out' }) => {
   const canReceive = useCan(P.INVENTORY_RECEIVE);
-  const receiptsQuery = useQuery({ queryKey: queryKeys.receipts(branchId), queryFn: () => posSalesApi.getReceipts(branchId) });
-  return <Card><CardBody className="space-y-4">
-    <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-black text-slate-900">Phiếu nhập hàng</h2><p className="text-sm text-slate-500">Phiếu nháp chỉ làm thay đổi tồn sau khi được ghi sổ.</p></div>{canReceive && <Link to={paths.posReceiptCreate}><Button><Plus className="size-4" />Tạo phiếu nhập</Button></Link>}</div>
-    {receiptsQuery.isLoading ? <p role="status" className="py-8 text-center text-sm text-slate-500">Đang tải phiếu nhập...</p>
-      : receiptsQuery.isError ? <ErrorPanel error={receiptsQuery.error} retry={() => void receiptsQuery.refetch()} />
-        : receiptsQuery.data?.items.length ? <Table><thead><tr><TableHead>Mã phiếu</TableHead><TableHead>Nhà cung cấp</TableHead><TableHead>Trạng thái</TableHead><TableHead>Tổng giá vốn</TableHead><TableHead>Ngày tạo</TableHead><TableHead></TableHead></tr></thead>
-          <tbody>{receiptsQuery.data.items.map((receipt) => <tr key={receipt.id}><TableCell>{receipt.receiptCode}</TableCell><TableCell>{receipt.supplierName ?? '—'}</TableCell><TableCell>{receipt.status}</TableCell><TableCell>{amount(receipt.totalCost)}</TableCell><TableCell>{new Date(receipt.createdAt).toLocaleString('vi-VN')}</TableCell><TableCell><Link className="font-bold text-emerald-700 hover:underline" to={paths.posReceiptDetail(receipt.id)}>Chi tiết</Link></TableCell></tr>)}</tbody>
-        </Table> : <EmptyPanel>Chưa có phiếu nhập hàng.</EmptyPanel>}
-  </CardBody></Card>;
+  const incoming = direction === 'in';
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const movements = useQuery({
+    queryKey: queryKeys.movements(branchId, `${direction}:${page}:${pageSize}`),
+    queryFn: () => posSalesApi.getMovements(branchId, {
+      movementType: incoming ? 'GOODS_RECEIPT' : 'SALE', includeDraftReceipts: incoming, page, pageSize,
+    }),
+  });
+
+  return (
+    <Card><CardBody className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-black text-slate-900">{incoming ? 'Lịch sử nhập kho' : 'Xuất kho từ POS'}</h2>
+        {incoming && <div className="flex flex-wrap items-center gap-2">
+          {canReceive && <Button asChild><Link to={paths.posReceiptCreate}><Plus aria-hidden className="size-4" />Nhập kho</Link></Button>}
+        </div>}
+      </div>
+      {movements.isLoading ? <EmptyPanel>Đang tải lịch sử kho...</EmptyPanel>
+        : movements.isError ? <ErrorPanel error={movements.error} retry={() => void movements.refetch()} />
+        : !movements.data?.items.length ? <EmptyPanel>Chưa có dữ liệu.</EmptyPanel>
+        : <Table>
+            <thead><tr><TableHead>{incoming ? 'Ngày nhập' : 'Ngày xuất'}</TableHead>
+              <TableHead>Danh mục</TableHead><TableHead>Sản phẩm</TableHead><TableHead>Đơn vị</TableHead>
+              <TableHead>Số lượng</TableHead>{incoming && <><TableHead>Giá nhập</TableHead><TableHead>Nhà cung cấp</TableHead><TableHead>Thao tác</TableHead></>}</tr></thead>
+            <tbody>{movements.data.items.map((item: StockMovement) => <tr key={item.id}>
+              <TableCell>{inventoryDate(item.createdAt)}</TableCell><TableCell>{item.categoryName}</TableCell>
+              <TableCell>{item.productName}{item.isDraft && <span className="ml-2 text-xs text-amber-700">Nháp</span>}</TableCell>
+              <TableCell>{item.unit}</TableCell><TableCell>{Math.abs(item.quantity)}</TableCell>
+              {incoming && <>
+                <TableCell>{item.unitCost == null ? '—' : amount(item.unitCost)}</TableCell>
+                <TableCell>{item.supplierName ?? '—'}</TableCell>
+                <TableCell>{canReceive && item.referenceId && (
+                  <Link className="font-semibold text-emerald-700 underline"
+                    to={paths.posReceiptEdit(item.referenceId)}>
+                    Sửa
+                  </Link>
+                )}</TableCell>
+              </>}
+            </tr>)}</tbody>
+          </Table>}
+      {movements.data?.metadata && <WarehousePagination metadata={movements.data.metadata} page={page} pageSize={pageSize}
+        onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />}
+    </CardBody></Card>
+  );
 };
 
 type ReceiptLine = { productId: string; quantity: string; unitCost: string };
@@ -562,6 +574,7 @@ type ReceiptLine = { productId: string; quantity: string; unitCost: string };
 const ReceiptEditorPage = ({ branchId }: { branchId: string }) => {
   const { receiptId } = useParams();
   const navigate = useNavigate();
+  const canPost = useCan(P.INVENTORY_POST_RECEIPT);
   const isEdit = Boolean(receiptId && receiptId !== 'new');
   const productsQuery = useQuery({ queryKey: queryKeys.branchProducts(branchId), queryFn: () => posSalesApi.getBranchProducts(branchId) });
   const receiptQuery = useQuery({
@@ -570,57 +583,106 @@ const ReceiptEditorPage = ({ branchId }: { branchId: string }) => {
     enabled: isEdit,
   });
   const [supplierName, setSupplierName] = useState('');
-  const [supplierReference, setSupplierReference] = useState('');
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<ReceiptLine[]>([{ productId: '', quantity: '1', unitCost: '0' }]);
   const loadedReceiptId = receiptQuery.data?.id;
   useEffect(() => {
     if (!receiptQuery.data || receiptQuery.data.id !== loadedReceiptId) return;
     setSupplierName(receiptQuery.data.supplierName ?? '');
-    setSupplierReference(receiptQuery.data.supplierReference ?? '');
     setNotes(receiptQuery.data.notes ?? '');
     setItems(receiptQuery.data.items?.map((item) => ({ productId: item.productId, quantity: String(item.quantity), unitCost: String(item.unitCost) })) ?? []);
   }, [loadedReceiptId, receiptQuery.data]);
   const save = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
+      const existing = receiptQuery.data;
+      if (existing?.status === 'POSTED') {
+        await posSalesApi.updatePostedReceiptSupplier(branchId, existing.id, supplierName.trim() || null);
+        return { receipt: existing, posted: false, supplierUpdated: true };
+      }
+
       const input = {
         supplierName: supplierName || undefined,
-        supplierReference: supplierReference || undefined,
+        supplierReference: isEdit ? receiptQuery.data?.supplierReference ?? undefined : undefined,
         notes: notes || undefined,
         items: items.map((item) => ({ productId: item.productId, quantity: Number(item.quantity), unitCost: Number(item.unitCost) })),
       };
-      return isEdit ? posSalesApi.updateReceipt(branchId, receiptId!, input) : posSalesApi.createReceipt(branchId, input);
+      const receipt = isEdit
+        ? await posSalesApi.updateReceipt(branchId, receiptId!, input)
+        : await posSalesApi.createReceipt(branchId, input);
+      if (!canPost) return { receipt, posted: false };
+      try {
+        await posSalesApi.postReceipt(branchId, receipt.id);
+        return { receipt, posted: true };
+      } catch (error) {
+        // The saved draft can be posted again without creating a second receipt.
+        return { receipt, posted: false, error: errorMessage(error) };
+      }
     },
-    onSuccess: async (receipt) => {
+    onSuccess: async ({ receipt, posted, error, supplierUpdated }) => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.receipts(branchId) }),
-        queryClient.invalidateQueries({ queryKey: ['pos-sales', 'receipts', branchId] }),
+        invalidateInventoryViews(branchId),
+        queryClient.invalidateQueries({ queryKey: queryKeys.receipt(branchId, receipt.id) }),
       ]);
-      toast.success(isEdit ? 'Phiếu nháp đã được cập nhật.' : 'Phiếu nháp đã được tạo.');
+      if (supplierUpdated) {
+        toast.success('Đã cập nhật nhà cung cấp.');
+        navigate(paths.posReceipts);
+        return;
+      }
+      if (posted) {
+        toast.success('Đã nhập kho và cập nhật tồn kho.');
+        navigate(paths.posReceipts);
+        return;
+      }
+      if (error) toast.error('Đã lưu phiếu nháp, chưa ghi sổ', error);
+      else toast.success('Đã lưu phiếu nháp.');
       navigate(paths.posReceiptDetail(receipt.id));
     },
     onError: notifyError,
   });
   const addLine = () => setItems((current) => [...current, { productId: '', quantity: '1', unitCost: '0' }]);
   const updateLine = (index: number, patch: Partial<ReceiptLine>) => setItems((current) => current.map((item, row) => row === index ? { ...item, ...patch } : item));
-  const onSubmit = (event: FormEvent) => { event.preventDefault(); save.mutate(); };
+  const onSubmit = (event: FormEvent) => { event.preventDefault(); if (!save.isPending) save.mutate(); };
   if (isEdit && receiptQuery.isLoading) return <Card><CardBody><p role="status" className="py-8 text-center">Đang tải phiếu...</p></CardBody></Card>;
   if (isEdit && receiptQuery.isError) return <ErrorPanel error={receiptQuery.error} retry={() => void receiptQuery.refetch()} />;
+  if (receiptQuery.data?.status === 'POSTED') {
+    return (
+      <Card><CardBody className="space-y-4">
+        <h2 className="text-lg font-black text-slate-900">Sửa nhà cung cấp</h2>
+        <p className="text-sm text-slate-600">Phiếu đã ghi sổ chỉ cho phép cập nhật nhà cung cấp.</p>
+        <form onSubmit={onSubmit} className="space-y-3">
+          <Field label="Nhà cung cấp" value={supplierName} onChange={setSupplierName} />
+          <div className="flex gap-2">
+            <Button type="submit" disabled={save.isPending || supplierName.trim().length > 200}>Lưu</Button>
+            <Button asChild variant="outline"><Link to={paths.posReceipts}>Quay lại danh sách</Link></Button>
+          </div>
+        </form>
+      </CardBody></Card>
+    );
+  }
   if (productsQuery.isLoading) return <Card><CardBody><p role="status" className="py-8 text-center">Đang tải sản phẩm...</p></CardBody></Card>;
   if (productsQuery.isError) return <ErrorPanel error={productsQuery.error} retry={() => void productsQuery.refetch()} />;
   if (isEdit && receiptQuery.data?.status !== 'DRAFT') return <Card><CardBody><p className="text-sm text-slate-700">Chỉ phiếu nhập ở trạng thái nháp mới được chỉnh sửa.</p><Link className="mt-3 inline-block font-bold text-emerald-700" to={paths.posReceiptDetail(receiptId!)}>Xem phiếu</Link></CardBody></Card>;
   return <Card><CardBody>
-    <div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-black text-slate-900">{isEdit ? 'Sửa phiếu nhập nháp' : 'Tạo phiếu nhập nháp'}</h2><Link to={paths.posReceipts} className="text-sm font-bold text-emerald-700">Quay lại danh sách</Link></div>
+    <div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-black text-slate-900">{isEdit ? 'Sửa phiếu nhập nháp' : 'Nhập kho'}</h2><Link to={paths.posReceipts} className="text-sm font-bold text-emerald-700">Quay lại danh sách</Link></div>
     <form className="space-y-5" onSubmit={onSubmit}>
-      <div className="grid gap-3 sm:grid-cols-2"><Field label="Nhà cung cấp" value={supplierName} onChange={setSupplierName} /><Field label="Mã tham chiếu nhà cung cấp" value={supplierReference} onChange={setSupplierReference} /><div className="sm:col-span-2"><Field label="Ghi chú" value={notes} onChange={setNotes} /></div></div>
+      <label className="block">
+        <span className={labelClass}>Ngày nhập</span>
+        <input className={inputClass} readOnly value={inventoryDate(receiptQuery.data?.createdAt ?? new Date().toISOString())} />
+      </label>
+      <div className="grid gap-3 sm:grid-cols-2"><Field label="Nhà cung cấp" value={supplierName} onChange={setSupplierName} /><div className="sm:col-span-2"><Field label="Ghi chú" value={notes} onChange={setNotes} /></div></div>
       <div className="space-y-3"><div className="flex items-center justify-between"><h3 className="font-bold text-slate-800">Sản phẩm nhận</h3><Button type="button" variant="outline" size="sm" onClick={addLine}><Plus className="size-4" />Thêm dòng</Button></div>
-        {items.map((item, index) => <div key={`${index}`} className="grid gap-3 rounded-xl border border-slate-200 p-3 sm:grid-cols-4">
+        {items.map((item, index) => {
+          const product = productsQuery.data?.find((candidate) => candidate.productId === item.productId);
+          return <div key={`${index}`} className="grid gap-3 rounded-xl border border-slate-200 p-3 sm:grid-cols-4">
           <label className="block sm:col-span-2"><span className={labelClass}>Sản phẩm</span><select className={inputClass} value={item.productId} required onChange={(event) => updateLine(index, { productId: event.target.value })}><option value="">Chọn sản phẩm</option>{productsQuery.data?.filter((product) => product.trackInventory).map((product) => <option key={product.productId} value={product.productId}>{product.sku} — {product.name}</option>)}</select></label>
-          <Field label="Số lượng" type="number" value={item.quantity} onChange={(value) => updateLine(index, { quantity: value })} min={0.001} step="0.001" required />
-          <div className="flex gap-2"><Field label="Đơn giá vốn" type="number" value={item.unitCost} onChange={(value) => updateLine(index, { unitCost: value })} min={0} step="0.01" required /><Button type="button" variant="outline" className="mt-6" disabled={items.length === 1} onClick={() => setItems((current) => current.filter((_, row) => row !== index))}>Xóa</Button></div>
-        </div>)}
+          <label className="block"><span className={labelClass}>Danh mục</span><input className={inputClass} readOnly value={product?.categoryName ?? ''} /></label>
+          <label className="block"><span className={labelClass}>Đơn vị</span><input className={inputClass} readOnly value={product?.unit ?? ''} /></label>
+          <Field label="Số lượng" type="number" value={item.quantity} onChange={(value) => updateLine(index, { quantity: value })} min={0.001} step={0.001} required />
+          <div className="flex gap-2"><Field label="Giá nhập" type="number" value={item.unitCost} onChange={(value) => updateLine(index, { unitCost: value })} min={0} step={0.01} required /><Button type="button" variant="outline" className="mt-6" disabled={items.length === 1} onClick={() => setItems((current) => current.filter((_, row) => row !== index))}>Xóa</Button></div>
+        </div>;
+        })}
       </div>
-      <Button type="submit" disabled={save.isPending || !productsQuery.data?.some((product) => product.trackInventory) || new Set(items.map((item) => item.productId).filter(Boolean)).size !== items.filter((item) => item.productId).length}><Save className="size-4" />{save.isPending ? 'Đang lưu...' : 'Lưu phiếu nháp'}</Button>
+      <Button type="submit" disabled={save.isPending || !productsQuery.data?.some((product) => product.trackInventory) || new Set(items.map((item) => item.productId).filter(Boolean)).size !== items.filter((item) => item.productId).length}><Save className="size-4" />{save.isPending ? 'Đang lưu...' : canPost ? 'Xác nhận nhập kho' : 'Lưu phiếu nháp'}</Button>
     </form>
   </CardBody></Card>;
 };
@@ -683,6 +745,8 @@ const ReceiptActions = ({
   </div>;
 };
 
+const orderBranchPath = (path: string, branchId: string) => path + "?" + new URLSearchParams({ branchId });
+
 const OrdersPage = ({ branchId }: { branchId: string }) => {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
@@ -693,7 +757,7 @@ const OrdersPage = ({ branchId }: { branchId: string }) => {
     {ordersQuery.isLoading ? <p role="status" className="py-8 text-center text-sm text-slate-500">Đang tải đơn hàng...</p>
       : ordersQuery.isError ? <ErrorPanel error={ordersQuery.error} retry={() => void ordersQuery.refetch()} />
         : ordersQuery.data?.items.length ? <Table><thead><tr><TableHead>Mã đơn</TableHead><TableHead>Khách hàng</TableHead><TableHead>Trạng thái</TableHead><TableHead>Thanh toán</TableHead><TableHead>Tổng tiền</TableHead><TableHead>Ngày tạo</TableHead><TableHead></TableHead></tr></thead>
-          <tbody>{ordersQuery.data.items.map((order) => <tr key={order.id}><TableCell>{order.orderCode}</TableCell><TableCell>{order.customerName ?? 'Khách lẻ'}</TableCell><TableCell>{order.status}</TableCell><TableCell>{order.paymentStatus} · {order.paymentMethodCode}</TableCell><TableCell>{amount(order.totalAmount)}</TableCell><TableCell>{new Date(order.createdAt).toLocaleString('vi-VN')}</TableCell><TableCell><Link className="font-bold text-emerald-700 hover:underline" to={paths.posOrderDetail(order.id)}>Chi tiết</Link></TableCell></tr>)}</tbody></Table>
+          <tbody>{ordersQuery.data.items.map((order) => <tr key={order.id}><TableCell>{order.orderCode}</TableCell><TableCell>{order.customerName ?? 'Khách lẻ'}</TableCell><TableCell>{order.status}</TableCell><TableCell>{order.paymentStatus} · {order.paymentMethodCode}</TableCell><TableCell>{amount(order.totalAmount)}</TableCell><TableCell>{new Date(order.createdAt).toLocaleString('vi-VN')}</TableCell><TableCell><Link className="font-bold text-emerald-700 hover:underline" to={orderBranchPath(paths.posOrderDetail(order.id), branchId)}>Chi tiết</Link></TableCell></tr>)}</tbody></Table>
           : <EmptyPanel>Không tìm thấy đơn bán hàng.</EmptyPanel>}
   </CardBody></Card>;
 };
@@ -710,6 +774,7 @@ const OrderDetailPage = ({ branchId }: { branchId: string }) => {
         queryClient.invalidateQueries({ queryKey: queryKeys.orders(branchId) }),
         queryClient.invalidateQueries({ queryKey: ['pos-sales', 'orders', branchId] }),
         queryClient.invalidateQueries({ queryKey: ['pos-sales', 'report', branchId] }),
+        queryClient.invalidateQueries({ queryKey: ['business-statistics', 'report'] }),
         invalidateInventoryViews(branchId),
       ]);
       toast.success('Đơn hàng đã hủy và hoàn kho.');
@@ -722,42 +787,14 @@ const OrderDetailPage = ({ branchId }: { branchId: string }) => {
   if (!order) return <EmptyPanel>Không tìm thấy đơn hàng.</EmptyPanel>;
   const canCancel = hasPermission(P.SALES_CANCEL) && order.status === 'COMPLETED';
   return <Card><CardBody className="space-y-5">
-    <div className="flex flex-wrap items-start justify-between gap-3"><div><Link to={paths.posOrders} className="inline-flex items-center gap-1 text-sm font-bold text-emerald-700"><ArrowLeft className="size-4" />Danh sách đơn</Link><h2 className="mt-3 text-xl font-black text-slate-900">{order.orderCode}</h2></div>
-      <div className="flex flex-wrap gap-2">{order.invoiceId && hasPermission(P.SALES_INVOICE_VIEW) && <Link to={paths.posInvoice(order.invoiceId)}><Button variant="outline"><FileText className="size-4" />Hóa đơn</Button></Link>}{canCancel && <Button variant="outline" disabled={cancel.isPending} onClick={() => { if (window.confirm('Hủy đơn và hoàn kho toàn bộ sản phẩm?')) cancel.mutate(); }}>Hủy đơn / hoàn tiền</Button>}</div>
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><Link to={orderBranchPath(paths.posOrders, branchId)} className="inline-flex items-center gap-1 text-sm font-bold text-emerald-700"><ArrowLeft className="size-4" />Danh sách đơn</Link><h2 className="mt-3 text-xl font-black text-slate-900">{order.orderCode}</h2></div>
+      <div className="flex flex-wrap gap-2">{order.invoiceId && hasPermission(P.SALES_INVOICE_VIEW) && <Link to={orderBranchPath(paths.posInvoice(order.invoiceId), branchId)}><Button variant="outline"><FileText className="size-4" />Hóa đơn</Button></Link>}{canCancel && <Button variant="outline" disabled={cancel.isPending} onClick={() => { if (window.confirm('Hủy đơn và hoàn kho toàn bộ sản phẩm?')) cancel.mutate(); }}>Hủy đơn / hoàn tiền</Button>}</div>
     </div>
     <div className="grid gap-3 rounded-xl bg-slate-50 p-4 text-sm sm:grid-cols-3"><p><b>Khách hàng:</b> {order.customerName ?? 'Khách lẻ'}</p><p><b>Booking tham chiếu:</b> {order.bookingId ?? '—'}</p><p><b>Trạng thái:</b> {order.status}</p><p><b>Thanh toán:</b> {order.paymentStatus} · {order.paymentMethodCode}</p><p><b>Ngày tạo:</b> {new Date(order.createdAt).toLocaleString('vi-VN')}</p><p><b>Hoàn tất:</b> {order.completedAt ? new Date(order.completedAt).toLocaleString('vi-VN') : '—'}</p>{order.notes && <p className="sm:col-span-3"><b>Ghi chú:</b> {order.notes}</p>}</div>
     <Table><thead><tr><TableHead>Sản phẩm</TableHead><TableHead>Số lượng</TableHead><TableHead>Đơn giá</TableHead><TableHead>Thành tiền</TableHead></tr></thead><tbody>{order.items.map((item, index) => <tr key={`${item.productId}-${index}`}><TableCell>{item.sku}<br />{item.productName}</TableCell><TableCell>{item.quantity} {item.unit}</TableCell><TableCell>{amount(item.unitPrice)}</TableCell><TableCell>{amount(item.lineTotal)}</TableCell></tr>)}</tbody></Table>
     <div className="ml-auto max-w-sm space-y-1 text-right text-sm"><p>Tạm tính: {amount(order.subtotalAmount)}</p><p>Giảm giá: {amount(order.discountAmount)}</p><p className="text-lg font-black">Tổng cộng: {amount(order.totalAmount)}</p><p>Đã thanh toán: {amount(order.paidAmount)}</p></div>
   </CardBody></Card>;
 };
-
-const SalesDashboardPage = ({ branchId }: { branchId: string }) => {
-  const today = new Date();
-  const thirtyDaysAgo = new Date(today);
-  thirtyDaysAgo.setDate(today.getDate() - 29);
-  const [from, setFrom] = useState(thirtyDaysAgo.toISOString().slice(0, 10));
-  const [to, setTo] = useState(today.toISOString().slice(0, 10));
-  const reportQuery = useQuery({ queryKey: queryKeys.report(branchId, from, to), queryFn: () => posSalesApi.getReport(branchId, from, to) });
-  return <Card><CardBody className="space-y-5">
-    <div><h2 className="text-lg font-black text-slate-900">Báo cáo bán hàng</h2><p className="text-sm text-slate-500">Doanh thu, hoàn tiền, doanh thu thuần và sản phẩm bán chạy theo chi nhánh.</p></div>
-    <div className="grid gap-3 sm:grid-cols-2"><Field label="Từ ngày" type="date" value={from} onChange={setFrom} /><Field label="Đến ngày" type="date" value={to} onChange={setTo} /></div>
-    {reportQuery.isLoading ? <p role="status" className="py-8 text-center text-sm text-slate-500">Đang tải báo cáo...</p>
-      : reportQuery.isError ? <ErrorPanel error={reportQuery.error} retry={() => void reportQuery.refetch()} />
-        : reportQuery.data && <SalesReportView report={reportQuery.data} />}
-  </CardBody></Card>;
-};
-
-const SalesReportView = ({ report }: { report: SalesReport }) => (
-  <div className="space-y-5">
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      {[['Số đơn hoàn tất', String(report.completedOrderCount)], ['Doanh thu gộp', amount(report.grossSales)], ['Hoàn tiền', amount(report.refunds)], ['Doanh thu thuần', amount(report.netSales)]].map(([label, value]) => <div key={label} className="rounded-xl bg-emerald-50 p-4"><p className="text-sm font-semibold text-emerald-900">{label}</p><p className="mt-1 text-xl font-black text-emerald-950">{value}</p></div>)}
-    </div>
-    <div className="grid gap-5 xl:grid-cols-2">
-      <div><h3 className="mb-3 font-bold text-slate-800">Theo ngày</h3>{report.dailySales.length ? <Table><thead><tr><TableHead>Ngày (UTC)</TableHead><TableHead>Số đơn</TableHead><TableHead>Doanh thu gộp</TableHead><TableHead>Hoàn tiền</TableHead></tr></thead><tbody>{report.dailySales.map((row) => <tr key={row.date}><TableCell>{row.date}</TableCell><TableCell>{row.orderCount}</TableCell><TableCell>{amount(row.grossSales)}</TableCell><TableCell>{amount(row.refunds)}</TableCell></tr>)}</tbody></Table> : <EmptyPanel>Không có số liệu trong khoảng ngày này.</EmptyPanel>}</div>
-      <div><h3 className="mb-3 font-bold text-slate-800">10 sản phẩm bán chạy</h3>{report.topProducts.length ? <Table><thead><tr><TableHead>Sản phẩm</TableHead><TableHead>Số lượng</TableHead><TableHead>Doanh thu</TableHead></tr></thead><tbody>{report.topProducts.map((item) => <tr key={item.productId}><TableCell>{item.sku}<br />{item.productName}</TableCell><TableCell>{item.quantitySold}</TableCell><TableCell>{amount(item.grossSales)}</TableCell></tr>)}</tbody></Table> : <EmptyPanel>Chưa có sản phẩm bán ra trong kỳ.</EmptyPanel>}</div>
-    </div>
-  </div>
-);
 
 const InvoicePage = ({ branchId }: { branchId: string }) => {
   const canPrint = useCan(P.SALES_INVOICE_PRINT);
@@ -802,7 +839,7 @@ const InvoicePage = ({ branchId }: { branchId: string }) => {
   const invoice = invoiceQuery.data;
   if (!invoice) return <EmptyPanel>Không tìm thấy hóa đơn.</EmptyPanel>;
   return <Card><CardBody className="space-y-5">
-    <div className="flex flex-wrap items-start justify-between gap-3"><div><Link to={paths.posOrders} className="inline-flex items-center gap-1 text-sm font-bold text-emerald-700"><ArrowLeft className="size-4" />Đơn bán hàng</Link><h2 className="mt-3 text-xl font-black text-slate-900">Hóa đơn {invoice.invoiceNumber}</h2><p className="text-sm text-slate-500">Bản chụp hóa đơn bất biến · {new Date(invoice.issuedAt).toLocaleString('vi-VN')}</p></div>
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><Link to={orderBranchPath(paths.posOrders, branchId)} className="inline-flex items-center gap-1 text-sm font-bold text-emerald-700"><ArrowLeft className="size-4" />Đơn bán hàng</Link><h2 className="mt-3 text-xl font-black text-slate-900">Hóa đơn {invoice.invoiceNumber}</h2><p className="text-sm text-slate-500">Bản chụp hóa đơn bất biến · {new Date(invoice.issuedAt).toLocaleString('vi-VN')}</p></div>
       <div className="flex flex-wrap gap-2">{canPrint && <><Button variant="outline" onClick={() => void loadPreview()} disabled={isPdfLoading}>{isPdfLoading ? 'Đang tải...' : 'Xem trước'}</Button><Button variant="outline" onClick={() => void download()}>Tải PDF</Button><Button onClick={print} disabled={!pdfUrl}>In / in lại</Button></>}</div>
     </div>
     {pdfError && <ErrorPanel error={new Error(pdfError)} retry={() => void loadPreview()} />}

@@ -34,8 +34,7 @@ export const buildPlayerMatchSearchParams = (filters: PlayerMatchSearchParams) =
   ...(filters.endTime ? { endTime: formatTimeToApi(filters.endTime) } : {}),
   ...(filters.skillLevel ? { skillLevel: filters.skillLevel } : {}),
   ...(filters.genderPreference ? { genderPreference: filters.genderPreference } : {}),
-  ...(filters.city?.trim() ? { city: filters.city.trim() } : {}),
-  ...(filters.district?.trim() ? { district: filters.district.trim() } : {}),
+  ...(filters.branchId ? { branchId: filters.branchId } : {}),
   ...(filters.sortBy ? { sortBy: filters.sortBy } : {}),
   page: filters.page,
   pageSize: filters.pageSize,
@@ -90,8 +89,14 @@ export const playerMatchingApi = {
       '/api/player-matches/search',
       {
         ...request,
-        preferredStartTime: formatTimeToApi(request.preferredStartTime),
-        preferredEndTime: formatTimeToApi(request.preferredEndTime),
+        startTime: request.startTime ? formatTimeToApi(request.startTime) : undefined,
+        endTime: request.endTime ? formatTimeToApi(request.endTime) : undefined,
+        preferredStartTime: request.preferredStartTime
+          ? formatTimeToApi(request.preferredStartTime)
+          : undefined,
+        preferredEndTime: request.preferredEndTime
+          ? formatTimeToApi(request.preferredEndTime)
+          : undefined,
       },
       { signal },
     );

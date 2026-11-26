@@ -1,50 +1,15 @@
-import { useMemo } from 'react';
 import { useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { useBranchPermissions } from '@/hooks/branches';
-import { MANAGEMENT_NAVIGATION_ITEMS } from '@/constants/management-navigation';
-import type { ManagementNavigationItem } from '@/types/management-navigation';
-import { useAuthStore } from '@/features/auth/store/auth.store';
-import { hasCurrentUserRole } from '@/shared/utils/current-user';
-import { USER_ROLES } from '@/shared/constants/roles';
-import { useAuthorization } from '@/features/auth/authorization';
+import { useManagementNavigation as useManagementItems } from '@/components/layout/management-navigation';
 
-export interface ResolvedManagementNavigationItem extends ManagementNavigationItem {
-  title: string;
-  isActive: boolean;
-}
-
-/** Matches the path itself and any nested route, without matching siblings like /customer/... */
-const isPathActive = (pathname: string, path: string) =>
-  pathname === path || pathname.startsWith(`${path}/`);
-
-/**
- * Resolves the management navigation for the current user and route:
- * filters items by role, translates labels and flags the active item.
- */
-export const useManagementNavigation = (): ResolvedManagementNavigationItem[] => {
+export const useManagementNavigation = () => {
   const { pathname } = useLocation();
   const { t } = useTranslation();
-  const { role } = useBranchPermissions();
-  const user = useAuthStore((state) => state.user);
-  const authenticated = useAuthStore((state) => state.isAuthenticated());
-  const hasHydrated = useAuthStore((state) => state.hasHydrated);
-  const canSeeAdminItems =
-    hasHydrated && authenticated && hasCurrentUserRole(user, USER_ROLES.ADMIN);
-  const { hasPermission } = useAuthorization();
-
-  return useMemo(
-    () =>
-      MANAGEMENT_NAVIGATION_ITEMS.filter(
-        (item) =>
-          (!item.adminOnly || canSeeAdminItems) &&
-          (!item.permission || (hasHydrated && authenticated && hasPermission(item.permission))) &&
-          (!item.roles || (role !== 'OTHER' && item.roles.includes(role))),
-      ).map((item) => ({
-        ...item,
-        title: t(item.translationKey, { defaultValue: item.label }),
-        isActive: isPathActive(pathname, item.path),
-      })),
-    [canSeeAdminItems, hasHydrated, authenticated, hasPermission, pathname, role, t],
-  );
+  return useManagementItems().map((item) => ({
+    ...item,
+    title: item.translationKey ? t(item.translationKey) : item.label,
+    isActive: pathname === item.path || pathname.startsWith(`${item.path}/`),
+  }));
 };
+
+export type ResolvedManagementNavigationItem = ReturnType<typeof useManagementNavigation>[number];

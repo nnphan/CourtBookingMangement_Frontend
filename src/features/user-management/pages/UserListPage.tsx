@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Pencil, Search, Trash2, Users } from 'lucide-react';
+import { Pencil, Plus, Search, Trash2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -25,6 +25,10 @@ import { ROLE_QUERY_KEYS, USER_QUERY_KEYS } from '../api/user.query';
 import type { PaginationMetadata } from '@/types/api';
 import type { UserListItem } from '../types/user.types';
 import { AssignUserRolesDialog } from '../components/AssignUserRolesDialog';
+import { useAuthorization } from '@/features/auth/authorization';
+import { PERMISSIONS } from '@/shared/constants/permissions';
+import { toast } from '@/lib/toast';
+import { CreateUserDialog } from '../components/CreateUserDialog';
 import { DeleteUserDialog } from '../components/DeleteUserDialog';
 import { RoleBadges } from '../components/RoleBadges';
 
@@ -36,6 +40,9 @@ const SEARCH_DEBOUNCE_MS = 400;
 
 export const UserListPage = () => {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const { hasPermission } = useAuthorization();
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [searchInput, setSearchInput] = useState('');
   const [keyword, setKeyword] = useState('');
   const [pageNumber, setPageNumber] = useState(1);
@@ -116,8 +123,32 @@ export const UserListPage = () => {
         icon={Users}
         title={t('userManagement.title')}
         description={t('userManagement.description')}
+        actions={hasPermission(PERMISSIONS.USER_CREATE) && (
+          <Button type="button" onClick={() => setIsCreateOpen(true)}>
+            <Plus aria-hidden className="size-4" />
+            {t('userManagement.create.title')}
+          </Button>
+        )}
         badge={metadata ? t('userManagement.userCount', { count: metadata.totalCount }) : undefined}
       />
+
+      {isCreateOpen && (
+        <CreateUserDialog
+          roles={roles}
+          canAssignRoles={hasPermission(PERMISSIONS.ROLE_CREATE)}
+          rolesUnavailable={rolesQuery.isError}
+          onClose={() => setIsCreateOpen(false)}
+          onCreated={(email) => {
+            setIsCreateOpen(false);
+            clearFilters();
+            setSearchInput(email);
+            setKeyword(email);
+            void queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.list() });
+            void queryClient.invalidateQueries({ queryKey: ROLE_QUERY_KEYS.list() });
+            toast.success(t('userManagement.create.success'));
+          }}
+        />
+      )}
 
       <FilterPanel
         title={t('userManagement.filters')}

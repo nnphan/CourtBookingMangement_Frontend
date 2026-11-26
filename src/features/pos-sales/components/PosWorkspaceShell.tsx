@@ -1,33 +1,26 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { Link } from 'react-router';
 import { BranchSelector } from '@/components/branches/BranchSelector';
 
 interface PosWorkspaceHeaderProps {
   title: string;
-  description: string;
   branchId: string;
   onBranchChange: (branchId: string) => void;
   branchDisabled?: boolean;
-  backLink?: ReactNode;
+  compact?: boolean;
 }
 
 export const PosWorkspaceHeader = ({
   title,
-  description,
   branchId,
   onBranchChange,
   branchDisabled = false,
-  backLink,
+  compact = false,
 }: PosWorkspaceHeaderProps) => (
-  <div className="border-line bg-surface flex flex-col justify-between gap-4 rounded-xl border p-4 sm:flex-row sm:items-end lg:px-6">
+  <div className={`border-line bg-surface flex flex-col justify-between rounded-xl border sm:flex-row sm:items-end ${compact ? 'gap-3 px-4 py-3 lg:px-5' : 'gap-4 p-4 lg:px-6'}`}>
     <div>
-      {backLink}
-      <p className="text-sm font-bold tracking-[0.16em] text-emerald-700 uppercase">
-        ALOBO · Quản lý bán hàng
-      </p>
-      <h1 className="mt-1 text-2xl font-black text-slate-950 sm:text-3xl">{title}</h1>
-      <p className="mt-1 text-sm text-slate-600">{description}</p>
+      <h1 className={`mt-1 text-2xl font-black text-slate-950 ${compact ? 'lg:text-[26px]' : 'sm:text-3xl'}`}>{title}</h1>
     </div>
     <div className="w-full sm:w-80">
       <p className="mb-1.5 block text-sm font-semibold text-slate-700">Chi nhánh đang thao tác</p>
@@ -54,10 +47,12 @@ export const PosWorkspaceTabs = ({
   tabs,
   ariaLabel,
   stretch = false,
+  compact = false,
 }: {
   tabs: PosWorkspaceTab[];
   ariaLabel: string;
   stretch?: boolean;
+  compact?: boolean;
 }) => {
   const navRef = useRef<HTMLElement>(null);
   const activeId = tabs.find((tab) => tab.active)?.id;
@@ -101,7 +96,7 @@ export const PosWorkspaceTabs = ({
           }}
           aria-disabled={disabled || undefined}
           aria-current={active ? 'page' : undefined}
-          className={`flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-bold whitespace-nowrap transition ${
+          className={`flex shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-bold whitespace-nowrap transition ${compact ? 'min-h-9' : 'min-h-11'} ${
             stretch ? 'sm:flex-1' : ''
           } ${
             active

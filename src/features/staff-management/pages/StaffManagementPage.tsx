@@ -85,7 +85,9 @@ const StaffList = () => {
       />
       <p id="staff-actions-later" className="text-sm text-slate-600">{t('staffManagement.actionsLater')}</p>
       {branches.isSuccess && !branches.isFetching && creatableBranches.length === 0 && (
-        <p className="text-sm text-slate-600">{t('staffManagement.create.noPermission')}</p>
+        <p className="text-sm text-slate-600">
+          {t(branches.data.length === 0 ? 'staffManagement.noOwnedBranches' : 'staffManagement.create.noPermission')}
+        </p>
       )}
       {createOpen && (
         <StaffCreateDialog

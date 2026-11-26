@@ -1,6 +1,7 @@
 import { http } from '@/lib/axios';
 import type { ApiResponse, PaginationMetadata } from '@/types/api';
 import type {
+  ProvisionUserRequest,
   RoleListItem,
   UpdateUserRolesRequest,
   UserListItem,
@@ -76,5 +77,10 @@ export const updateUserRoles = async (
     `/users/${encodeURIComponent(userId)}/roles`,
     request,
   );
+  if (!response.success) throw new Error(response.message);
+};
+
+export const provisionUser = async (request: ProvisionUserRequest): Promise<void> => {
+  const { data: response } = await http.post<ApiResponse<unknown>>('/users/provision', request);
   if (!response.success) throw new Error(response.message);
 };

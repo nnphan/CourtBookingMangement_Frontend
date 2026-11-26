@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Eye, Pencil, Plus, Search, Shield, Trash2 } from 'lucide-react';
+import { Eye, Pencil, Search, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   FilterPanel,
@@ -18,11 +18,10 @@ import type { ApiErrorShape, PaginationMetadata } from '@/types/api';
 import { getRoles } from '../api/role.api';
 import { ROLE_QUERY_KEYS } from '../api/role.query';
 import type { Role, RoleSearchRequest } from '../types/role.types';
-import { DeleteRoleDialog, RoleDetailDialog, RoleFormDialog } from '../components/RoleDialogs';
+import { RoleDetailDialog, RoleFormDialog } from '../components/RoleDialogs';
 
 type RoleDialogState =
-  | { type: 'create' }
-  | { type: 'detail' | 'edit' | 'delete'; role: Role }
+  | { type: 'detail' | 'edit'; role: Role }
   | null;
 
 const DEFAULT_PAGE_SIZE = 12;
@@ -96,11 +95,6 @@ export const RoleListPage = () => {
     setPageSize(size);
     setPageNumber(1);
   };
-  const handleDeleteSuccess = () => {
-    if (roles.length === 1 && pageNumber > 1) {
-      setPageNumber((current) => Math.max(1, current - 1));
-    }
-  };
   const traceId = getTraceId(rolesQuery.error as Partial<ApiErrorShape> | null);
 
   return (
@@ -110,16 +104,6 @@ export const RoleListPage = () => {
         title={t('role.title')}
         description={t('role.description')}
         badge={metadata ? t('role.roleCount', { count: metadata.totalCount }) : undefined}
-        actions={
-          <Button
-            type="button"
-            onClick={() => setDialog({ type: 'create' })}
-            className="w-full sm:w-auto"
-          >
-            <Plus aria-hidden className="size-4" />
-            {t('role.actions.create')}
-          </Button>
-        }
       />
 
       <FilterPanel
@@ -166,12 +150,6 @@ export const RoleListPage = () => {
           icon={<Shield aria-hidden className="size-7" />}
           title={t('role.empty.title')}
           description={t('role.empty.description')}
-          actions={
-            <Button type="button" onClick={() => setDialog({ type: 'create' })}>
-              <Plus aria-hidden className="size-4" />
-              {t('role.actions.create')}
-            </Button>
-          }
         />
       ) : roles.length === 0 ? (
         <ManagementEmptyState
@@ -192,21 +170,12 @@ export const RoleListPage = () => {
           pageSize={pageSize}
           onDetail={(role) => setDialog({ type: 'detail', role })}
           onEdit={(role) => setDialog({ type: 'edit', role })}
-          onDelete={(role) => setDialog({ type: 'delete', role })}
           onPageChange={setPageNumber}
           onPageSizeChange={changePageSize}
           formatDate={formatDate}
         />
       )}
 
-      {dialog?.type === 'create' && (
-        <RoleFormDialog
-          key="create-role"
-          mode="create"
-          onClose={closeDialog}
-          onCreated={() => setPageNumber(1)}
-        />
-      )}
       {dialog?.type === 'edit' && (
         <RoleFormDialog
           key={dialog.role.id}
@@ -217,14 +186,6 @@ export const RoleListPage = () => {
       )}
       {dialog?.type === 'detail' && (
         <RoleDetailDialog key={dialog.role.id} role={dialog.role} onClose={closeDialog} />
-      )}
-      {dialog?.type === 'delete' && (
-        <DeleteRoleDialog
-          key={dialog.role.id}
-          role={dialog.role}
-          onClose={closeDialog}
-          onDeleted={handleDeleteSuccess}
-        />
       )}
     </div>
   );
@@ -237,7 +198,6 @@ interface RoleTableProps {
   pageSize: number;
   onDetail: (role: Role) => void;
   onEdit: (role: Role) => void;
-  onDelete: (role: Role) => void;
   onPageChange: (page: number) => void;
   onPageSizeChange: (size: number) => void;
   formatDate: (
@@ -250,8 +210,7 @@ const RoleActions = ({
   role,
   onDetail,
   onEdit,
-  onDelete,
-}: Pick<RoleTableProps, 'onDetail' | 'onEdit' | 'onDelete'> & { role: Role }) => {
+}: Pick<RoleTableProps, 'onDetail' | 'onEdit'> & { role: Role }) => {
   const { t } = useTranslation();
 
   return (
@@ -273,15 +232,6 @@ const RoleActions = ({
         aria-label={t('role.actions.editLabel', { name: role.name })}
       >
         <Pencil aria-hidden className="size-4" />
-      </Button>
-      <Button
-        type="button"
-        variant="danger"
-        size="sm"
-        onClick={() => onDelete(role)}
-        aria-label={t('role.actions.deleteLabel', { name: role.name })}
-      >
-        <Trash2 aria-hidden className="size-4" />
       </Button>
     </div>
   );
@@ -337,7 +287,6 @@ const RoleTable = ({
   pageSize,
   onDetail,
   onEdit,
-  onDelete,
   onPageChange,
   onPageSizeChange,
   formatDate,
@@ -415,7 +364,7 @@ const RoleTable = ({
                   {formatDate(role.updatedAt, { withTime: true })}
                 </td>
                 <td className={`${tableStyles.td} text-right`}>
-                  <RoleActions role={role} onDetail={onDetail} onEdit={onEdit} onDelete={onDelete} />
+                  <RoleActions role={role} onDetail={onDetail} onEdit={onEdit} />
                 </td>
               </tr>
             ))}
@@ -445,7 +394,7 @@ const RoleTable = ({
             <p className="text-xs text-slate-500">
               {t('role.fields.updatedAt')}: {formatDate(role.updatedAt, { withTime: true })}
             </p>
-            <RoleActions role={role} onDetail={onDetail} onEdit={onEdit} onDelete={onDelete} />
+            <RoleActions role={role} onDetail={onDetail} onEdit={onEdit} />
           </li>
         ))}
       </ul>

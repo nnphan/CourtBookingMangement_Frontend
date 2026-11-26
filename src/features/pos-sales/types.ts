@@ -75,6 +75,11 @@ export interface InventoryBalance {
 }
 
 export interface StockMovement {
+  supplierName?: string | null;
+  unit: string;
+  isDraft: boolean;
+  categoryName: string;
+  unitCost: number | null;
   id: string;
   productId: string;
   sku: string;
@@ -195,6 +200,7 @@ export interface CheckoutRequest {
   customerId?: string;
   bookingId?: string;
   paymentMethodCode: 'CASH' | 'MOMO' | 'BANK_TRANSFER';
+  cashTendered?: number;
   notes?: string;
   items: Array<{ productId: string; quantity: number }>;
 }

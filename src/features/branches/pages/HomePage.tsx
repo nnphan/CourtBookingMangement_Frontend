@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation, useSearchParams } from 'react-router';
 import { Sparkles, Trophy, Users, ShieldCheck, HeartHandshake } from 'lucide-react';
 import { DiscoveryHeader } from '@/features/branch-discovery/components/DiscoveryHeader';
 import { QuickActionsSection } from '@/features/player-matching/components/QuickActionsSection';
@@ -12,6 +12,15 @@ import type { BranchSearchRequest } from '../types/branch.types';
 
 export const HomePage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { hash, key } = useLocation();
+
+  useEffect(() => {
+    if (hash !== '#branches-section') return;
+    const frame = requestAnimationFrame(() => {
+      document.getElementById('branches-section')?.scrollIntoView({ block: 'start' });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [hash, key]);
 
   // Quick View Modal state
   const [quickViewBranchId, setQuickViewBranchId] = useState<string | null>(null);
@@ -121,7 +130,7 @@ export const HomePage: React.FC = () => {
         <QuickActionsSection />
 
         {/* Main Branches Listing Section */}
-        <div id="branches-section" className="scroll-mt-20">
+        <div id="branches-section" className="scroll-mt-36 md:scroll-mt-20">
           <HomeBranchList
             branches={branches}
             metadata={metadata}

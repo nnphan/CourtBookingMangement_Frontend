@@ -4,10 +4,9 @@ import { Search, X, User as UserIcon, Bell } from 'lucide-react';
 import { paths } from '@/app/router/paths';
 import { useAuthStore } from '@/features/auth/store/auth.store';
 import { useBranchSearchStore } from '../store/branch-search.store';
-import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 import { CurrentUserMenu } from '@/shared/components/current-user';
 
-export const DiscoveryHeader = () => {
+export const DiscoveryHeader = ({ wide = false }: { wide?: boolean }) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated());
   const { searchQuery, setSearchQuery } = useBranchSearchStore();
 
@@ -30,7 +29,9 @@ export const DiscoveryHeader = () => {
 
   return (
     <header className="border-line bg-surface/95 sticky top-[env(safe-area-inset-top,0px)] z-30 w-full border-b shadow-xs backdrop-blur-md transition-shadow">
-      <div className="mx-auto flex h-18 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+      <div
+        className={`mx-auto flex h-18 items-center justify-between gap-3 ${wide ? 'max-w-[100rem] px-3 sm:px-4 lg:px-6' : 'max-w-7xl px-4 sm:px-6 lg:px-8'}`}
+      >
         {/* Left: Brand Logo */}
         <Link
           to={paths.root}
@@ -59,7 +60,7 @@ export const DiscoveryHeader = () => {
               <span className="text-content-primary text-xl font-extrabold tracking-tight">
                 CourtNow
               </span>
-              <span className="bg-brand-50 text-brand-600 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase">
+              <span className="bg-brand-50 text-brand-600 hidden rounded px-1.5 sm:inline-block py-0.5 text-[10px] font-bold uppercase">
                 Badminton
               </span>
             </div>
@@ -89,7 +90,7 @@ export const DiscoveryHeader = () => {
             <div className="flex items-center gap-1 sm:gap-2">
               <Link
                 to={paths.register}
-                className="text-content-primary hover:text-brand-600 rounded-lg px-3 py-2 text-sm font-bold transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
+                className="text-content-primary hover:text-brand-600 rounded-lg px-2 py-2 text-sm font-bold transition-colors sm:px-3 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
               >
                 Register
               </Link>
@@ -98,7 +99,7 @@ export const DiscoveryHeader = () => {
               </span>
               <Link
                 to={paths.login}
-                className="bg-brand-600 hover:bg-brand-700 flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold text-white shadow-xs transition-transform focus-visible:outline-3 focus-visible:outline-[var(--color-focus)] active:scale-95"
+                className="bg-brand-600 hover:bg-brand-700 flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-bold sm:px-4 text-white shadow-xs transition-transform focus-visible:outline-3 focus-visible:outline-[var(--color-focus)] active:scale-95"
               >
                 <UserIcon className="size-4" aria-hidden="true" />
                 Login

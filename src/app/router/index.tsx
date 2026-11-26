@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter, RouterProvider } from 'react-router';
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router';
 import { paths } from '@/app/router/paths';
 import { AdminOnlyRoute, GuestRoute, PermissionGuard, ProtectedRoute } from '@/app/router/guards';
 import { PERMISSIONS as P } from '@/shared/constants/permissions';
@@ -16,6 +16,7 @@ const StaffActivationPage = lazy(
 const DashboardPage = lazy(() => import('@/features/dashboard/pages/DashboardPage'));
 const StaffManagementPage = lazy(() => import('@/features/staff-management/pages/StaffManagementPage'));
 const StaffDetailPage = lazy(() => import('@/features/staff-management/pages/StaffDetailPage'));
+const BusinessStatisticsPage = lazy(() => import('@/features/pos-sales/pages/BusinessStatisticsPage'));
 const CommercePage = lazy(() => import('@/features/pos-sales/pages/CommercePage'));
 const CommerceManagementPage = lazy(
   () => import('@/features/pos-sales/pages/CommerceManagementPage'),
@@ -150,7 +151,7 @@ export const router = createBrowserRouter([
           },
           {
             path: paths.posBranchProducts,
-            element: withPermissions(<CommerceManagementPage section="branch-products" />, [P.PRODUCT_VIEW, P.PRODUCT_UPDATE]),
+            element: <Navigate to={paths.posProducts} replace />,
           },
           {
             path: paths.posInventory,
@@ -186,7 +187,7 @@ export const router = createBrowserRouter([
           },
           {
             path: paths.posDashboard,
-            element: withPermissions(<CommerceManagementPage section="dashboard" />, [P.SALES_REPORT_VIEW]),
+            element: withPermissions(<BusinessStatisticsPage />, [P.SALES_REPORT_VIEW]),
           },
           {
             path: paths.posInvoice(),
