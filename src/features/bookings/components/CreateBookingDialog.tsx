@@ -1,14 +1,16 @@
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
 import {
   AlertTriangle,
+  Banknote,
   CalendarDays,
   CheckCircle2,
   Clock,
   Copy,
+  Landmark,
   Loader2,
   LogIn,
   MapPin,
@@ -25,6 +27,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TextInput } from '@/components/ui/text-input';
 import dayjs from '@/lib/dayjs';
 import { useSePayBookingAlert } from '@/features/payments/api/useSePayBookingAlert';
@@ -38,6 +41,7 @@ import type {
   SelectedBookingCourt,
 } from '../types/booking.types';
 import { buildCreateBookingFormSchema } from '../schemas/create-booking.schema';
+import { bookingApi } from '../api/booking.api';
 import { BOOKING_QUERY_KEYS } from '../api/booking.query';
 import { useCreateBooking } from '../hooks/useCreateBooking';
 import {
@@ -65,6 +69,11 @@ export interface CreateBookingDialogProps {
   onBookingCreated?: (result: CreateBookingResponse) => void;
   onBookingConflict?: () => void;
 }
+
+const paymentMethods = [
+  { value: 'CASH', icon: Banknote, iconClassName: 'bg-emerald-100 text-emerald-800' },
+  { value: 'SEPAY', icon: Landmark, iconClassName: 'bg-sky-100 text-sky-800' },
+] as const;
 
 const DEFAULT_VALUES: CreateBookingFormValues = {
   customerName: '',
@@ -137,6 +146,12 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
 
     const { mutateAsync, isPending } = useCreateBooking();
     const createSePayPayment = useCreateSePayPayment();
+    const { mutateAsync: cancelHold, isPending: isCancellingHold, isError: cancelHoldFailed, reset: resetCancelHold } =
+      useMutation({
+        mutationFn: (booking: CreateBookingResponse) =>
+          bookingApi.cancelHold(booking.bookingId, booking.holdToken),
+        retry: false,
+      });
     const isSePayBooking = result?.paymentMethod.toUpperCase() === 'SEPAY';
     const paymentStatus = useBookingPaymentStatus(
       result?.bookingId ?? '',
@@ -162,6 +177,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
 
     const schema = useMemo(() => buildCreateBookingFormSchema(requireContact), [requireContact]);
     const {
+      control,
       register,
       handleSubmit,
       reset,
@@ -198,7 +214,8 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
       setSePayPayment(null);
       setPaymentError(null);
       setPaymentCodeCopied(false);
-    }, [isOpen, reset]);
+      resetCancelHold();
+    }, [isOpen, reset, resetCancelHold]);
 
     useEffect(() => {
       const expiresAt = sePayPayment?.expiresAt ?? result?.expiresAt;
@@ -382,6 +399,29 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
         ? t('booking.payment.holdExpired')
         : t('booking.payment.needsAttention');
 
+    const canCancelHold = isSePayBooking && result?.bookingStatus.toUpperCase() === 'PENDING_PAYMENT' &&
+      transferIsOpen && !holdTimedOut;
+    const paymentActionPending = createSePayPayment.isPending || isCancellingHold;
+
+    const closePaymentDialog = async () => {
+      if (paymentActionPending || inFlightRef.current) return;
+      if (result && canCancelHold) {
+        inFlightRef.current = true;
+        try {
+          await cancelHold(result);
+          void queryClient.invalidateQueries({ queryKey: BOOKING_QUERY_KEYS.all });
+          void queryClient.invalidateQueries({ queryKey: BOOKING_QUERY_KEYS.courtStatus });
+          void queryClient.invalidateQueries({ queryKey: ['payments', 'booking-status', result.bookingId] });
+        } catch {
+          if (paymentId) void paymentStatus.refetch();
+          return;
+        } finally {
+          inFlightRef.current = false;
+        }
+      }
+      onClose();
+    };
+
     const dateLabel = selection?.bookingDate
       ? dayjs(selection.bookingDate).format('DD/MM/YYYY')
       : '';
@@ -399,7 +439,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
     if (!selection && !result) return null;
 
     return (
-      <Dialog open={isOpen} onOpenChange={(open) => !open && !isPending && onClose()}>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && !isPending && !paymentActionPending && onClose()}>
         <DialogContent
           aria-describedby="booking-dialog-description"
           className="h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] overflow-y-auto p-4 sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:p-6"
@@ -502,7 +542,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                       type="button"
                       className="min-h-11 w-full bg-emerald-600 text-white hover:bg-emerald-700"
                       onClick={startSePayPayment}
-                      disabled={createSePayPayment.isPending || remainingSeconds === 0}
+                      disabled={paymentActionPending || remainingSeconds === 0}
                     >
                       {createSePayPayment.isPending
                         ? t('booking.payment.starting', 'Đang tạo mã QR...')
@@ -604,6 +644,11 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                 </section>
               )}
 
+              {cancelHoldFailed && canCancelHold && (
+                <p role="alert" className="text-sm text-red-700">
+                  {t('booking.payment.cancelHoldFailed')}
+                </p>
+              )}
               <DialogFooter className="mt-4 gap-2">
                 {isSePayBooking && (
                   <Button asChild variant="outline" size="sm">
@@ -617,8 +662,8 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                     </Link>
                   </Button>
                 )}
-                <Button type="button" size="sm" onClick={onClose}>
-                  {t('booking.actions.close', 'Đóng')}
+                <Button type="button" size="sm" disabled={paymentActionPending} onClick={() => void closePaymentDialog()}>
+                  {isCancellingHold ? t('booking.payment.cancellingHold') : t('booking.actions.close', 'Đóng')}
                 </Button>
               </DialogFooter>
             </div>
@@ -838,19 +883,60 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                     >
                       {t('booking.fields.paymentMethod', 'Phương thức thanh toán')}
                     </label>
-                    <select
-                      id="booking-payment-method"
-                      disabled={isPending}
-                      className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-xs shadow-2xs focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
-                      {...register('paymentMethod')}
-                    >
-                      <option value="CASH">
-                        {t('booking.paymentMethods.CASH', 'Tiền mặt tại sân')}
-                      </option>
-                      <option value="SEPAY">
-                        {t('booking.paymentMethods.SEPAY', 'Chuyển khoản ngân hàng (SePay)')}
-                      </option>
-                    </select>
+                    <Controller
+                      control={control}
+                      name="paymentMethod"
+                      render={({ field }) => {
+                        const selected = paymentMethods.find((method) => method.value === field.value) ?? paymentMethods[0];
+                        const SelectedIcon = selected.icon;
+
+                        return (
+                          <Select name={field.name} value={field.value} onValueChange={field.onChange} disabled={isPending}>
+                            <SelectTrigger
+                              id="booking-payment-method"
+                              ref={field.ref}
+                              onBlur={field.onBlur}
+                              className="group min-h-12 h-auto rounded-xl px-2.5 hover:border-emerald-400 data-[state=open]:border-emerald-500"
+                            >
+                              <div className="flex min-w-0 items-center gap-2.5 text-left">
+                                <span className={`grid size-8 shrink-0 place-items-center rounded-lg ${selected.iconClassName}`}>
+                                  <SelectedIcon aria-hidden="true" className="size-4" />
+                                </span>
+                                <SelectValue>{t(`booking.paymentMethods.${selected.value}`)}</SelectValue>
+                              </div>
+                            </SelectTrigger>
+                            <SelectContent className="max-w-[var(--radix-select-trigger-width)]">
+                              {paymentMethods.map(({ value, icon: Icon, iconClassName }) => {
+                                const title = t(`booking.paymentMethods.${value}`);
+                                const descriptionId = `booking-payment-description-${value}`;
+
+                                return (
+                                  <SelectItem
+                                    key={value}
+                                    value={value}
+                                    textValue={title}
+                                    aria-describedby={descriptionId}
+                                    className="my-0.5 data-[state=checked]:bg-emerald-50"
+                                  >
+                                    <span className="flex items-center gap-2.5">
+                                      <span className={`grid size-9 shrink-0 place-items-center rounded-lg ${iconClassName}`}>
+                                        <Icon aria-hidden="true" className="size-4" />
+                                      </span>
+                                      <span className="min-w-0">
+                                        <span className="block leading-snug">{title}</span>
+                                        <span id={descriptionId} aria-hidden="true" className="mt-0.5 block text-xs font-normal leading-snug text-slate-600">
+                                          {t(`booking.paymentMethodDescriptions.${value}`)}
+                                        </span>
+                                      </span>
+                                    </span>
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
+                        );
+                      }}
+                    />
                   </div>
 
                   <div className="space-y-1">

@@ -14,6 +14,12 @@ import { calculateBookingPrice } from './booking-pricing.api';
 export { calculateBookingPrice } from './booking-pricing.api';
 
 export const bookingApi = {
+  cancelHold: async (bookingId: string, holdToken?: string | null): Promise<void> => {
+    await http.delete(`/api/booking-holds/${bookingId}`, {
+      headers: holdToken ? { 'X-Booking-Hold-Token': holdToken } : undefined,
+    });
+  },
+
   getMyBookings: async (): Promise<MyBookingListItemDto[]> => {
     const response = await http.get<ApiSuccessResponse<MyBookingListItemDto[]>>(
       '/api/bookings/my-bookings',

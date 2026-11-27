@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Building2, Phone, MapPin, Clock, Grid3X3, DollarSign, Plus, Trash2 } from 'lucide-react';
+import { Building2, Phone, MapPin, Clock, Grid3X3, DollarSign, Plus, Trash2, Upload } from 'lucide-react';
 import type {
   BranchDetailDto,
   BranchCourtDto,
@@ -10,6 +10,7 @@ import type {
 } from '../types/branch-detail.types';
 import { normalizeBranchImages } from '../utils/branch-detail.mapper';
 import { useUpdateBranch } from '../hooks/useUpdateBranch';
+import { uploadBranchImage } from '@/features/branch-management/services/uploadService';
 import { useAmenities } from '@/features/amenities/hooks/useAmenities';
 import {
   Dialog,
@@ -25,6 +26,10 @@ export interface EditBranchDialogProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+const MAX_BRANCH_IMAGES = 20;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({ branch, isOpen, onClose }) => {
   const { t } = useTranslation('branch');
@@ -45,6 +50,12 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({ branch, isOp
   const [selectedAmenityIds, setSelectedAmenityIds] = useState<string[]>([]);
   const [images, setImages] = useState<string[]>([]);
   const [newImageUrl, setNewImageUrl] = useState('');
+  const [imageError, setImageError] = useState('');
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const uploadInProgress = useRef(false);
+  const busy = isPending || isUploadingImages;
+
 
   // Operating Hours
   const [openTime, setOpenTime] = useState('05:30:00');
@@ -81,6 +92,8 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({ branch, isOp
       // Images
       const normalizedImgs = normalizeBranchImages(branch.images);
       setImages(normalizedImgs.map((img) => img.imageUrl));
+      setNewImageUrl('');
+      setImageError('');
 
       // Operating Hours
       if (branch.operatingHours && branch.operatingHours.length > 0) {
@@ -149,9 +162,54 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({ branch, isOp
 
   // Image handlers
   const handleAddImage = () => {
-    if (!newImageUrl.trim()) return;
-    setImages((prev) => [...prev, newImageUrl.trim()]);
+    const url = newImageUrl.trim();
+    if (!url || busy || images.length >= MAX_BRANCH_IMAGES) return;
+    if (!/^https?:\/\//i.test(url) || !URL.canParse(url) || url.length > 2048) {
+      setImageError('Vui lòng nhập đường dẫn ảnh HTTP hoặc HTTPS hợp lệ.');
+      return;
+    }
+    if (images.includes(url)) {
+      setImageError('Ảnh này đã có trong danh sách.');
+      return;
+    }
+    setImages((prev) => [...prev, url]);
     setNewImageUrl('');
+    setImageError('');
+  };
+
+  const handleImageFiles = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.currentTarget.files ?? []);
+    event.currentTarget.value = '';
+    const remaining = MAX_BRANCH_IMAGES - images.length;
+    if (uploadInProgress.current || busy || !files.length || remaining <= 0) return;
+
+    const validFiles = files.filter((file) =>
+      IMAGE_TYPES.includes(file.type) && file.size > 0 && file.size <= MAX_IMAGE_BYTES);
+    const errors: string[] = [];
+    if (validFiles.length !== files.length) {
+      errors.push('Chỉ hỗ trợ ảnh JPG, PNG hoặc WebP, tối đa 5 MB mỗi ảnh.');
+    }
+    if (validFiles.length > remaining) {
+      errors.push('Chi nhánh chỉ có thể lưu tối đa 20 ảnh.');
+    }
+
+    uploadInProgress.current = true;
+    setIsUploadingImages(true);
+    setImageError('');
+    try {
+      for (const file of validFiles.slice(0, remaining)) {
+        try {
+          const { url } = await uploadBranchImage(file);
+          setImages((prev) => [...prev, url]);
+        } catch {
+          errors.push(`Không thể tải ảnh “${file.name}”. Vui lòng chọn lại ảnh này.`);
+        }
+      }
+    } finally {
+      uploadInProgress.current = false;
+      setIsUploadingImages(false);
+      setImageError(errors.join(' '));
+    }
   };
 
   const handleRemoveImage = (index: number) => {
@@ -161,7 +219,7 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({ branch, isOp
   // Submit Handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || busy || uploadInProgress.current) return;
 
     const payload: UpdateBranchRequest = {
       name: name.trim(),
@@ -221,7 +279,7 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({ branch, isOp
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && !isPending && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !busy && !uploadInProgress.current && onClose()}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-900">
@@ -493,18 +551,54 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({ branch, isOp
               6. Hình ảnh ({images.length})
             </h4>
 
-            <div className="flex gap-2">
+            <div className="space-y-2">
               <input
-                type="url"
-                placeholder="Nhập đường dẫn hình ảnh (URL)..."
-                value={newImageUrl}
-                onChange={(e) => setNewImageUrl(e.target.value)}
-                className="h-9 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs"
+                ref={imageInputRef}
+                type="file"
+                accept={IMAGE_TYPES.join(',')}
+                multiple
+                hidden
+                disabled={busy || images.length >= MAX_BRANCH_IMAGES}
+                onChange={(event) => void handleImageFiles(event)}
               />
-              <Button type="button" size="sm" variant="outline" onClick={handleAddImage}>
-                <Plus className="mr-1 size-3.5" />
-                Thêm ảnh
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  loading={isUploadingImages}
+                  disabled={busy || images.length >= MAX_BRANCH_IMAGES}
+                  onClick={() => imageInputRef.current?.click()}
+                >
+                  <Upload aria-hidden="true" className="size-4" />
+                  {isUploadingImages ? 'Đang tải ảnh…' : 'Chọn ảnh từ thiết bị'}
+                </Button>
+                <span className="text-xs text-slate-500">JPG, PNG, WebP · tối đa 5 MB/ảnh · {images.length}/20 ảnh</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="text"
+                  inputMode="url"
+                  aria-label="Đường dẫn hình ảnh"
+                  placeholder="Hoặc nhập đường dẫn hình ảnh (URL)…"
+                  value={newImageUrl}
+                  disabled={busy || images.length >= MAX_BRANCH_IMAGES}
+                  onChange={(event) => setNewImageUrl(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      handleAddImage();
+                    }
+                  }}
+                  className="h-9 min-w-40 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs"
+                />
+                <Button type="button" size="sm" variant="outline" onClick={handleAddImage}
+                  disabled={busy || !newImageUrl.trim() || images.length >= MAX_BRANCH_IMAGES}>
+                  <Plus aria-hidden="true" className="size-3.5" />
+                  Thêm URL
+                </Button>
+              </div>
+              {imageError && <p role="alert" className="text-sm text-red-700">{imageError}</p>}
             </div>
 
             <div className="grid max-h-36 grid-cols-3 gap-2 overflow-y-auto">
@@ -517,7 +611,9 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({ branch, isOp
                   <button
                     type="button"
                     onClick={() => handleRemoveImage(idx)}
-                    className="absolute top-1 right-1 flex size-5 items-center justify-center rounded bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                    aria-label={`Xóa ảnh ${idx + 1}`}
+                    disabled={busy}
+                    className="absolute top-1 right-1 flex size-5 items-center justify-center rounded bg-black/60 text-white hover:bg-black/80 disabled:opacity-50"
                   >
                     <Trash2 className="size-3" />
                   </button>
@@ -533,7 +629,7 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({ branch, isOp
               variant="outline"
               size="sm"
               onClick={onClose}
-              disabled={isPending}
+              disabled={busy}
               className="rounded-xl"
             >
               Hủy
@@ -543,6 +639,7 @@ export const EditBranchDialog: React.FC<EditBranchDialogProps> = ({ branch, isOp
               variant="primary"
               size="sm"
               loading={isPending}
+              disabled={busy}
               className="rounded-xl font-bold"
             >
               Lưu thay đổi

@@ -109,12 +109,12 @@ export const HomePage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-surface flex flex-col font-sans selection:bg-brand-100 selection:text-brand-900">
+    <div className="bg-surface selection:bg-brand-100 selection:text-brand-900 flex min-h-screen flex-col font-sans">
       {/* Sticky Global Navigation */}
       <DiscoveryHeader />
 
       {/* Main Content Body */}
-      <main className="flex-1 mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-8">
+      <main className="mx-auto w-full max-w-7xl flex-1 space-y-8 px-4 py-6 sm:px-6 lg:px-8">
         {/* Hero Section with Search Hero Bar */}
         <HomeHeroSection
           filters={{
@@ -152,57 +152,58 @@ export const HomePage: React.FC = () => {
         />
 
         {/* Quality Standards & Trust Badges */}
-        <section className="mt-16 rounded-3xl border border-line bg-surface-muted/50 p-8 sm:p-12">
-          <div className="text-center max-w-2xl mx-auto space-y-2 mb-10">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-xs font-bold text-brand-700">
+        <section className="border-line bg-surface-muted/50 mt-16 rounded-3xl border p-8 sm:p-12">
+          <div className="mx-auto mb-10 max-w-2xl space-y-2 text-center">
+            <div className="bg-brand-50 text-brand-700 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold">
               <Sparkles className="size-3.5" />
-              <span>Tiêu chuẩn dịch vụ ALOBO</span>
+              <span>Tiêu chuẩn dịch vụ CourtNow</span>
             </div>
-            <h3 className="text-xl sm:text-2xl font-black text-content-primary">
-              Tại sao nên đặt sân cầu lông trên ALOBO?
+            <h3 className="text-content-primary text-xl font-black sm:text-2xl">
+              Tại sao nên đặt sân cầu lông trên CourtNow?
             </h3>
-            <p className="text-xs sm:text-sm text-content-secondary">
-              Nền tảng quản lý và kết nối sân thể thao hàng đầu, tối ưu hóa trải nghiệm cho người chơi.
+            <p className="text-content-secondary text-xs sm:text-sm">
+              Nền tảng quản lý và kết nối sân thể thao hàng đầu, tối ưu hóa trải nghiệm cho người
+              chơi.
             </p>
           </div>
 
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="flex flex-col items-center text-center p-5 rounded-2xl bg-surface border border-line shadow-xs">
-              <div className="grid size-12 place-items-center rounded-2xl bg-emerald-100 text-brand-600 mb-3">
+            <div className="bg-surface border-line flex flex-col items-center rounded-2xl border p-5 text-center shadow-xs">
+              <div className="text-brand-600 mb-3 grid size-12 place-items-center rounded-2xl bg-emerald-100">
                 <Trophy className="size-6" />
               </div>
-              <h4 className="text-sm font-bold text-content-primary">Chuẩn thi đấu BWF</h4>
-              <p className="mt-1 text-xs text-content-secondary leading-relaxed">
+              <h4 className="text-content-primary text-sm font-bold">Chuẩn thi đấu BWF</h4>
+              <p className="text-content-secondary mt-1 text-xs leading-relaxed">
                 100% sân được kiểm duyệt về độ nảy, ánh sáng chống lóa và thảm bảo vệ đầu gối.
               </p>
             </div>
 
-            <div className="flex flex-col items-center text-center p-5 rounded-2xl bg-surface border border-line shadow-xs">
-              <div className="grid size-12 place-items-center rounded-2xl bg-blue-100 text-blue-600 mb-3">
+            <div className="bg-surface border-line flex flex-col items-center rounded-2xl border p-5 text-center shadow-xs">
+              <div className="mb-3 grid size-12 place-items-center rounded-2xl bg-blue-100 text-blue-600">
                 <ShieldCheck className="size-6" />
               </div>
-              <h4 className="text-sm font-bold text-content-primary">Giữ chỗ tức thì</h4>
-              <p className="mt-1 text-xs text-content-secondary leading-relaxed">
+              <h4 className="text-content-primary text-sm font-bold">Giữ chỗ tức thì</h4>
+              <p className="text-content-secondary mt-1 text-xs leading-relaxed">
                 Xác nhận tự động qua SMS & Zalo trong 30 giây, không lo bị trùng lịch tại quầy.
               </p>
             </div>
 
-            <div className="flex flex-col items-center text-center p-5 rounded-2xl bg-surface border border-line shadow-xs">
-              <div className="grid size-12 place-items-center rounded-2xl bg-amber-100 text-amber-700 mb-3">
+            <div className="bg-surface border-line flex flex-col items-center rounded-2xl border p-5 text-center shadow-xs">
+              <div className="mb-3 grid size-12 place-items-center rounded-2xl bg-amber-100 text-amber-700">
                 <HeartHandshake className="size-6" />
               </div>
-              <h4 className="text-sm font-bold text-content-primary">Chính sách hủy linh hoạt</h4>
-              <p className="mt-1 text-xs text-content-secondary leading-relaxed">
+              <h4 className="text-content-primary text-sm font-bold">Chính sách hủy linh hoạt</h4>
+              <p className="text-content-secondary mt-1 text-xs leading-relaxed">
                 Miễn phí hủy hoặc dời lịch trước 4 tiếng, hỗ trợ hoàn tiền qua ví thành viên.
               </p>
             </div>
 
-            <div className="flex flex-col items-center text-center p-5 rounded-2xl bg-surface border border-line shadow-xs">
-              <div className="grid size-12 place-items-center rounded-2xl bg-purple-100 text-purple-600 mb-3">
+            <div className="bg-surface border-line flex flex-col items-center rounded-2xl border p-5 text-center shadow-xs">
+              <div className="mb-3 grid size-12 place-items-center rounded-2xl bg-purple-100 text-purple-600">
                 <Users className="size-6" />
               </div>
-              <h4 className="text-sm font-bold text-content-primary">Cộng đồng sôi động</h4>
-              <p className="mt-1 text-xs text-content-secondary leading-relaxed">
+              <h4 className="text-content-primary text-sm font-bold">Cộng đồng sôi động</h4>
+              <p className="text-content-secondary mt-1 text-xs leading-relaxed">
                 Dễ dàng ghép cặp, giao lưu trình độ từ sơ cấp đến vận động viên phong trào.
               </p>
             </div>
@@ -211,14 +212,16 @@ export const HomePage: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="mt-16 border-t border-line bg-surface py-10">
+      <footer className="border-line bg-surface mt-16 border-t py-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row text-xs text-content-secondary">
+          <div className="text-content-secondary flex flex-col items-center justify-between gap-4 text-xs sm:flex-row">
             <div className="flex items-center gap-2">
-              <div className="grid size-6 place-items-center rounded-lg bg-brand-600 text-white font-black text-[10px]">
-                ALO
+              <div className="bg-brand-600 grid size-6 place-items-center rounded-lg text-[10px] font-black text-white">
+                CN
               </div>
-              <span className="font-bold text-content-primary">ALOBO Badminton Booking System</span>
+              <span className="text-content-primary font-bold">
+                CourtNow Badminton Booking System
+              </span>
               <span>© 2026. All rights reserved.</span>
             </div>
             <div className="flex items-center gap-6">

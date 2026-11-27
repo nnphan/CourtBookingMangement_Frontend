@@ -654,7 +654,7 @@
       "successWithCode": "Đặt sân thành công. Mã đặt sân: {{code}}",
       "unexpectedUnauthorized": "Hệ thống từ chối yêu cầu đặt sân. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.",
       "guestNoticeTitle": "Đặt sân không cần tài khoản",
-      "guestNoticeDesc": "Bạn đang đặt sân với tư cách khách vãng lai. Vui lòng cung cấp họ tên và số điện thoại để sân liên hệ xác nhận lịch.",
+      "guestNoticeDesc": "Sân sẽ dùng thông tin bên dưới để liên hệ xác nhận lịch.",
       "guestLoginPrompt": "Đã có tài khoản?",
       "guestLoginAction": "Đăng nhập"
     },
@@ -677,7 +677,7 @@
     },
     "customer": {
       "accountContact": "Thông tin từ tài khoản của bạn",
-      "guestContact": "Thông tin liên hệ (khách)"
+      "guestContact": "Thông tin liên hệ"
     },
     "fields": {
       "customerName": "Họ và tên",
@@ -693,6 +693,10 @@
     "paymentMethods": {
       "CASH": "Tiền mặt",
       "SEPAY": "Chuyển khoản ngân hàng (SePay)"
+    },
+    "paymentMethodDescriptions": {
+      "CASH": "Trả tiền khi đến sân",
+      "SEPAY": "Quét mã QR trong bước tiếp theo"
     },
     "validation": {
       "customerNameRequired": "Họ và tên là bắt buộc khi đặt sân với tư cách khách.",
@@ -724,6 +728,8 @@
       "confirmed": "Thanh toán đã được xác nhận",
       "bookingNotConfirmed": "Đặt sân chưa được xác nhận",
       "failed": "Thanh toán thất bại. Vui lòng kiểm tra trạng thái đặt sân trước khi thử lại.",
+      "cancellingHold": "Đang hủy giữ sân…",
+      "cancelHoldFailed": "Chưa thể hủy giữ sân. Vui lòng thử lại.",
       "needsAttention": "Giao dịch cần được xử lý",
       "starting": "Đang tạo mã QR...",
       "pay": "Thanh toán",

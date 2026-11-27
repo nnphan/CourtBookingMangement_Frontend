@@ -654,7 +654,7 @@
       "successWithCode": "Booking created successfully. Booking code: {{code}}",
       "unexpectedUnauthorized": "The booking request was rejected. Please try again later or contact support.",
       "guestNoticeTitle": "Booking as a guest",
-      "guestNoticeDesc": "No account required. Please provide your name and phone number so the venue can confirm your schedule.",
+      "guestNoticeDesc": "The venue will use these details to confirm your booking.",
       "guestLoginPrompt": "Already have an account?",
       "guestLoginAction": "Log in"
     },
@@ -677,7 +677,7 @@
     },
     "customer": {
       "accountContact": "Details from your account",
-      "guestContact": "Contact details (guest)"
+      "guestContact": "Contact details"
     },
     "fields": {
       "customerName": "Full name",
@@ -693,6 +693,10 @@
     "paymentMethods": {
       "CASH": "Cash",
       "SEPAY": "Bank transfer (SePay)"
+    },
+    "paymentMethodDescriptions": {
+      "CASH": "Pay when you arrive at the venue",
+      "SEPAY": "Scan a QR code in the next step"
     },
     "validation": {
       "customerNameRequired": "Full name is required when booking as a guest.",
@@ -724,6 +728,8 @@
       "confirmed": "Payment confirmed",
       "bookingNotConfirmed": "Booking not confirmed",
       "failed": "The payment failed. Check your booking status before trying again.",
+      "cancellingHold": "Cancelling hold…",
+      "cancelHoldFailed": "The court hold could not be cancelled. Please try again.",
       "needsAttention": "Transaction needs attention",
       "starting": "Creating payment QR...",
       "pay": "Create payment QR",

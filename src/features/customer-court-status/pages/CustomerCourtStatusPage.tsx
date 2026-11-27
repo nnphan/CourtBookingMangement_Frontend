@@ -195,17 +195,22 @@ export const CustomerCourtStatusPage: React.FC = () => {
 
   // Customer-facing page: never expose other customers' personal or payment data
   const boardBookings = useMemo<CourtScheduleBoardBooking[]>(() => {
-    return scheduleItems.map((item) => ({
-      id: item.bookingId,
-      courtId: item.courtId,
-      courtName: item.courtName,
-      bookingDate: item.bookingDate || selectedDate,
-      startTime: item.startTime,
-      endTime: item.endTime,
-      bookingStatus: item.bookingStatus,
-      color: item.color,
-      title: 'Đã được đặt',
-    }));
+    return scheduleItems
+      .filter(({ bookingStatus }) => {
+        const status = bookingStatus?.toUpperCase();
+        return status !== 'CANCELLED' && status !== 'EXPIRED';
+      })
+      .map((item) => ({
+        id: item.bookingId,
+        courtId: item.courtId,
+        courtName: item.courtName,
+        bookingDate: item.bookingDate || selectedDate,
+        startTime: item.startTime,
+        endTime: item.endTime,
+        bookingStatus: item.bookingStatus,
+        color: item.color,
+        title: 'Đã được đặt',
+      }));
   }, [scheduleItems, selectedDate]);
 
   // Handle cell slot toggle

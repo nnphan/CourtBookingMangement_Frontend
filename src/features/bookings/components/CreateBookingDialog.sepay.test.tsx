@@ -3,6 +3,7 @@ import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { http } from '@/lib/axios';
 import { bookingApi } from '../api/booking.api';
 import { paymentApi } from '@/features/payments/api/payment.api';
 import type { BookingPaymentStatus } from '@/features/payments/api/payment.api';
@@ -12,7 +13,11 @@ import { CreateBookingDialog } from './CreateBookingDialog';
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
-vi.mock('../api/booking.api', () => ({ bookingApi: { createBooking: vi.fn() } }));
+vi.mock('../api/booking.api', async (importOriginal) => {
+  const { bookingApi: actual } = await importOriginal<{ bookingApi: typeof bookingApi }>();
+  return { bookingApi: { ...actual, createBooking: vi.fn() } };
+});
+vi.mock('@/lib/axios', () => ({ http: { delete: vi.fn() } }));
 vi.mock('@/features/payments/api/payment.api', () => ({
   paymentApi: { createSePayPayment: vi.fn(), getBookingPaymentStatus: vi.fn() },
 }));
@@ -51,7 +56,7 @@ beforeEach(() => {
     bookingId, bookingCode: 'BK123', branchId: schedule.branchId, customerId: 'customer-1',
     customerName: 'Guest', phoneNumber: '0912345678', bookingStatus: 'PENDING_PAYMENT',
     bookingType: 'FLEXIBLE', paymentMethod: 'SEPAY', totalAmount: 220000, notes: null,
-    expiresAt, serverTime,
+    expiresAt, serverTime, holdToken: 'hold-token',
     details: [{ ...schedule.courts[0], bookingDate: schedule.bookingDate,
       startTime: schedule.startTime, endTime: schedule.endTime, price: 220000 }],
   });
@@ -69,17 +74,18 @@ afterEach(() => {
   focusManager.setFocused(undefined);
 });
 
-async function openPayment() {
+async function openPayment({ createQr = true, onClose = vi.fn() } = {}) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(<QueryClientProvider client={queryClient}>
     <MemoryRouter>
-      <CreateBookingDialog isOpen onClose={vi.fn()} selection={schedule} />
+      <CreateBookingDialog isOpen onClose={onClose} selection={schedule} />
     </MemoryRouter>
   </QueryClientProvider>);
   fireEvent.change(screen.getByRole('combobox'), { target: { value: 'SEPAY' } });
   fireEvent.submit(screen.getByRole('combobox').closest('form')!);
   await screen.findByRole('heading', { name: 'booking.payment.holdCreated' });
   expect(toast.success).not.toHaveBeenCalled();
+  if (!createQr) return queryClient;
   fireEvent.click(screen.getByRole('button', { name: 'booking.payment.pay' }));
   await screen.findByRole('img', { name: 'booking.payment.qrAlt' });
   await waitFor(() => expect(queryClient.getQueryData(queryKey)).toEqual(pendingPayment));
@@ -92,6 +98,18 @@ function refetchStatus(client: QueryClient, payment: BookingPaymentStatus) {
 }
 
 describe('SePay booking confirmation', () => {
+  it.each([false, true])('sends the cancellation request when closing with createQr=%s', async (createQr) => {
+    const onClose = vi.fn();
+    await openPayment({ createQr, onClose });
+
+    fireEvent.click(screen.getByRole('button', { name: 'booking.actions.close' }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+    expect(http.delete).toHaveBeenCalledWith(`/api/booking-holds/${bookingId}`, {
+      headers: { 'X-Booking-Hold-Token': 'hold-token' },
+    });
+  });
+
   it('shows success once and refreshes booking data after the server confirms both statuses', async () => {
     const client = await openPayment();
     const invalidate = vi.spyOn(client, 'invalidateQueries');
