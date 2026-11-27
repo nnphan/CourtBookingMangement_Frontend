@@ -125,8 +125,9 @@ const CommercePage = () => {
   return (
     <div className="pos-workspace min-w-0 space-y-3 py-3 sm:py-4">
       <PosWorkspaceHeader
-        compact
         title="POS / Bán hàng"
+        description="Lập đơn, thu tiền mặt và theo dõi đơn bán hàng theo chi nhánh."
+        icon={ShoppingCart}
         branchId={branchId}
         onBranchChange={handleBranchChange}
       />

@@ -33,7 +33,7 @@ const getBookingTimestamp = (booking: MyBookingListItemDto, time: string): numbe
 
 const isUpcoming = (booking: MyBookingListItemDto, now: number): boolean => {
   const status = normalizeBookingStatus(booking.status);
-  if (status === 'COMPLETED' || status === 'CANCELLED') return false;
+  if (status === 'COMPLETED' || status === 'CANCELLED' || status === 'EXPIRED') return false;
   const end = getBookingTimestamp(booking, booking.endTime);
   return end !== null && end > now;
 };

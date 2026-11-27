@@ -3,17 +3,19 @@ import type { ApiResponse } from '@/types/api';
 import type {
   CreateOwnerRequest,
   Owner,
+  OwnerListItem,
   OwnerPage,
   OwnerSearchParams,
   UpdateOwnerRequest,
 } from '../types/owner.types';
 
 export const getOwners = async (params: OwnerSearchParams): Promise<OwnerPage> => {
-  const { data: response } = await http.get<ApiResponse<Owner[]>>('/owners', {
+  const { data: response } = await http.get<ApiResponse<OwnerListItem[]>>('/owners', {
     params: {
       keyword: params.keyword || undefined,
       isActive: params.isActive,
       sortBy: params.sortBy,
+      includeUnlinked: params.includeUnlinked,
       pageNumber: params.pageNumber,
       pageSize: params.pageSize,
     },
@@ -23,7 +25,7 @@ export const getOwners = async (params: OwnerSearchParams): Promise<OwnerPage> =
 };
 
 export const getOwner = async (id: string): Promise<Owner> => {
-  const { data: response } = await http.post<ApiResponse<Owner>>(
+  const { data: response } = await http.get<ApiResponse<Owner>>(
     `/owners/${encodeURIComponent(id)}`,
   );
   if (!response.success) throw new Error(response.message);

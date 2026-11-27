@@ -27,10 +27,11 @@ export const ProtectedRoute = () => {
   if (!authenticated) {
     return <Navigate to={paths.login} replace state={{ from: location.pathname + location.search + location.hash }} />;
   }
-  if (profile.isLoading || profile.isFetching) return <RouteFallback />;
+  if (!profile.data && (profile.isLoading || profile.isFetching)) return <RouteFallback />;
   if (profile.isError || !profile.data || !Array.isArray(profile.data.permissions) || !Array.isArray(profile.data.roles)) {
+    const unavailable = profile.error && 'status' in profile.error && profile.error.status === 0;
     return <div role="alert" className="p-8 text-center">
-      <p>Không thể tải quyền truy cập. Vui lòng thử lại.</p>
+      <p>{unavailable ? 'Không kết nối được máy chủ. Vui lòng thử lại.' : 'Không thể tải quyền truy cập. Vui lòng thử lại.'}</p>
       <button type="button" className="mt-4 font-semibold text-emerald-700 underline" onClick={() => void profile.refetch()}>Thử lại</button>
     </div>;
   }

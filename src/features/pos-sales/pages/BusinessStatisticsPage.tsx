@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, CalendarDays, LayoutGrid, ShoppingBag } from 'lucide-react';
+import { BarChart3, CalendarDays, LayoutGrid, Receipt, ShoppingBag } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import { paths } from '@/app/router/paths';
 import { BranchSelector } from '@/components/branches/BranchSelector';
 import { businessStatisticsTitle } from '@/components/layout/management-navigation';
+import { PageHeader } from '@/components/management';
 import { Button } from '@/components/ui/button';
 import { PosWorkspaceTabs } from '../components/PosWorkspaceShell';
 import { BusinessStatisticsContent } from '../components/BusinessStatisticsContent';
@@ -17,6 +18,7 @@ const tabs = [
   { id: 'overview', label: 'Tổng quan', icon: LayoutGrid },
   { id: 'bookings', label: 'Đặt sân', icon: CalendarDays },
   { id: 'sales', label: 'Bán hàng', icon: ShoppingBag },
+  { id: 'expenses', label: 'Chi phí', icon: Receipt },
   { id: 'revenue', label: 'Doanh thu & lợi nhuận', icon: BarChart3 },
 ] as const;
 
@@ -68,9 +70,9 @@ const BusinessStatisticsPage = () => {
 
   return (
     <div className="pos-workspace min-w-0 space-y-4 py-4 sm:py-5">
-      <header className="border-line bg-surface flex flex-wrap items-end justify-between gap-4 rounded-xl border p-4 lg:px-6">
-        <h1 className="text-2xl font-black text-slate-950 sm:text-3xl">{businessStatisticsTitle}</h1>
-        <div className="w-full sm:w-80">
+      <PageHeader title={businessStatisticsTitle} icon={BarChart3}
+        description="Theo dõi đặt sân, bán hàng, chi phí và lợi nhuận theo chi nhánh."
+        actions={<div className="w-full sm:max-w-80">
           <p className="mb-1.5 text-sm font-semibold text-slate-700">{canSeeAll ? 'Chi nhánh' : 'Chi nhánh đang quản lý'}</p>
           <BranchSelector
             aria-label="Chi nhánh thống kê"
@@ -82,8 +84,8 @@ const BusinessStatisticsPage = () => {
             isError={branches.isError}
             onRetry={() => void branches.refetch()}
           />
-        </div>
-      </header>
+        </div>}
+      />
 
       <PosWorkspaceTabs
         ariaLabel={businessStatisticsTitle}
@@ -132,12 +134,14 @@ const BusinessStatisticsPage = () => {
       {branches.isSuccess && !selected && <p className="p-6 text-center text-slate-600">Bạn chưa có chi nhánh được cấp quyền xem thống kê.</p>}
       {report.data && !report.isError && (
         <BusinessStatisticsContent
+          key={`${tab}:${selected}:${range.from}:${range.to}`}
           data={report.data}
           range={range}
           tab={tab}
           branches={selected === allBranches ? owned : selectedDetails ? [selectedDetails] : []}
           scopeLabel={selectedDetails?.name ?? 'Tất cả chi nhánh'}
-          orderBranch={selectedDetails?.id ?? (owned.length === 1 ? owned[0].id : undefined)}
+          branchId={selectedDetails?.id}
+          compareBranches={selected === allBranches}
         />
       )}
     </div>

@@ -1,4 +1,5 @@
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
@@ -26,6 +27,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { TextInput } from '@/components/ui/text-input';
 import dayjs from '@/lib/dayjs';
+import { toast } from '@/lib/toast';
 import { paths } from '@/app/router/paths';
 import { Link } from 'react-router';
 import type {
@@ -36,6 +38,7 @@ import type {
   SelectedBookingCourt,
 } from '../types/booking.types';
 import { buildCreateBookingFormSchema } from '../schemas/create-booking.schema';
+import { BOOKING_QUERY_KEYS } from '../api/booking.query';
 import { useCreateBooking } from '../hooks/useCreateBooking';
 import {
   useBookingPaymentStatus,
@@ -44,7 +47,6 @@ import {
 import type { CreateSePayPaymentResponse } from '@/features/payments/api/payment.api';
 import { useCalculateBookingPrice } from '../hooks/useCalculateBookingPrice';
 import { useBookingCaller } from '../hooks/useBookingCaller';
-import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 import {
   formatBookingTime,
   formatCurrency,
@@ -114,32 +116,15 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
     onBookingConflict,
   }) => {
     const { t } = useTranslation();
+    const queryClient = useQueryClient();
     const caller = useBookingCaller();
-    const { user } = useCurrentUser();
     const isAuthenticatedMode = mode === 'CUSTOMER' && caller.mode === 'authenticated';
     const requireContact = !isAuthenticatedMode;
-
-    const canSelectBookingType = useMemo(() => {
-      if (mode === 'ADMIN') return true;
-      if (!user) return false;
-      const roleValues: unknown[] = [user.role, ...(Array.isArray(user.roles) ? user.roles : [])];
-      const roles = new Set(
-        roleValues
-          .filter((r): r is string => typeof r === 'string')
-          .map((r) => r.trim().toUpperCase())
-          .filter(Boolean),
-      );
-      return (
-        roles.has('ADMIN') ||
-        roles.has('SUPER_ADMIN') ||
-        roles.has('BRANCH_OWNER') ||
-        roles.has('OWNER')
-      );
-    }, [user, mode]);
 
     const inFlightRef = useRef(false);
     const idempotencyRef = useRef<{ fingerprint: string; key: string } | null>(null);
     const alertRef = useRef<HTMLDivElement | null>(null);
+    const announcedBookingRef = useRef<string | null>(null);
     const [result, setResult] = useState<CreateBookingResponse | null>(null);
     const [alertMessage, setAlertMessage] = useState<string | null>(null);
     const [conflictKey, setConflictKey] = useState<string | null>(null);
@@ -155,8 +140,26 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
     const paymentStatus = useBookingPaymentStatus(
       result?.bookingId ?? '',
       result?.holdToken ?? null,
-      Boolean(paymentId),
+      isOpen && Boolean(paymentId),
     );
+    const currentPaymentStatus = paymentStatus.data?.status.toUpperCase();
+    const isSePayBooking = result?.paymentMethod.toUpperCase() === 'SEPAY';
+    const bookingConfirmed = isSePayBooking && currentPaymentStatus === 'PAID' &&
+      paymentStatus.data?.bookingStatus?.toUpperCase() === 'CONFIRMED';
+
+    useEffect(() => {
+      if (!isOpen || !result || !bookingConfirmed || announcedBookingRef.current === result.bookingId) return;
+
+      announcedBookingRef.current = result.bookingId;
+      toast.success(
+        t('booking.multiCourt.success', { count: result.details.length }),
+        t('booking.success.bookingCode', { code: result.bookingCode }),
+      );
+      void queryClient.invalidateQueries({ queryKey: BOOKING_QUERY_KEYS.all });
+      void queryClient.invalidateQueries({
+        queryKey: [...BOOKING_QUERY_KEYS.courtStatus, result.branchId],
+      });
+    }, [bookingConfirmed, isOpen, queryClient, result, t]);
 
     const schema = useMemo(() => buildCreateBookingFormSchema(requireContact), [requireContact]);
     const {
@@ -267,12 +270,9 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
       const contact = isAuthenticatedMode
         ? { customerName: caller.customerName, phoneNumber: caller.phoneNumber }
         : values;
-      const effectiveBookingType = canSelectBookingType
-        ? (values.bookingType ?? 'FLEXIBLE')
-        : 'FLEXIBLE';
       const payload = toCreateBookingRequest(
         { ...selection, courts },
-        { ...values, bookingType: effectiveBookingType },
+        { ...values, bookingType: 'FLEXIBLE' },
         contact,
       );
       const fingerprint = JSON.stringify(payload);
@@ -371,11 +371,17 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
       }
     };
 
-    const currentPaymentStatus = paymentStatus.data?.status.toUpperCase();
     const paymentCode = paymentStatus.data?.paymentCode ?? sePayPayment?.paymentCode;
     const qrUrl = paymentStatus.data?.qrCodeUrl ?? sePayPayment?.qrUrl;
     const transferIsOpen =
       !currentPaymentStatus || ['PENDING', 'PROCESSING'].includes(currentPaymentStatus);
+    const holdTimedOut = currentPaymentStatus === 'EXPIRED' || remainingSeconds === 0;
+    const awaitingTransfer = transferIsOpen && !holdTimedOut;
+    const paymentHoldTitle = awaitingTransfer
+      ? t('booking.payment.holdCreated')
+      : transferIsOpen || currentPaymentStatus === 'EXPIRED'
+        ? t('booking.payment.holdExpired')
+        : t('booking.payment.needsAttention');
 
     const dateLabel = selection?.bookingDate
       ? dayjs(selection.bookingDate).format('DD/MM/YYYY')
@@ -402,10 +408,12 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
           {result ? (
             <div className="space-y-4" data-testid="booking-success">
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-emerald-700">
-                  <CheckCircle2 className="size-5" aria-hidden />
-                  {result.paymentMethod.toUpperCase() === 'SEPAY'
-                    ? t('booking.payment.holdCreated', 'Đã giữ sân, vui lòng thanh toán')
+                <DialogTitle className={`flex items-center gap-2 ${isSePayBooking && !bookingConfirmed ? 'text-amber-900' : 'text-emerald-700'}`}>
+                  {isSePayBooking && !bookingConfirmed
+                    ? <Clock className="size-5 shrink-0" aria-hidden />
+                    : <CheckCircle2 className="size-5 shrink-0" aria-hidden />}
+                  {isSePayBooking && !bookingConfirmed
+                    ? paymentHoldTitle
                     : t('booking.multiCourt.success', { count: result.details.length })}
                 </DialogTitle>
                 <DialogDescription id="booking-dialog-description">
@@ -416,13 +424,6 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
                 <div className="flex items-center justify-between">
                   <p className="font-semibold text-slate-800">{result.customerName}</p>
-                  {canSelectBookingType && (
-                    <span className="rounded border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-700">
-                      {result.bookingType === 'FIXED'
-                        ? t('booking.bookingTypes.FIXED', 'Cố định')
-                        : t('booking.bookingTypes.FLEXIBLE', 'Vãng lai')}
-                    </span>
-                  )}
                 </div>
                 <p className="font-mono text-xs text-slate-600">{result.phoneNumber}</p>
               </div>
@@ -460,18 +461,22 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                 </span>
               </div>
 
-              {result.paymentMethod.toUpperCase() === 'SEPAY' && (
+              {bookingConfirmed && (
+                <p role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">
+                  {t('booking.payment.confirmed')}
+                </p>
+              )}
+              {isSePayBooking && !bookingConfirmed && (
                 <section className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="font-semibold text-amber-950">
                       {currentPaymentStatus === 'PAID'
                         ? t('booking.payment.confirmed', 'Thanh toán đã được xác nhận')
-                        : currentPaymentStatus &&
-                            !['PENDING', 'PROCESSING'].includes(currentPaymentStatus)
-                          ? t('booking.payment.needsAttention', 'Giao dịch cần được xử lý')
-                          : t('booking.payment.timeRemaining', 'Thời gian giữ sân còn lại')}
+                        : awaitingTransfer
+                          ? t('booking.payment.timeRemaining', 'Thời gian giữ sân còn lại')
+                          : paymentHoldTitle}
                     </span>
-                    {remainingSeconds !== null && currentPaymentStatus !== 'PAID' && (
+                    {remainingSeconds !== null && remainingSeconds > 0 && transferIsOpen && (
                       <span className="font-mono font-bold text-amber-900" aria-live="polite">
                         {Math.floor(remainingSeconds / 60)}:
                         {String(remainingSeconds % 60).padStart(2, '0')}
@@ -523,7 +528,12 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                       )}
                     </p>
                   )}
-                  {!paymentId && (
+                  {transferIsOpen && holdTimedOut && (
+                    <p role="status" className="text-xs text-amber-900">
+                      {t('booking.payment.awaitingFinalStatus')}
+                    </p>
+                  )}
+                  {!paymentId && !holdTimedOut && (
                     <Button
                       type="button"
                       className="min-h-11 w-full bg-emerald-600 text-white hover:bg-emerald-700"
@@ -535,7 +545,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                         : t('booking.payment.pay', 'Thanh toán')}
                     </Button>
                   )}
-                  {paymentId && transferIsOpen && (
+                  {paymentId && awaitingTransfer && (
                     <>
                       {qrUrl && (
                         <img
@@ -631,6 +641,11 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
               )}
 
               <DialogFooter className="mt-4 gap-2">
+                {isSePayBooking && (
+                  <Button asChild variant="outline" size="sm">
+                    <Link to={paths.sePayPayment(result.bookingId)}>{t('booking.payment.viewStatus')}</Link>
+                  </Button>
+                )}
                 {isAuthenticatedMode && (
                   <Button asChild variant="outline" size="sm">
                     <Link to={paths.myBooking}>
@@ -771,7 +786,7 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                   </legend>
 
                   {/* Guest Notice Callout */}
-                  {!isAuthenticatedMode && (
+                  {mode === 'CUSTOMER' && caller.mode === 'guest' && (
                     <div className="flex items-start justify-between gap-2.5 rounded-md border border-blue-200 bg-blue-50/80 p-2.5 text-xs text-blue-900">
                       <div className="flex items-start gap-2">
                         <UserCheck className="mt-0.5 size-4 shrink-0 text-blue-600" aria-hidden />
@@ -851,27 +866,6 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
 
                 {/* 3. Booking Options Section */}
                 <div className="space-y-2.5">
-                  {canSelectBookingType && (
-                    <div className="space-y-1">
-                      <label
-                        htmlFor="booking-type"
-                        className="text-xs font-semibold text-slate-700"
-                      >
-                        {t('booking.fields.bookingType', 'Loại đặt sân')}
-                      </label>
-                      <select
-                        id="booking-type"
-                        disabled={isPending}
-                        className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-xs shadow-2xs focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
-                        {...register('bookingType')}
-                      >
-                        <option value="FLEXIBLE">
-                          {t('booking.bookingTypes.FLEXIBLE', 'Vãng lai (Linh hoạt)')}
-                        </option>
-                        <option value="FIXED">{t('booking.bookingTypes.FIXED', 'Cố định')}</option>
-                      </select>
-                    </div>
-                  )}
 
                   <div className="space-y-1">
                     <label

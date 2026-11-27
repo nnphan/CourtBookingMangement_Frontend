@@ -11,7 +11,7 @@ export const useCurrentUser = () => {
 
   const query = useQuery({
     queryKey: queryKeys.auth.me,
-    queryFn: authApi.me,
+    queryFn: ({ signal }) => authApi.me(signal),
     enabled: isAuthenticated,
     staleTime: 5 * 60 * 1000,
   });

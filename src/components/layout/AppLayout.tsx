@@ -1,68 +1,34 @@
-import { useState } from 'react';
 import { Outlet, useLocation } from 'react-router';
-import { Menu, MessageCircle } from 'lucide-react';
-import { Sidebar } from '@/components/layout/Sidebar';
-import { CurrentUserMenu } from '@/shared/components/current-user';
+import { MessageCircle } from 'lucide-react';
+import { WorkspaceHeader } from '@/components/layout/WorkspaceHeader';
 import { paths } from '@/app/router/paths';
 import { cn } from '@/lib/utils';
 
 export const AppLayout = () => {
-  const [isSidebarOpen, setSidebarOpen] = useState(false);
   const { pathname } = useLocation();
-  const isPosWorkspace =
+  const isManagementWorkspace =
     pathname === paths.posSales ||
     pathname === paths.posManagement ||
-    pathname.startsWith(`${paths.posManagement}/`);
+    pathname.startsWith(`${paths.posManagement}/`) ||
+    pathname === paths.adminBranches ||
+    pathname.startsWith(`${paths.adminBranches}/`) ||
+    pathname === paths.staffManagement ||
+    pathname.startsWith(`${paths.staffManagement}/`);
 
   return (
     <div
       className={cn(
         'flex min-h-dvh flex-col',
-        isPosWorkspace ? 'bg-surface-muted' : 'dashboard-canvas bg-surface',
+        isManagementWorkspace ? 'bg-surface-muted' : 'dashboard-canvas bg-surface',
       )}
     >
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} />
-
-      {/* Top Header */}
-      <header
-        className={cn(
-          'app-global-header sticky top-[env(safe-area-inset-top,0px)] z-20',
-          isPosWorkspace && 'bg-brand-700 shadow-sm',
-        )}
-      >
-        <div
-          className={cn(
-            'mx-auto flex h-14 items-center justify-between px-4 sm:h-16',
-            isPosWorkspace && 'max-w-[1800px] lg:px-6 2xl:px-8',
-          )}
-        >
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setSidebarOpen(true)}
-              className="grid size-11 place-items-center rounded-full text-white transition-colors hover:bg-white/20"
-              aria-label="Menu"
-            >
-              <Menu aria-hidden className="size-6" strokeWidth={2.5} />
-            </button>
-            <div className="flex h-10 items-center gap-2 rounded-full bg-white px-2 pr-4 shadow-[var(--shadow-card)]">
-              <div className="grid size-8 place-items-center rounded-full bg-[#dcfce7]">
-                <span className="text-brand-600 text-[10px] font-black">CN</span>
-              </div>
-              <span className="text-brand-900 text-sm font-black tracking-tight">CourtNow</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <CurrentUserMenu />
-          </div>
-        </div>
-      </header>
+      <WorkspaceHeader isManagementWorkspace={isManagementWorkspace} />
 
       {/* Main Content Area */}
       <main
         className={cn(
-          'mx-auto w-full min-w-0 flex-1 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]',
-          isPosWorkspace ? 'max-w-[1800px] lg:px-6 lg:pb-6 2xl:px-8' : 'max-w-6xl',
+          'mx-auto w-full min-w-0 flex-1 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]',
+          isManagementWorkspace ? 'px-3 sm:px-4 lg:pb-6' : 'max-w-6xl px-4',
         )}
       >
         <Outlet />
@@ -73,7 +39,7 @@ export const AppLayout = () => {
         aria-label="Chat"
         className={cn(
           'bg-brand-600 hover:bg-brand-700 fixed right-4 bottom-4 z-30 grid size-12 place-items-center rounded-full text-white shadow-lg',
-          isPosWorkspace && 'lg:hidden',
+          isManagementWorkspace && 'lg:hidden',
         )}
       >
         <MessageCircle aria-hidden className="size-6" />

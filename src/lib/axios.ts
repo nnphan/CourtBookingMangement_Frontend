@@ -5,7 +5,7 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from 'axios';
 import { env } from '@/lib/env';
-import { getUsableAccessToken, tokenStorage } from '@/lib/token-storage';
+import { tokenStorage } from '@/lib/token-storage';
 import type { ApiErrorShape } from '@/types/api';
 import type { ValidationError } from '@/types/api';
 
@@ -27,7 +27,8 @@ export const http: AxiosInstance = axios.create({
 
 /* ---------------------------------------------------------------- request */
 http.interceptors.request.use((config) => {
-  const accessToken = getUsableAccessToken();
+  const isSignIn = /^\/(?:api\/)?auth\/(?:login\/|register$)/.test(config.url ?? '');
+  const accessToken = isSignIn ? undefined : tokenStorage.read()?.accessToken;
   if (accessToken) {
     config.headers.set('Authorization', `Bearer ${accessToken}`);
   } else {
@@ -47,22 +48,25 @@ http.interceptors.request.use((config) => {
 });
 
 /* --------------------------------------------- refresh-token single flight */
-let refreshing: Promise<string | null> | null = null;
+type RefreshResult = { accessToken: string } | { expired: boolean };
+let refreshing: { refreshToken: string; result: Promise<RefreshResult> } | undefined;
+let lastRotation: { previousAccessToken: string; accessToken: string } | undefined;
 
-const refreshAccessToken = async (): Promise<string | null> => {
-  const tokens = tokenStorage.read();
-  if (!tokens?.refreshToken) return null;
+const refreshAccessToken = async (refreshToken: string, previousAccessToken: string): Promise<RefreshResult> => {
   try {
     const { data } = await axios.post<{ data: { accessToken: string; refreshToken: string } }>(
-      `${env.apiBaseUrl}/auth/refresh`,
-      { refreshToken: tokens.refreshToken },
+      `${env.apiBaseUrl.replace(/\/+$/, '')}/auth/refresh-token`,
+      { refreshToken },
+      { timeout: env.apiTimeoutMs },
     );
+    if (tokenStorage.read()?.refreshToken !== refreshToken) return { expired: false };
+    lastRotation = { previousAccessToken, accessToken: data.data.accessToken };
     tokenStorage.write(data.data);
     window.dispatchEvent(new CustomEvent('alobo:token-refreshed'));
-    return data.data.accessToken;
-  } catch {
-    tokenStorage.clear();
-    return null;
+    return { accessToken: data.data.accessToken };
+  } catch (error) {
+    const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+    return { expired: status === 400 || status === 401 || status === 403 };
   }
 };
 
@@ -73,18 +77,31 @@ http.interceptors.response.use(
     const original = error.config as RetriableConfig | undefined;
 
     // Anonymous requests (no Authorization header) must not trigger refresh or session-expiry.
-    const wasAuthenticated = Boolean(original?.headers?.get('Authorization'));
-    if (error.response?.status === 401 && original && wasAuthenticated && !original._retry) {
+    const authorization = original?.headers?.get('Authorization');
+    const tokens = tokenStorage.read();
+    if (error.response?.status === 401 && original && authorization && !original._retry && tokens?.accessToken) {
       original._retry = true;
-      refreshing ??= refreshAccessToken().finally(() => {
-        refreshing = null;
-      });
-      const token = await refreshing;
-      if (token) {
-        original.headers.set('Authorization', `Bearer ${token}`);
+      if (lastRotation?.accessToken === tokens.accessToken &&
+        authorization === `Bearer ${lastRotation.previousAccessToken}`) {
         return http(original);
       }
-      window.dispatchEvent(new CustomEvent('alobo:session-expired'));
+      if (authorization === `Bearer ${tokens.accessToken}`) {
+        const refreshToken = tokens.refreshToken;
+        if (refreshToken && refreshing?.refreshToken !== refreshToken) {
+          const result = refreshAccessToken(refreshToken, tokens.accessToken).finally(() => {
+            if (refreshing?.result === result) refreshing = undefined;
+          });
+          refreshing = { refreshToken, result };
+        }
+        const refreshed = refreshing && refreshing.refreshToken === refreshToken
+          ? await refreshing.result : { expired: true };
+        if ('accessToken' in refreshed && tokenStorage.read()?.accessToken === refreshed.accessToken) {
+          return http(original);
+        }
+        if ('expired' in refreshed && refreshed.expired && tokenStorage.read()?.refreshToken === refreshToken) {
+          window.dispatchEvent(new CustomEvent('alobo:session-expired'));
+        }
+      }
     }
 
     const validationFields = error.response?.data?.validationErrors?.reduce<Record<string, string>>(
@@ -94,7 +111,7 @@ http.interceptors.response.use(
       },
       {},
     );
-    const retryAfterHeader = error.response?.headers?.get('Retry-After');
+    const retryAfterHeader = error.response?.headers?.['retry-after'];
     const retryAfterSeconds =
       typeof retryAfterHeader === 'string' && /^\d+$/.test(retryAfterHeader)
         ? Number(retryAfterHeader)

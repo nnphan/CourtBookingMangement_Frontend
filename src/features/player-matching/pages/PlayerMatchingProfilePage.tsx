@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { ArrowDown, ArrowLeft, ArrowUp, Loader2, Save } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowUp, Loader2, Save, UsersRound } from 'lucide-react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { paths } from '@/app/router/paths';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/management';
 import { Card, CardBody } from '@/components/ui/card';
 import { useGetBranches } from '@/hooks/branches/useBranches';
 import { useApiErrorMessage } from '@/hooks/useApiErrorMessage';
@@ -321,23 +322,20 @@ const PlayerMatchingProfilePage = () => {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 py-6 sm:py-10">
-      <header className="space-y-3">
-        <Link
-          to={paths.playerMatching}
-          className="text-content-link inline-flex min-h-11 items-center gap-2 text-sm font-semibold hover:underline"
-        >
-          <ArrowLeft aria-hidden className="size-4" />
-          {t('playerMatch.discovery.pageTitle')}
-        </Link>
-        <div>
-          <h1 className="text-content-primary text-2xl font-black tracking-tight sm:text-3xl">
-            {t('playerMatchingProfile.title')}
-          </h1>
-          <p className="text-content-secondary mt-2 text-sm leading-6">
-            {t('playerMatchingProfile.description')}
-          </p>
-        </div>
-      </header>
+      <PageHeader
+        title={t('playerMatchingProfile.title')}
+        description={t('playerMatchingProfile.description')}
+        icon={UsersRound}
+        leading={
+          <Link
+            to={paths.playerMatching}
+            className="text-content-link inline-flex min-h-11 items-center gap-2 text-sm font-semibold hover:underline"
+          >
+            <ArrowLeft aria-hidden className="size-4 shrink-0" />
+            {t('playerMatch.discovery.pageTitle')}
+          </Link>
+        }
+      />
 
       {!profileQuery.data ? (
         <p className="border-line bg-surface-muted text-content-secondary rounded-xl border p-4 text-sm">

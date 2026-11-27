@@ -23,7 +23,7 @@ import {
 import { getOwners } from '../api/owner.api';
 import { OWNER_QUERY_KEYS } from '../api/owner.query';
 import type { PaginationMetadata } from '@/types/api';
-import type { Owner, OwnerSearchParams } from '../types/owner.types';
+import type { Owner, OwnerListItem, OwnerSearchParams } from '../types/owner.types';
 import {
   DeleteOwnerDialog,
   OwnerDetailDialog,
@@ -36,7 +36,7 @@ type OwnerDialogState =
   | { type: 'detail' | 'edit' | 'delete'; owner: Owner }
   | null;
 
-const EMPTY_OWNERS: Owner[] = [];
+const EMPTY_OWNERS: OwnerListItem[] = [];
 const DEFAULT_PAGE_SIZE = 12;
 const SEARCH_DEBOUNCE_MS = 400;
 
@@ -67,6 +67,7 @@ export const OwnerListPage = () => {
       keyword: keyword || undefined,
       isActive: status === 'all' ? undefined : status === 'active',
       sortBy,
+      includeUnlinked: true,
       pageNumber,
       pageSize,
     }),
@@ -104,7 +105,7 @@ export const OwnerListPage = () => {
   };
 
   const changeSort = (value: string) => {
-    setSortBy(value === 'createdAt_desc' ? value : undefined);
+    setSortBy(value === 'latest' ? value : undefined);
     setPageNumber(1);
   };
 
@@ -158,7 +159,7 @@ export const OwnerListPage = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">{t('ownerManagement.defaultSort')}</SelectItem>
-              <SelectItem value="createdAt_desc">{t('ownerManagement.newestFirst')}</SelectItem>
+              <SelectItem value="latest">{t('ownerManagement.newestFirst')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -241,7 +242,7 @@ export const OwnerListPage = () => {
 };
 
 interface OwnerTableProps {
-  owners: Owner[];
+  owners: OwnerListItem[];
   metadata: PaginationMetadata | null;
   onDetail: (owner: Owner) => void;
   onEdit: (owner: Owner) => void;
@@ -255,8 +256,12 @@ const OwnerActions = ({
   onDetail,
   onEdit,
   onDelete,
-}: Pick<OwnerTableProps, 'onDetail' | 'onEdit' | 'onDelete'> & { owner: Owner }) => {
+}: Pick<OwnerTableProps, 'onDetail' | 'onEdit' | 'onDelete'> & { owner: OwnerListItem }) => {
   const { t } = useTranslation();
+
+  if (owner.id === null) {
+    return <span className="text-xs text-slate-600">{t('ownerManagement.noProfile')}</span>;
+  }
   const displayName = owner.fullName || owner.email;
 
   return (
@@ -332,7 +337,7 @@ const OwnerTable = ({
           </thead>
           <tbody className={tableStyles.body}>
             {owners.map((owner) => (
-              <tr key={owner.id} className={tableStyles.row}>
+              <tr key={owner.id ?? owner.userId} className={tableStyles.row}>
                 <td className={tableStyles.td}>
                   <span className="font-semibold text-slate-900">
                     {owner.fullName || owner.email || missing}
@@ -368,7 +373,7 @@ const OwnerTable = ({
       </div>
       <ul className="divide-y divide-slate-100 md:hidden">
         {owners.map((owner) => (
-          <li key={owner.id} className="space-y-3 p-4">
+          <li key={owner.id ?? owner.userId} className="space-y-3 p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate font-semibold text-slate-900">

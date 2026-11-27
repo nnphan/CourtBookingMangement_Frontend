@@ -17,11 +17,10 @@ import type { ApiErrorShape } from '@/types/api';
 import { StaffTable } from '../components/StaffTable';
 import { StaffCreateDialog } from '../components/StaffCreateDialog';
 import { useStaffAccess, useStaffBranches, useStaffList } from '../hooks/useStaffManagement';
-import type { StaffActivationStatus, StaffListParams, StaffSortField, StaffStatus } from '../types/staff.types';
+import type { StaffListParams, StaffSortField, StaffStatus } from '../types/staff.types';
 
 const SORT_FIELDS: StaffSortField[] = ['displayName', 'email', 'staffCode', 'status', 'createdAt', 'lastLoginAt'];
 const STATUSES: StaffStatus[] = ['ACTIVE', 'INACTIVE'];
-const ACTIVATION_STATUSES: StaffActivationStatus[] = ['PENDING_ACTIVATION', 'ACTIVE', 'INACTIVE', 'EXPIRED'];
 const DEFAULT_FILTERS: StaffListParams = { page: 1, pageSize: 20, sortBy: 'createdAt', sortDirection: 'DESC' };
 const controlClass = 'h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary';
 const isForbidden = (error: ApiErrorShape | Error | null) =>
@@ -35,7 +34,8 @@ const StaffList = () => {
   const list = useStaffList(filters);
   const branches = useStaffBranches();
   const creatableBranches = branches.data?.filter((branch) => branch.canCreateStaff === true) ?? [];
-  const hasFilters = Boolean(filters.search || filters.branchId || filters.status || filters.activationStatus);
+  const hasFilters = Boolean(filters.search || filters.branchId || filters.status);
+  const hasCustomSort = filters.sortBy !== DEFAULT_FILTERS.sortBy;
 
   const updateFilters = (changes: Partial<StaffListParams>) =>
     setFilters((current) => ({ ...current, ...changes, page: 1 }));
@@ -97,7 +97,7 @@ const StaffList = () => {
         />
       )}
 
-      <FilterPanel className="[&_button]:min-h-11" onReset={hasFilters || search ? resetFilters : undefined}>
+      <FilterPanel className="[&_button]:min-h-11" onReset={hasFilters || hasCustomSort || search ? resetFilters : undefined}>
         <form onSubmit={submitSearch} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="sm:col-span-2 lg:col-span-3">
             <label htmlFor="staff-search" className="mb-1 block text-sm font-medium">{t('staffManagement.search')}</label>
@@ -129,26 +129,10 @@ const StaffList = () => {
             </select>
           </div>
           <div>
-            <label htmlFor="staff-activation" className="mb-1 block text-sm font-medium">{t('staffManagement.activation')}</label>
-            <select id="staff-activation" className={controlClass} value={filters.activationStatus ?? ''}
-              onChange={(event) => updateFilters({ activationStatus: ACTIVATION_STATUSES.find((status) => status === event.target.value) })}>
-              <option value="">{t('staffManagement.all')}</option>
-              {ACTIVATION_STATUSES.map((status) => <option key={status} value={status}>{t(`staffManagement.activationValues.${status}`)}</option>)}
-            </select>
-          </div>
-          <div>
             <label htmlFor="staff-sort" className="mb-1 block text-sm font-medium">{t('staffManagement.sortBy')}</label>
             <select id="staff-sort" className={controlClass} value={filters.sortBy}
               onChange={(event) => updateFilters({ sortBy: SORT_FIELDS.find((field) => field === event.target.value) })}>
               {SORT_FIELDS.map((field) => <option key={field} value={field}>{t(`staffManagement.sortFields.${field}`)}</option>)}
-            </select>
-          </div>
-          <div>
-            <label htmlFor="staff-direction" className="mb-1 block text-sm font-medium">{t('staffManagement.sortDirection')}</label>
-            <select id="staff-direction" className={controlClass} value={filters.sortDirection}
-              onChange={(event) => updateFilters({ sortDirection: event.target.value === 'ASC' ? 'ASC' : 'DESC' })}>
-              <option value="ASC">{t('staffManagement.ascending')}</option>
-              <option value="DESC">{t('staffManagement.descending')}</option>
             </select>
           </div>
         </form>

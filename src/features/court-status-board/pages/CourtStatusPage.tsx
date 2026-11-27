@@ -1,7 +1,5 @@
 import React, { useCallback, useMemo, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Filter } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { SchedulerService } from '../services/scheduler.service';
 import { useCourtStatus } from '../hooks/useCourtStatus';
@@ -27,15 +25,13 @@ import { CourtStatusBoardSkeleton } from '../components/CourtStatusBoardSkeleton
 import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
 import type { BookingItem } from '../types/booking';
-import { CurrentUserMenu } from '@/shared/components/current-user';
-import { ManagementNavigation } from '@/components/navigation';
+import { WorkspaceHeader } from '@/components/layout/WorkspaceHeader';
 import { formatBookingDateToApi, formatTimeToApi } from '@/features/bookings/utils/booking.mapper';
 import { useAuthorization } from '@/features/auth/authorization';
 import { PERMISSIONS as P } from '@/shared/constants/permissions';
 
 export const CourtStatusPage: React.FC = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const { hasPermission, hasAllPermissions } = useAuthorization();
   const canCreate = hasPermission(P.BOOKING_CREATE);
   const canUpdate = hasPermission(P.BOOKING_UPDATE);
@@ -109,10 +105,6 @@ export const CourtStatusPage: React.FC = () => {
   const openEditDialog = useCourtStatusStore((s) => s.openEditDialog);
   const openDetailDrawer = useCourtStatusStore((s) => s.openDetailDrawer);
   const closeDetailDrawer = useCourtStatusStore((s) => s.closeDetailDrawer);
-
-  const handleBack = useCallback(() => {
-    navigate(-1);
-  }, [navigate]);
 
   const isPastDate = useMemo(() => SchedulerService.isPastDate(selectedDate), [selectedDate]);
   const filteredCourts = useMemo(() => {
@@ -273,33 +265,7 @@ export const CourtStatusPage: React.FC = () => {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-[#0d6838] text-white">
-      {/* Top Header Bar */}
-      <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-white/10 bg-[#0d6838] px-4 shadow-xs">
-        {/* Left: Back Button */}
-        <button
-          type="button"
-          onClick={handleBack}
-          aria-label={t('common.back', 'Quay lại')}
-          className="grid size-9 place-items-center rounded-full text-white/90 transition-colors hover:bg-white/15 active:scale-95"
-        >
-          <ArrowLeft className="size-5 stroke-[2.5]" />
-        </button>
-
-        <ManagementNavigation />
-
-        {/* Right: Language Switcher, Search and Filter Icons */}
-        <div className="flex items-center gap-1 sm:gap-2">
-          <CurrentUserMenu />
-
-          <button
-            type="button"
-            aria-label={t('courtStatus.header.filter', 'Bộ lọc')}
-            className="grid size-9 place-items-center rounded-full text-white/90 transition-colors hover:bg-white/15 active:scale-95"
-          >
-            <Filter className="size-5 stroke-[2.2]" />
-          </button>
-        </div>
-      </header>
+      <WorkspaceHeader />
 
       {/* Filter Section */}
       <section aria-label="Bộ lọc trạng thái sân" className="border-b border-white/10 bg-[#0d6838]">

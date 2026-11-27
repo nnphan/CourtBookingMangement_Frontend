@@ -30,6 +30,10 @@ export const normalizeBookingStatus = (status?: string | null): string =>
 export const getBookingStatusLabel = (status?: string | null): string => {
   const normalized = normalizeBookingStatus(status);
   switch (normalized) {
+    case 'PENDING_PAYMENT':
+      return 'Chờ thanh toán';
+    case 'EXPIRED':
+      return 'Đã hết thời gian giữ sân';
     case 'PENDING':
       return 'Chờ nhận sân';
     case 'CONFIRMED':
@@ -57,6 +61,7 @@ export const getBookingStatusLabel = (status?: string | null): string => {
 export const getBookingStatusVariant = (status?: string | null): BookingStatusVariant => {
   const normalized = normalizeBookingStatus(status);
   switch (normalized) {
+    case 'PENDING_PAYMENT':
     case 'PENDING':
       return 'warning';
     case 'CONFIRMED':
@@ -79,6 +84,12 @@ export const getBookingStatusVariant = (status?: string | null): BookingStatusVa
 export const getBookingStatusConfig = (status?: string | null): BookingStatusConfig => {
   const normalized = normalizeBookingStatus(status);
   switch (normalized) {
+    case 'PENDING_PAYMENT':
+      return { label: 'Chờ thanh toán', variant: 'warning', badgeClass: 'border-amber-200 bg-amber-50 text-amber-700',
+        accentClass: 'bg-amber-500', icon: Clock3, dotColor: 'bg-amber-500' };
+    case 'EXPIRED':
+      return { label: 'Đã hết thời gian giữ sân', variant: 'secondary', badgeClass: 'border-slate-200 bg-slate-50 text-slate-700',
+        accentClass: 'bg-slate-400', icon: XCircle, dotColor: 'bg-slate-500' };
     case 'PENDING':
       return {
         label: 'Chờ xác nhận',

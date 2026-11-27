@@ -49,9 +49,13 @@
     },
     "create": {
       "title": "Thêm nhân viên",
-      "explanation": "Liên kết kích hoạt sẽ được gửi qua email. Nhân viên tự đặt mật khẩu; không cần chọn vai trò.",
+      "explanation": "Tài khoản đăng nhập ngay bằng mật khẩu ban đầu và có vai trò Quản lý chi nhánh tại các chi nhánh được phân công.",
+      "generatedCode": "Tự sinh khi lưu",
+      "assignedCode": "Mã nhân viên: {{code}}",
+      "roleNotConfigured": "Vai trò Quản lý chi nhánh chưa được cấu hình.",
       "noPermission": "Bạn không có quyền tạo nhân viên tại các chi nhánh hiện có.",
       "fields": {
+        "password": "Mật khẩu ban đầu",
         "displayName": "Tên hiển thị",
         "email": "Email",
         "phoneNumber": "Số điện thoại",
@@ -62,6 +66,7 @@
         "branches": "Chi nhánh được phân công"
       },
       "validation": {
+        "password": "Mật khẩu cần ít nhất 8 ký tự và tối đa 72 byte UTF-8.",
         "name": "Nhập tên từ 2 đến 100 ký tự.",
         "email": "Nhập email hợp lệ, tối đa 100 ký tự.",
         "phone": "Nhập số điện thoại tối đa 20 ký tự.",
@@ -110,11 +115,13 @@
     "firstPage": "Về trang đầu",
     "items": "nhân viên",
     "columns": {
-      "staff": "Nhân viên",
-      "contact": "Liên hệ",
-      "assignments": "Chi nhánh / mã nhân viên / chức danh",
-      "status": "Trạng thái / kích hoạt",
+      "staffCode": "Mã nhân viên",
+      "staff": "Tên nhân viên",
+      "email": "Email",
+      "phoneNumber": "Số điện thoại",
+      "assignments": "Chi nhánh",
       "lastLogin": "Đăng nhập gần nhất",
+      "status": "Trạng thái",
       "created": "Ngày tạo"
     },
     "sortFields": {
@@ -703,6 +710,16 @@
     },
     "payment": {
       "holdCreated": "Đã giữ sân, vui lòng chuyển khoản",
+      "sepayTitle": "Thanh toán QR SePay",
+      "bookingConfirmed": "Đặt sân đã được xác nhận",
+      "viewStatus": "Theo dõi thanh toán",
+      "refreshStatus": "Kiểm tra trạng thái",
+      "backToBranches": "Về danh sách chi nhánh",
+      "accessRequired": "Hãy đăng nhập bằng tài khoản đặt sân hoặc mở liên kết trong phiên đặt sân ban đầu.",
+      "unavailable": "Không tải được thông tin thanh toán SePay.",
+      "resumeFailed": "Không thể tạo mã QR cho lượt đặt này. Vui lòng kiểm tra trạng thái hoặc liên hệ chi nhánh.",
+      "refunded": "Khoản thanh toán đã được hoàn tiền.",
+      "received": "Số tiền đã nhận: {{amount}}",
       "timeRemaining": "Thời gian giữ sân còn lại",
       "confirmed": "Thanh toán đã được xác nhận",
       "needsAttention": "Giao dịch cần được xử lý",
@@ -721,6 +738,7 @@
       "copied": "Đã sao chép",
       "copyFailed": "Không thể sao chép. Vui lòng chọn và sao chép nội dung chuyển khoản.",
       "awaitingPayment": "Đang chờ ngân hàng xác nhận giao dịch.",
+      "awaitingFinalStatus": "Thời gian giữ sân đã hết. Nếu đã chuyển tiền, vui lòng chờ kiểm tra giao dịch và không chuyển lại.",
       "underpaid": "Số tiền nhận được chưa đủ. Vui lòng liên hệ chi nhánh để được hỗ trợ.",
       "overpaid": "Số tiền nhận được cao hơn yêu cầu. Giao dịch cần được chi nhánh kiểm tra.",
       "expired": "Thời gian giữ sân đã hết. Đặt sân chưa được xác nhận.",
@@ -796,7 +814,7 @@
     "roles": {
       "customer": "Khách hàng",
       "staff": "Nhân viên",
-      "branchManager": "Quản lý chi nhánh 111",
+      "branchManager": "Quản lý chi nhánh",
       "branchOwner": "Chủ chi nhánh",
       "admin": "Quản trị viên",
       "user": "Người dùng"
@@ -924,6 +942,7 @@
     "missingRoleMetadata": "Không thể tải đầy đủ danh sách vai trò do thiếu thông tin phân trang."
   },
   "ownerManagement": {
+    "noProfile": "Chưa có hồ sơ chủ sân",
     "title": "Quản lý chủ sân",
     "description": "Quản lý chủ sở hữu sân cầu lông và thông tin doanh nghiệp.",
     "ownerCount": "{{count}} chủ sân",

@@ -13,8 +13,8 @@ const schema = z.object({
   displayName: z.string().trim().min(2, 'staffManagement.create.validation.name').max(100, 'staffManagement.create.validation.name'),
   email: z.string().trim().email('staffManagement.create.validation.email').max(100, 'staffManagement.create.validation.email'),
   phoneNumber: z.string().trim().min(1, 'staffManagement.create.validation.phone').max(20, 'staffManagement.create.validation.phone'),
-  staffCode: z.string().trim().max(50, 'staffManagement.create.validation.staffCode'),
-  jobTitle: z.string().trim().max(100, 'staffManagement.create.validation.jobTitle'),
+  password: z.string().min(8, 'staffManagement.create.validation.password')
+    .refine((value) => value.trim().length > 0 && new TextEncoder().encode(value).length <= 72, 'staffManagement.create.validation.password'),
   employmentStartDate: z.string(),
   notes: z.string().max(1000, 'staffManagement.create.validation.notes'),
   branchIds: z.array(z.string().uuid()).min(1, 'staffManagement.create.validation.branches'),
@@ -27,8 +27,7 @@ const fields: { name: TextField; type: string; required?: boolean; maxLength?: n
   { name: 'displayName', type: 'text', required: true, maxLength: 100 },
   { name: 'email', type: 'email', required: true, maxLength: 100 },
   { name: 'phoneNumber', type: 'tel', required: true, maxLength: 20 },
-  { name: 'staffCode', type: 'text', maxLength: 50 },
-  { name: 'jobTitle', type: 'text', maxLength: 100 },
+  { name: 'password', type: 'text', required: true, maxLength: 72 },
   { name: 'employmentStartDate', type: 'date' },
 ];
 
@@ -49,7 +48,7 @@ export const StaffCreateDialog = ({ branches, open, onOpenChange }: Props) => {
   const [validationDetail, setValidationDetail] = useState('');
   const { register, handleSubmit, setError, clearErrors, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { displayName: '', email: '', phoneNumber: '', staffCode: '', jobTitle: '', employmentStartDate: '', notes: '', branchIds: [] },
+    defaultValues: { displayName: '', email: '', phoneNumber: '', password: '12345678', employmentStartDate: '', notes: '', branchIds: [] },
   });
 
   const submit = async (values: FormValues) => {
@@ -64,8 +63,6 @@ export const StaffCreateDialog = ({ branches, open, onOpenChange }: Props) => {
     try {
       const response = await create.mutateAsync({
         ...values,
-        staffCode: values.staffCode || null,
-        jobTitle: values.jobTitle || null,
         employmentStartDate: values.employmentStartDate || null,
         notes: values.notes.trim() || null,
       });
@@ -73,14 +70,14 @@ export const StaffCreateDialog = ({ branches, open, onOpenChange }: Props) => {
     } catch (error) {
       const apiError = typeof error === 'object' && error !== null ? error as Partial<ApiErrorShape> : {};
       if (apiError.code === 'STAFF_CODE_ALREADY_USED') {
-        setError('staffCode', { message: 'staffManagement.create.conflictCode' }, { shouldFocus: true });
+        setError('root', { message: 'staffManagement.create.conflictCode' });
       } else if (apiError.code === 'STAFF_ALREADY_EXISTS') {
         setError('email', { message: 'staffManagement.create.conflictContact' }, { shouldFocus: true });
         setError('phoneNumber', { message: 'staffManagement.create.conflictContact' });
       } else if (apiError.status === 403 || apiError.code === 'STAFF_BRANCH_ACCESS_DENIED') {
         setError('root', { message: 'staffManagement.create.forbidden' });
-      } else if (apiError.code === 'STAFF_DELIVERY_NOT_CONFIGURED') {
-        setError('root', { message: 'staffManagement.create.deliveryNotConfigured' });
+      } else if (apiError.code === 'STAFF_ROLE_NOT_CONFIGURED') {
+        setError('root', { message: 'staffManagement.create.roleNotConfigured' });
       } else if (apiError.status === 400 || apiError.code === 'STAFF_INVALID_REQUEST') {
         setError('root', { message: 'staffManagement.create.invalid' });
         if (apiError.code === 'STAFF_INVALID_REQUEST' && typeof apiError.message === 'string') {
@@ -111,9 +108,7 @@ export const StaffCreateDialog = ({ branches, open, onOpenChange }: Props) => {
         {result ? (
           <div className="space-y-4" role="status">
             <p className="font-semibold text-emerald-700">{t('staffManagement.create.created')}</p>
-            <p className={result.invitationDeliveryStatus === 'SENT' ? 'text-sm text-slate-700' : 'text-sm text-amber-800'}>
-              {t(result.invitationDeliveryStatus === 'SENT' ? 'staffManagement.create.invitationSent' : 'staffManagement.create.invitationFailed')}
-            </p>
+            {result.staffCode && <p className="text-sm text-slate-700">{t('staffManagement.create.assignedCode', { code: result.staffCode })}</p>}
             <Button type="button" className="min-h-11" onClick={() => changeOpen(false)}>{t('staffManagement.create.done')}</Button>
           </div>
         ) : (
@@ -126,10 +121,14 @@ export const StaffCreateDialog = ({ branches, open, onOpenChange }: Props) => {
                   </label>
                   <input id={`staff-create-${name}`} type={type} maxLength={maxLength} required={required}
                     aria-invalid={Boolean(errors[name])} aria-describedby={errors[name] ? `staff-create-${name}-error` : undefined}
-                    className={inputClass} {...register(name)} />
+                    className={inputClass} autoComplete={name === 'password' ? 'new-password' : undefined} {...register(name)} />
                   {errors[name]?.message && <p id={`staff-create-${name}-error`} className="text-sm text-red-700">{t(errors[name].message)}</p>}
                 </div>
               ))}
+              <div className="space-y-1">
+                <label htmlFor="staff-create-code" className="block text-sm font-medium text-slate-700">{t('staffManagement.create.fields.staffCode')}</label>
+                <input id="staff-create-code" readOnly value={t('staffManagement.create.generatedCode')} className={`${inputClass} bg-slate-50 text-slate-600`} />
+              </div>
               <div className="space-y-1 sm:col-span-2">
                 <label htmlFor="staff-create-notes" className="block text-sm font-medium text-slate-700">{t('staffManagement.create.fields.notes')}</label>
                 <textarea id="staff-create-notes" maxLength={1000} rows={3} className={`${inputClass} py-2`}

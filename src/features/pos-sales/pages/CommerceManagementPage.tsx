@@ -186,15 +186,21 @@ const ManagementFrame = ({
   const workspace = catalogSections.includes(activeSection)
     ? {
         title: productCatalogTitle,
+        description: 'Quản lý danh mục, sản phẩm và theo dõi tồn kho theo chi nhánh.',
+        icon: Tags,
         sections: catalogSections,
       }
     : inventorySections.includes(activeSection)
       ? {
           title: inventoryWorkspaceTitle,
+          description: 'Theo dõi tồn kho, nhập hàng và các lượt xuất hàng từ bán hàng.',
+          icon: Boxes,
           sections: inventorySections,
         }
       : {
           title: 'Đơn bán hàng',
+          description: 'Theo dõi đơn bán hàng và xem hóa đơn theo chi nhánh.',
+          icon: FileText,
           sections: [],
         };
   const visibleLinks = sectionLinks.filter((link) =>
@@ -205,6 +211,8 @@ const ManagementFrame = ({
     <div className="pos-workspace min-w-0 space-y-4 py-4 sm:py-5">
       <PosWorkspaceHeader
         title={workspace.title}
+        description={workspace.description}
+        icon={workspace.icon}
         branchId={branchId}
         onBranchChange={setBranchId}
       />

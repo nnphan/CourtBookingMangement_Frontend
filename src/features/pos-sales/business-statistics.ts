@@ -17,6 +17,7 @@ export interface BusinessStatistics {
     branchId: string;
     date: string;
     bookingCount: number;
+    dailyBookingCount: number;
     completedCount: number;
     cancelledCount: number;
     bookedHours: number;
@@ -26,7 +27,38 @@ export interface BusinessStatistics {
   salesDays: Array<{ branchId: string; date: string; orderCount: number; revenue: number }>;
   courts: Array<{ branchId: string; courtName: string; usedHours: number; availableHours: number }>;
   peakSlots: Array<{ slot: string; bookingCount: number; revenue: number }>;
-  products: Array<{ productName: string; category: string; quantity: number; revenue: number; cost: number | null }>;
+  products: Array<{
+    branchId: string; date: string; productId: string; productName: string; category: string;
+    unit: string; quantity: number; revenue: number; cost: number | null;
+  }>;
+  expenses: BusinessExpense[];
+}
+
+export const expenseCategories = {
+  electricity: 'Điện', water: 'Nước', payroll: 'Lương nhân viên', rent: 'Thuê mặt bằng',
+  maintenance: 'Bảo trì', cleaning: 'Vệ sinh', internet_software: 'Internet / phần mềm',
+  marketing: 'Marketing', supplies: 'Vật tư tiêu hao', other: 'Khác',
+} as const;
+
+export type ExpenseCategory = keyof typeof expenseCategories;
+export interface BusinessExpense {
+  id: string;
+  branchId: string;
+  date: string;
+  category: ExpenseCategory;
+  title: string;
+  amount: number;
+  notes: string | null;
+}
+
+export interface BookingDayDetail {
+  id: string; date: string; bookingCode: string; court: string; customer: string;
+  startTime: string; endTime: string; amount: number; paymentMethod: string; status: string;
+}
+
+export interface ProductDayDetail {
+  id: string; date: string; orderCode: string; category: string; productName: string;
+  unit: string; quantity: number; unitPrice: number; amount: number;
 }
 
 export const statisticsApi = {
@@ -39,6 +71,25 @@ export const statisticsApi = {
       params: { ...range, branchId },
     });
     return response.data.data;
+  },
+  async bookingDetails(date: string, branchId?: string) {
+    const response = await http.get<{ data: BookingDayDetail[] }>('/business-statistics/booking-details', {
+      params: { date, branchId },
+    });
+    return response.data.data;
+  },
+  async salesDetails(date: string, productId: string, branchId?: string) {
+    const response = await http.get<{ data: ProductDayDetail[] }>('/business-statistics/sales-details', {
+      params: { date, productId, branchId },
+    });
+    return response.data.data;
+  },
+  async saveExpense(id: string | undefined, expense: Omit<BusinessExpense, 'id'>) {
+    if (id) await http.put(`/business-statistics/expenses/${id}`, expense);
+    else await http.post('/business-statistics/expenses', expense);
+  },
+  async deleteExpense(id: string) {
+    await http.delete(`/business-statistics/expenses/${id}`);
   },
 };
 
@@ -84,18 +135,20 @@ export const formatDate = (date: string) => date.split('-').reverse().join('/');
 
 export const buildDailySeries = ({ bookingDays, salesDays }: BusinessStatistics, range: DateRange) => {
   const dates = new Map<string, {
-    date: string; bookingRevenue: number; salesRevenue: number; bookingCount: number; orderCount: number;
+    date: string; bookingRevenue: number; salesRevenue: number; bookingCount: number; bookedHours: number;
+    orderCount: number;
   }>();
   for (const cursor = new Date(range.from); dateKey(cursor) <= range.to; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
     const date = dateKey(cursor);
-    dates.set(date, { date, bookingRevenue: 0, salesRevenue: 0, bookingCount: 0, orderCount: 0 });
+    dates.set(date, { date, bookingRevenue: 0, salesRevenue: 0, bookingCount: 0, bookedHours: 0, orderCount: 0 });
   }
 
   for (const day of bookingDays) {
     const row = dates.get(day.date);
     if (!row) continue;
     row.bookingRevenue += day.revenue;
-    row.bookingCount += day.bookingCount;
+    row.bookingCount += day.dailyBookingCount;
+    row.bookedHours += day.bookedHours;
   }
   for (const day of salesDays) {
     const row = dates.get(day.date);
@@ -104,4 +157,17 @@ export const buildDailySeries = ({ bookingDays, salesDays }: BusinessStatistics,
     row.orderCount += day.orderCount;
   }
   return [...dates.values()].map((day) => ({ ...day, total: day.bookingRevenue + day.salesRevenue }));
+};
+
+export const summarizeFinance = (data: BusinessStatistics, branchId?: string) => {
+  const bookingRevenue = sum(data.bookingDays, (row) => !branchId || row.branchId === branchId ? row.revenue : 0);
+  const salesRevenue = sum(data.salesDays, (row) => !branchId || row.branchId === branchId ? row.revenue : 0);
+  const products = data.products.filter((row) => !branchId || row.branchId === branchId);
+  const operating = sum(data.expenses, (row) => !branchId || row.branchId === branchId ? row.amount : 0);
+  const revenue = bookingRevenue + salesRevenue;
+  const cogs = products.some((row) => row.cost === null) ? null : sum(products, (row) => row.cost ?? 0);
+  const costs = cogs === null ? null : cogs + operating;
+  const profit = costs === null ? null : revenue - costs;
+  return { revenue, bookingRevenue, salesRevenue, cogs, operating, costs, profit,
+    margin: profit === null ? null : percent(profit, revenue) };
 };

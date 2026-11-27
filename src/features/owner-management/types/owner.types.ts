@@ -16,15 +16,18 @@ export interface Owner {
 export interface OwnerSearchParams {
   keyword?: string;
   isActive?: boolean;
-  sortBy?: 'createdAt_desc';
+  sortBy?: 'latest';
+  includeUnlinked?: boolean;
   pageNumber: number;
   pageSize: number;
 }
 
 export interface OwnerPage {
-  data: Owner[];
+  data: OwnerListItem[];
   metadata: PaginationMetadata | null;
 }
+
+export type OwnerListItem = Owner | (Omit<Owner, 'id'> & { id: null });
 
 export interface CreateOwnerRequest {
   userId: string;

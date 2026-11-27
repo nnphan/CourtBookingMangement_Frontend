@@ -46,7 +46,8 @@ export const useBookingPaymentStatus = (
     queryFn: () => paymentApi.getBookingPaymentStatus(bookingId, holdToken),
     enabled: enabled && Boolean(bookingId),
     refetchInterval: (query) =>
-      query.state.data && TERMINAL_PAYMENT_STATUSES.has(query.state.data.status.toUpperCase())
+      (query.state.data && TERMINAL_PAYMENT_STATUSES.has(query.state.data.status.toUpperCase()))
+        || (query.state.error && 'status' in query.state.error && [401, 403, 404].includes(Number(query.state.error.status)))
         ? false
         : 3000,
     retry: 1,

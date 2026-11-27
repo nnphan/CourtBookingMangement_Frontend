@@ -49,9 +49,13 @@
     },
     "create": {
       "title": "Add staff",
-      "explanation": "An activation link will be sent by email. The staff member sets their own password; no role selection is needed.",
+      "explanation": "The account can sign in with its initial password and manage its assigned branches.",
+      "generatedCode": "Generated on save",
+      "assignedCode": "Staff code: {{code}}",
+      "roleNotConfigured": "The Branch Manager role is unavailable.",
       "noPermission": "You do not have permission to create staff in any available branch.",
       "fields": {
+        "password": "Initial password",
         "displayName": "Display name",
         "email": "Email",
         "phoneNumber": "Phone number",
@@ -62,6 +66,7 @@
         "branches": "Assigned branches"
       },
       "validation": {
+        "password": "Use at least 8 characters and no more than 72 UTF-8 bytes.",
         "name": "Enter a name between 2 and 100 characters.",
         "email": "Enter a valid email address of up to 100 characters.",
         "phone": "Enter a phone number of up to 20 characters.",
@@ -110,12 +115,14 @@
     "firstPage": "Go to first page",
     "items": "staff",
     "columns": {
-      "staff": "Staff member",
-      "contact": "Contact",
-      "assignments": "Branch / staff code / job title",
-      "status": "Account / activation status",
+      "staffCode": "Staff code",
+      "staff": "Staff name",
+      "email": "Email",
+      "phoneNumber": "Phone number",
+      "assignments": "Branch",
       "lastLogin": "Last login",
-      "created": "Created"
+      "status": "Status",
+      "created": "Created date"
     },
     "sortFields": {
       "displayName": "Staff name",
@@ -703,6 +710,16 @@
     },
     "payment": {
       "holdCreated": "Court held; complete your bank transfer",
+      "sepayTitle": "SePay QR payment",
+      "bookingConfirmed": "Your booking is confirmed",
+      "viewStatus": "Track payment",
+      "refreshStatus": "Check status",
+      "backToBranches": "Back to branches",
+      "accessRequired": "Sign in with the account used to book, or open this link in the original booking session.",
+      "unavailable": "SePay payment details could not be loaded.",
+      "resumeFailed": "A QR code could not be created for this booking. Check its status or contact the branch.",
+      "refunded": "This payment was refunded.",
+      "received": "Amount received: {{amount}}",
       "timeRemaining": "Hold time remaining",
       "confirmed": "Payment confirmed",
       "needsAttention": "Transaction needs attention",
@@ -721,6 +738,7 @@
       "copied": "Copied",
       "copyFailed": "Could not copy. Select and copy the transfer description.",
       "awaitingPayment": "Waiting for the bank to confirm your transfer.",
+      "awaitingFinalStatus": "The court hold has expired. If you already transferred the money, wait for verification and do not transfer again.",
       "underpaid": "The amount received was too low. Contact the branch for assistance.",
       "overpaid": "The amount received exceeds the request. The branch must review it.",
       "expired": "The booking hold expired. The booking was not confirmed.",
@@ -923,6 +941,7 @@
     "missingRoleMetadata": "Unable to load all roles because pagination metadata is missing."
   },
   "ownerManagement": {
+    "noProfile": "No owner profile",
     "title": "Owner Management",
     "description": "Manage badminton court owners and their business information.",
     "ownerCount": "{{count}} owners",

@@ -64,8 +64,7 @@ export interface CreateStaffRequest {
   displayName: string;
   email: string;
   phoneNumber: string;
-  staffCode?: string | null;
-  jobTitle?: string | null;
+  password: string;
   branchIds: string[];
   employmentStartDate?: string | null;
   notes?: string | null;
@@ -73,6 +72,7 @@ export interface CreateStaffRequest {
 
 export interface CreateStaffResponse {
   userId: string;
-  invitationDeliveryStatus: 'SENT' | 'FAILED';
+  invitationDeliveryStatus?: 'SENT' | 'FAILED' | null;
+  staffCode?: string | null;
   warningCode: string | null;
 }

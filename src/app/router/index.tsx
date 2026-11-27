@@ -46,6 +46,7 @@ const CustomerCourtStatusPage = lazy(
 const MyBookingPage = lazy(() => import('@/features/bookings/pages/MyBookingPage'));
 const MyProfilePage = lazy(() => import('@/features/profile/pages/MyProfilePage'));
 const MomoReturnPage = lazy(() => import('@/features/payments/pages/MomoReturnPage'));
+const SePayPaymentPage = lazy(() => import('@/features/payments/pages/SePayPaymentPage'));
 const DiscoverMatchesPage = lazy(
   () => import('@/features/player-matching/pages/DiscoverMatchesPage'),
 );
@@ -55,7 +56,6 @@ const MyPlayerMatchesPage = lazy(
 const PlayerMatchingProfilePage = lazy(
   () => import('@/features/player-matching/pages/PlayerMatchingProfilePage'),
 );
-const AdminBranchLayout = lazy(() => import('@/pages/admin/branches/AdminBranchLayout'));
 const BranchListPage = lazy(() => import('@/pages/admin/branches/BranchListPage'));
 const BranchCreatePage = lazy(() => import('@/pages/admin/branches/BranchCreatePage'));
 const BranchDetailPage = lazy(() => import('@/pages/admin/branches/BranchDetailPage'));
@@ -93,6 +93,11 @@ export const router = createBrowserRouter([
   {
     path: paths.momoReturn,
     element: withSuspense(<MomoReturnPage />),
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: paths.sePayPayment(),
+    element: withSuspense(<SePayPaymentPage />),
     errorElement: <RouteErrorBoundary />,
   },
   {
@@ -227,7 +232,7 @@ export const router = createBrowserRouter([
       },
       {
         path: paths.adminBranches,
-        element: withPermissions(<AdminBranchLayout />, [P.BRANCH_VIEW]),
+        element: withPermissions(<AppLayout />, [P.BRANCH_VIEW]),
         children: [
           { index: true, element: withSuspense(<BranchListPage />) },
           { path: 'create', element: withPermissions(<BranchCreatePage />, [P.BRANCH_CREATE]) },

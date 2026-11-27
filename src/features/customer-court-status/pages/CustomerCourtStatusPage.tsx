@@ -351,7 +351,7 @@ export const CustomerCourtStatusPage: React.FC = () => {
       </main>
 
       {/* 6. MODALS & DIALOGS */}
-      <CourtPriceModal />
+      <CourtPriceModal branchId={activeBranchId} />
 
       {/* Create Booking Dialog */}
       <CreateBookingDialog

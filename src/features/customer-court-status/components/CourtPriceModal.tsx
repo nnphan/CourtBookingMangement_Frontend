@@ -9,10 +9,24 @@ import {
 import { useCustomerCourtStatusStore } from '../store/customer-court-status.store';
 import { Sparkles, Clock, ShieldCheck, PhoneCall } from 'lucide-react';
 import { CUSTOMER_HOTLINE } from '../constants/customer-scheduler.config';
+import { useBranchDetail } from '@/features/branches/api/useBranchDetail';
+import { Button } from '@/components/ui/button';
 
-export const CourtPriceModal: React.FC = memo(() => {
+const pricingLabels: Record<string, string> = {
+  NORMAL: 'Thứ 2 – Thứ 6 · Giờ thường',
+  PEAK: 'Thứ 2 – Thứ 6 · Giờ cao điểm',
+  WEEKEND: 'Thứ 7 – Chủ nhật',
+};
+const priceFormat = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 });
+
+export const CourtPriceModal: React.FC<{ branchId: string }> = memo(({ branchId }) => {
   const isPriceModalOpen = useCustomerCourtStatusStore((s) => s.isPriceModalOpen);
   const closePriceModal = useCustomerCourtStatusStore((s) => s.closePriceModal);
+  const branch = useBranchDetail(isPriceModalOpen ? branchId : undefined);
+  const pricings = branch.data?.isActive ? [...(branch.data.branchPricings ?? [])].sort(
+    (first, second) => Number(first.pricingType === 'WEEKEND') - Number(second.pricingType === 'WEEKEND')
+      || first.startTime.localeCompare(second.startTime),
+  ) : [];
 
   return (
     <Dialog open={isPriceModalOpen} onOpenChange={(open) => !open && closePriceModal()}>
@@ -23,47 +37,50 @@ export const CourtPriceModal: React.FC = memo(() => {
             Thông Tin Sân &amp; Bảng Giá Dịch Vụ
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500">
-            Hệ thống sân cầu lông tiêu chuẩn thi đấu quốc tế - TMT Badminton Club
+            {branch.data?.name ?? 'Bảng giá theo chi nhánh'}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 pt-2 text-sm text-slate-700">
           {/* Pricing Table */}
-          <div className="rounded-lg border border-slate-200 overflow-hidden shadow-xs">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-emerald-50/80 text-emerald-900 border-b border-emerald-100 font-semibold">
-                <tr>
-                  <th className="p-2.5">Khung giờ</th>
-                  <th className="p-2.5">Thứ 2 - Thứ 6</th>
-                  <th className="p-2.5">Thứ 7 - CN &amp; Lễ</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                <tr>
-                  <td className="p-2.5 font-medium flex items-center gap-1.5">
-                    <Clock className="size-3.5 text-slate-400" />
-                    05:00 - 17:00 (Giờ sáng/chiều)
-                  </td>
-                  <td className="p-2.5 font-semibold text-emerald-700">80.000 đ/giờ</td>
-                  <td className="p-2.5 font-semibold text-emerald-700">110.000 đ/giờ</td>
-                </tr>
-                <tr className="bg-slate-50/60">
-                  <td className="p-2.5 font-medium flex items-center gap-1.5">
-                    <Clock className="size-3.5 text-amber-500" />
-                    17:00 - 24:00 (Giờ vàng)
-                  </td>
-                  <td className="p-2.5 font-semibold text-amber-600">120.000 đ/giờ</td>
-                  <td className="p-2.5 font-semibold text-amber-600">140.000 đ/giờ</td>
-                </tr>
-                <tr>
-                  <td className="p-2.5 font-medium">Lịch cố định (tháng)</td>
-                  <td colSpan={2} className="p-2.5 text-slate-600 italic">
-                    Ưu đãi giảm 10% - 15% khi thanh toán theo tháng
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          {branch.isLoading ? (
+            <p role="status">Đang tải bảng giá…</p>
+          ) : branch.isError ? (
+            <div role="alert" className="flex flex-wrap items-center justify-between gap-2">
+              <span>Không tải được bảng giá chi nhánh.</span>
+              <Button size="sm" variant="outline" onClick={() => void branch.refetch()}>Thử lại</Button>
+            </div>
+          ) : pricings.length === 0 ? (
+            <p>{branchId ? 'Chi nhánh chưa có bảng giá đang áp dụng.' : 'Vui lòng chọn chi nhánh để xem bảng giá.'}</p>
+          ) : (
+            <div className="rounded-lg border border-slate-200 overflow-hidden shadow-xs">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-emerald-50/80 text-emerald-900 border-b border-emerald-100 font-semibold">
+                  <tr>
+                    <th scope="col" className="p-2.5">Khung giờ</th>
+                    <th scope="col" className="p-2.5">Áp dụng</th>
+                    <th scope="col" className="p-2.5">Giá sân</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {pricings.map(({ pricingType, startTime, endTime, pricePerHour }) => (
+                    <tr key={`${pricingType}:${startTime}:${endTime}:${pricePerHour}`} className="even:bg-slate-50/60">
+                      <td className="p-2.5 font-medium whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1.5">
+                          <Clock aria-hidden className={`size-3.5 shrink-0 ${pricingType === 'PEAK' ? 'text-amber-500' : 'text-slate-400'}`} />
+                          {startTime.slice(0, 5)} – {endTime.slice(0, 5)}
+                        </span>
+                      </td>
+                      <td className="p-2.5">{pricingLabels[pricingType] ?? pricingType}</td>
+                      <td className={`p-2.5 font-semibold whitespace-nowrap ${pricingType === 'PEAK' ? 'text-amber-700' : 'text-emerald-700'}`}>
+                        {priceFormat.format(pricePerHour)} đ/giờ
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {/* Court Features */}
           <div className="space-y-2">

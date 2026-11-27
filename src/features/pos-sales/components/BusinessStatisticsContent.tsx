@@ -1,282 +1,277 @@
-import type { ReactNode } from 'react';
-import { Download } from 'lucide-react';
-import { Link } from 'react-router';
-import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { paths } from '@/app/router/paths';
-import { useAuthorization } from '@/features/auth/authorization';
-import { PERMISSIONS } from '@/shared/constants/permissions';
-import { downloadStatistics } from '../business-statistics-export';
+﻿import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { StatisticsMetrics, StatisticsPanel, StatisticsTable } from './BusinessStatisticsLayout';
+import { ExpensePanel } from './BusinessExpensePanel';
 import {
-  buildDailySeries, formatDate, formatMoney, formatNumber, formatPercent, percent, sum,
-  type BusinessStatistics, type DateRange, type StatisticsBranch,
+  buildDailySeries, expenseCategories, formatDate, formatMoney, formatNumber, formatPercent, percent,
+  statisticsApi, sum, summarizeFinance, type BusinessStatistics, type DateRange, type StatisticsBranch,
 } from '../business-statistics';
+import { downloadStatistics } from '../business-statistics-export';
 import type { StatisticsTab } from '../pages/BusinessStatisticsPage';
 
-type Metric = [label: string, value: string];
+const hours = (value: number) => formatNumber(value) + ' giờ';
+const money = (value: number | null) => value === null ? 'Chưa đủ dữ liệu' : formatMoney(value);
+const time = (value: string) => value.slice(0, 5);
+const bookingStatuses: Record<string, string> = {
+  COMPLETED: 'Hoàn thành', CANCELLED: 'Đã hủy', CONFIRMED: 'Đã xác nhận',
+  CHECKED_IN: 'Đã nhận sân', PENDING: 'Đang chờ', HELD: 'Đang giữ chỗ',
+  PENDING_PAYMENT: 'Chờ thanh toán', PAYMENT_PENDING: 'Chờ thanh toán',
+};
+const paymentMethods: Record<string, string> = {
+  CASH: 'Tiền mặt', BANK_TRANSFER: 'Chuyển khoản', ONLINE: 'Trực tuyến', QR: 'Mã QR',
+};
 
-const panel = 'border-line bg-surface min-w-0 rounded-xl border p-4 sm:p-5';
-const muted = 'text-sm text-slate-600';
-const noData = <p className={muted}>Chưa có dữ liệu trong khoảng thời gian này.</p>;
-const hours = (value: number) => `${formatNumber(value)} giờ`;
-
-const Panel = ({ title, children }: { title: string; children: ReactNode }) => (
-  <section className={panel}>
-    <h2 className="mb-4 text-lg font-bold text-slate-900">{title}</h2>
-    {children}
-  </section>
-);
-
-const Metrics = ({ items }: { items: Metric[] }) => (
-  <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-    {items.map(([label, value]) => (
-      <div key={label} className="border-line bg-surface rounded-xl border p-4">
-        <dt className="text-sm font-semibold text-slate-600">{label}</dt>
-        <dd className="mt-2 text-lg font-black text-emerald-800 sm:text-2xl">{value}</dd>
-      </div>
+const Bars = ({ rows }: { rows: Array<{ label: string; value: number | null; detail: string }> }) => (
+  <ul className="space-y-3">
+    {rows.map(({ label, value, detail }) => (
+      <li key={label}>
+        <div className="mb-1 flex justify-between gap-2 text-sm"><span>{label}</span><strong>{detail}</strong></div>
+        <div className="h-2 rounded-full bg-slate-100">
+          <div className="h-full rounded-full bg-emerald-600" style={{ width: Math.max(0, Math.min(100, value ?? 0)) + '%' }} />
+        </div>
+      </li>
     ))}
-  </dl>
+  </ul>
 );
 
-const DataTable = ({ columns, rows }: { columns: string[]; rows: ReactNode[][] }) => (
-  rows.length ? (
-    <div className="overflow-x-auto rounded-lg border border-slate-200">
-      <table className="w-full border-collapse text-left text-sm">
-        <thead className="bg-slate-50 text-slate-700">
-          <tr>{columns.map((column) => <th key={column} scope="col" className="px-3 py-2.5">{column}</th>)}</tr>
-        </thead>
-        <tbody>{rows.map((row, rowIndex) => (
-          <tr key={rowIndex}>{row.map((value, index) => (
-            <td key={columns[index]} className="border-t border-slate-100 px-3 py-2.5 text-slate-800">{value}</td>
-          ))}</tr>
-        ))}</tbody>
-      </table>
-    </div>
-  ) : noData
-);
+type Detail = { date: string; type: 'booking' } | { date: string; type: 'sales'; productId: string; name: string };
 
-const Bars = ({ rows }: { rows: Array<{ label: string; value: number | null; detail?: string }> }) => (
-  rows.length ? (
-    <ul className="space-y-3">
-      {rows.map(({ label, value, detail }, index) => (
-        <li key={`${label}-${index}`}>
-          <div className="mb-1 flex flex-wrap justify-between gap-1 text-sm">
-            <span className="font-semibold text-slate-800">{label}</span>
-            <span className="text-slate-600">{detail ? `${detail} · ` : ''}{formatPercent(value)}</span>
-          </div>
-          <div aria-hidden="true" className="h-2 overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full rounded-full bg-emerald-600" style={{ width: `${Math.min(value ?? 0, 100)}%` }} />
-          </div>
-        </li>
-      ))}
-    </ul>
-  ) : noData
-);
+const DetailDialog = ({ detail, branchId, onClose }: { detail: Detail; branchId?: string; onClose: () => void }) => {
+  const [keyword, setKeyword] = useState('');
+  const booking = useQuery({
+    queryKey: ['business-statistics', 'booking-details', branchId, detail.date],
+    queryFn: () => statisticsApi.bookingDetails(detail.date, branchId),
+    enabled: detail.type === 'booking',
+  });
+  const sale = useQuery({
+    queryKey: ['business-statistics', 'sales-details', branchId, detail.date, detail.type === 'sales' ? detail.productId : ''],
+    queryFn: () => statisticsApi.salesDetails(detail.date, detail.type === 'sales' ? detail.productId : '', branchId),
+    enabled: detail.type === 'sales',
+  });
+  const request = detail.type === 'booking' ? booking : sale;
+  const normalize = (value: string) => value.toLocaleLowerCase('vi').normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd');
+  const search = normalize(keyword.trim());
+  const bookings = (booking.data ?? []).filter((row) =>
+    [row.bookingCode, row.customer, row.court, bookingStatuses[row.status] ?? row.status]
+      .some((value) => normalize(value).includes(search)));
 
-const DailyChart = ({ series, bookingsOnly }: {
-  series: ReturnType<typeof buildDailySeries>; bookingsOnly: boolean;
-}) => (
-  <Panel title={bookingsOnly ? 'Doanh thu đặt sân theo thời gian' : 'Doanh thu theo thời gian'}>
-    {series.some((day) => (bookingsOnly ? day.bookingRevenue : day.total) > 0) ? (
-      <div className="h-64 w-full sm:h-72">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={series} margin={{ left: 8, right: 12, top: 10 }}>
-            <CartesianGrid stroke="#e2e8f0" vertical={false} />
-            <XAxis dataKey="date" minTickGap={26} tick={{ fontSize: 11 }} tickFormatter={(date: string) => formatDate(date).slice(0, 5)} />
-            <YAxis width={76} tick={{ fontSize: 11 }} tickFormatter={formatNumber} />
-            <Tooltip labelFormatter={(date: string) => formatDate(date)} formatter={(value: number) => formatMoney(value)} />
-            <Legend />
-            <Line type="linear" dataKey="bookingRevenue" name="Đặt sân" stroke="#047857" strokeWidth={2} dot={series.length < 32} />
-            {!bookingsOnly && <Line type="linear" dataKey="salesRevenue" name="Bán hàng" stroke="#2563eb" strokeWidth={2} dot={series.length < 32} />}
-            {!bookingsOnly && <Line type="linear" dataKey="total" name="Tổng doanh thu" stroke="#7c3aed" strokeWidth={2} dot={false} />}
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-    ) : <p className={muted}>Chưa phát sinh doanh thu trong khoảng thời gian này.</p>}
-  </Panel>
-);
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-h-[90vh] w-[96vw] max-w-6xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{detail.type === 'booking' ? 'Chi tiết đặt sân' : 'Chi tiết bán hàng'}</DialogTitle>
+          <DialogDescription>
+            {formatDate(detail.date)}{detail.type === 'sales' && (' · ' + detail.name + ' · Thành tiền theo đơn giá và số lượng.')}
+          </DialogDescription>
+        </DialogHeader>
+        {detail.type === 'booking' && (
+          <input aria-label="Tìm lượt đặt sân" placeholder="Tìm theo mã đặt sân, khách hàng, sân hoặc trạng thái"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" value={keyword}
+            onChange={(event) => setKeyword(event.target.value)} />
+        )}
+        {request.isPending && <p role="status" className="text-sm text-slate-600">Đang tải chi tiết…</p>}
+        {request.isError && <div role="alert" className="flex items-center justify-between gap-3 text-sm text-red-700">
+          Không tải được chi tiết. <Button variant="outline" onClick={() => void request.refetch()}>Thử lại</Button>
+        </div>}
+        {request.isSuccess && (detail.type === 'booking' ? (
+          <StatisticsTable columns={['Ngày', 'Mã đặt sân', 'Sân', 'Khách hàng', 'Khung giờ', 'Tổng tiền', 'Phương thức thanh toán', 'Trạng thái']}
+            empty={search ? 'Không tìm thấy lượt đặt sân phù hợp.' : undefined}
+            rows={bookings.map((row) => ({ key: row.id, cells: [formatDate(row.date), row.bookingCode, row.court, row.customer || '—',
+              time(row.startTime) + ' – ' + time(row.endTime), money(row.amount),
+              (paymentMethods[row.paymentMethod] ?? row.paymentMethod) || '—', bookingStatuses[row.status] ?? row.status] }))} />
+        ) : (
+          <StatisticsTable columns={['Ngày', 'Mã đơn hàng', 'Danh mục', 'Sản phẩm', 'Đơn vị', 'Số lượng', 'Đơn giá', 'Thành tiền']}
+            rows={(sale.data ?? []).map((row) => ({ key: row.id, cells: [formatDate(row.date), row.orderCode, row.category,
+              row.productName, row.unit, formatNumber(row.quantity), money(row.unitPrice), money(row.amount)] }))} />
+        ))}
+      </DialogContent>
+    </Dialog>
+  );
+};
 
-export const BusinessStatisticsContent = ({ data, range, tab, branches, scopeLabel, orderBranch }: {
-  data: BusinessStatistics;
-  range: DateRange;
-  tab: StatisticsTab;
-  branches: StatisticsBranch[];
-  scopeLabel: string;
-  orderBranch?: string;
+const financeColumns = ['Tổng doanh thu', 'Doanh thu đặt sân', 'Doanh thu bán hàng', 'Giá vốn',
+  'Chi phí vận hành', 'Tổng chi phí', 'Lợi nhuận', 'Biên lợi nhuận'];
+
+const financeValues = (finance: ReturnType<typeof summarizeFinance>) => [
+  finance.revenue, finance.bookingRevenue, finance.salesRevenue, finance.cogs, finance.operating, finance.costs, finance.profit, finance.margin,
+];
+const financeCells = (finance: ReturnType<typeof summarizeFinance>) =>
+  financeValues(finance).map((value, index) => index === 7 ? formatPercent(value) : money(value));
+
+export const BusinessStatisticsContent = ({ data, range, tab, branches, scopeLabel, branchId, compareBranches }: {
+  data: BusinessStatistics; range: DateRange; tab: StatisticsTab; branches: StatisticsBranch[];
+  scopeLabel: string; branchId?: string; compareBranches: boolean;
 }) => {
-  const { hasPermission } = useAuthorization();
-  const bookingRevenue = sum(data.bookingDays, (day) => day.revenue);
-  const salesRevenue = sum(data.salesDays, (day) => day.revenue);
-  const totalRevenue = bookingRevenue + salesRevenue;
-  const completedBookings = sum(data.bookingDays, (day) => day.completedCount);
-  const bookings = sum(data.bookingDays, (day) => day.bookingCount);
-  const cancelled = sum(data.bookingDays, (day) => day.cancelledCount);
-  const usedHours = sum(data.bookingDays, (day) => day.usedHours);
-  const bookedHours = sum(data.bookingDays, (day) => day.bookedHours);
-  const occupancy = percent(usedHours, sum(data.courts, (court) => court.availableHours));
-  const orders = sum(data.salesDays, (day) => day.orderCount);
-  const units = sum(data.products, (product) => product.quantity);
-  const cost = (orders > 0 && data.products.length === 0) || data.products.some((product) => product.cost === null)
-    ? null : sum(data.products, (product) => product.cost ?? 0);
-  const profit = cost === null ? null : salesRevenue - cost;
-  const margin = profit === null ? null : percent(profit, salesRevenue);
+  const [detail, setDetail] = useState<Detail | null>(null);
   const daily = buildDailySeries(data, range);
-  const revenueMetrics: Metric[] = [
-    ['Tổng doanh thu', formatMoney(totalRevenue)], ['Doanh thu đặt sân', formatMoney(bookingRevenue)],
-    ['Doanh thu bán hàng', formatMoney(salesRevenue)], ['Lợi nhuận bán hàng ước tính', profit === null ? '—' : formatMoney(profit)],
-  ];
-  const branchName = (id: string) => branches.find((branch) => branch.id === id)?.name ?? '';
-  const sourceRows = [
-    { label: 'Đặt sân', value: percent(bookingRevenue, totalRevenue), detail: formatMoney(bookingRevenue) },
-    { label: 'Bán hàng', value: percent(salesRevenue, totalRevenue), detail: formatMoney(salesRevenue) },
-  ];
-  const courtRows = data.courts.map((court) => ({
-    label: branches.length > 1 ? `${branchName(court.branchId)} · ${court.courtName}` : court.courtName,
-    value: percent(court.usedHours, court.availableHours),
-    detail: hours(court.usedHours),
-  }));
-  const categoryRevenue = new Map<string, number>();
-  for (const product of data.products) {
-    categoryRevenue.set(product.category, (categoryRevenue.get(product.category) ?? 0) + product.revenue);
+  const finance = summarizeFinance(data);
+  const comparison = compareBranches ? branches.map((branch) => ({ branch, totals: summarizeFinance(data, branch.id) })) : [];
+  const bookedHours = sum(data.bookingDays, (row) => row.bookedHours);
+  const usedHours = sum(data.bookingDays, (row) => row.usedHours);
+  const bookingCount = sum(data.bookingDays, (row) => row.bookingCount);
+  const completed = sum(data.bookingDays, (row) => row.completedCount);
+  const orderCount = sum(data.salesDays, (row) => row.orderCount);
+  const usage = percent(usedHours, sum(data.courts, (row) => row.availableHours));
+  const financeNotes = <p className="mt-3 text-sm text-slate-600">
+    Giá vốn ước tính theo giá nhập gần nhất tại thời điểm bán. Lợi nhuận dùng chi phí vận hành đã ghi nhận trong kỳ.
+    Các chỉ số phụ thuộc vào giá vốn chỉ hiển thị khi có đủ dữ liệu.
+  </p>;
+  const branchNames = new Map(branches.map(({ id, name }) => [id, name]));
+  const dailyProducts = new Map<string, BusinessStatistics['products'][number]>();
+  const products = new Map<string, { key: string; name: string; quantity: number; revenue: number }>();
+  for (const row of data.products) {
+    const key = row.date + ':' + row.productId;
+    const dailyProduct = dailyProducts.get(key);
+    if (dailyProduct) {
+      dailyProduct.quantity += row.quantity;
+      dailyProduct.revenue += row.revenue;
+    } else dailyProducts.set(key, { ...row });
+    const product = products.get(row.productId);
+    if (product) {
+      product.quantity += row.quantity;
+      product.revenue += row.revenue;
+    } else products.set(row.productId, { key: row.productId, name: row.productName, quantity: row.quantity, revenue: row.revenue });
   }
-  const categoryRows = [...categoryRevenue.entries()].sort((a, b) => b[1] - a[1]).map(([category, revenue]) => ({
-    label: category, value: percent(revenue, salesRevenue), detail: formatMoney(revenue),
-  }));
-  const branchRows = branches.map((branch) => {
-    const booking = sum(data.bookingDays.filter((row) => row.branchId === branch.id), (row) => row.revenue);
-    const sales = sum(data.salesDays.filter((row) => row.branchId === branch.id), (row) => row.revenue);
-    return { name: branch.name, booking, sales, total: booking + sales };
-  }).sort((a, b) => b.total - a.total);
+  const totalProductQuantity = sum(data.products, (row) => row.quantity);
+  const bestProducts = [...products.values()].sort((first, second) => second.quantity - first.quantity).slice(0, 5);
+  const bestCourts = data.courts.map((row) => ({ ...row, usage: percent(row.usedHours, row.availableHours) }))
+    .filter((row) => row.usage !== null)
+    .sort((first, second) => (second.usage ?? 0) - (first.usage ?? 0)).slice(0, 5);
 
   const exportReport = (format: 'excel' | 'csv') => downloadStatistics({
-    'Tổng quan': [
-      ['Chi nhánh', scopeLabel], ['Từ ngày', formatDate(range.from)], ['Đến ngày', formatDate(range.to)],
-      ['Tổng doanh thu', totalRevenue], ['Doanh thu đặt sân', bookingRevenue], ['Doanh thu bán hàng', salesRevenue],
-      ['Giá vốn hàng bán ước tính', cost], ['Lợi nhuận bán hàng ước tính', profit], ['Biên lợi nhuận bán hàng', formatPercent(margin)],
-      ['Số lượt đặt sân', bookings], ['Lượt hoàn thành', completedBookings], ['Lượt hủy', cancelled],
-      ['Giờ đã đặt', bookedHours], ['Giờ sử dụng', usedHours], ['Số đơn bán hàng', orders],
-      ['Số sản phẩm đã bán', units], ['Tỷ lệ sử dụng sân', formatPercent(occupancy)],
-    ],
-    'Theo ngày': [
-      ['Ngày', 'Lượt đặt', 'Đơn bán hàng', 'Doanh thu đặt sân', 'Doanh thu bán hàng', 'Tổng doanh thu'],
-      ...daily.map((day) => [formatDate(day.date), day.bookingCount, day.orderCount, day.bookingRevenue, day.salesRevenue, day.total]),
-    ],
-    'Theo chi nhánh': [
-      ['Chi nhánh', 'Doanh thu đặt sân', 'Doanh thu bán hàng', 'Tổng doanh thu'],
-      ...branchRows.map((branch) => [branch.name, branch.booking, branch.sales, branch.total]),
-    ],
-    'Sử dụng sân': [
-      ['Chi nhánh', 'Sân', 'Giờ sử dụng', 'Giờ hoạt động', 'Tỷ lệ sử dụng'],
-      ...data.courts.map((court) => [branchName(court.branchId), court.courtName, court.usedHours, court.availableHours,
-        formatPercent(percent(court.usedHours, court.availableHours))]),
-    ],
-    'Khung giờ cao điểm': [
-      ['Khung giờ', 'Lượt đặt', 'Doanh thu'],
-      ...data.peakSlots.map((slot) => [slot.slot, slot.bookingCount, slot.revenue]),
-    ],
-    'Sản phẩm': [
-      ['Sản phẩm', 'Danh mục', 'Số lượng bán', 'Doanh thu', 'Giá vốn ước tính'],
-      ...data.products.map((product) => [product.productName, product.category, product.quantity, product.revenue, product.cost]),
-    ],
-  }, format, `thong-ke-kinh-doanh-${range.from}-${range.to}`);
-
-  const productsTable = (limit: number) => (
-    <DataTable columns={['Sản phẩm', 'Danh mục', 'Số lượng bán', 'Doanh thu']}
-      rows={data.products.slice(0, limit).map((product) => [
-        product.productName, product.category, formatNumber(product.quantity), formatMoney(product.revenue),
-      ])} />
-  );
-  const peakTable = (
-    <DataTable columns={['Khung giờ', 'Lượt đặt', 'Doanh thu']}
-      rows={data.peakSlots.map((slot) => [slot.slot, formatNumber(slot.bookingCount), formatMoney(slot.revenue)])} />
-  );
+    'Tổng hợp theo kỳ': [['Phạm vi', 'Từ ngày', 'Đến ngày', ...financeColumns],
+      [scopeLabel, range.from, range.to, ...financeValues(finance)]],
+    'Doanh thu theo ngày': [['Ngày', 'Đặt sân', 'Bán hàng', 'Tổng doanh thu'],
+      ...daily.map((row) => [row.date, row.bookingRevenue, row.salesRevenue, row.total])],
+    'Đặt sân theo ngày': [['Ngày', 'Số lượt đặt', 'Giờ đặt', 'Doanh thu'],
+      ...daily.filter((row) => row.bookingCount > 0).map((row) => [row.date, row.bookingCount, row.bookedHours, row.bookingRevenue])],
+    'Sản phẩm theo ngày': [['Ngày', 'Danh mục', 'Sản phẩm', 'Đơn vị', 'Số lượng', 'Doanh thu'],
+      ...[...dailyProducts.values()].map((row) => [row.date, row.category, row.productName, row.unit, row.quantity, row.revenue])],
+    'Chi phí vận hành': [['Ngày', 'Loại chi phí', 'Nội dung', 'Số tiền', 'Chi nhánh', 'Ghi chú'],
+      ...data.expenses.map((row) => [row.date, expenseCategories[row.category], row.title, row.amount,
+        branchNames.get(row.branchId) ?? '', row.notes])],
+    ...(compareBranches ? { 'So sánh chi nhánh': [['Chi nhánh', ...financeColumns],
+      ...comparison.map(({ branch, totals }) => [branch.name, ...financeValues(totals)])] } : {}),
+  }, format, 'thong-ke-kinh-doanh-' + range.from + '-' + range.to);
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap justify-end gap-2">
-        <details className="relative">
-          <summary className="border-line bg-surface flex cursor-pointer list-none items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold text-slate-700">
-            <Download className="size-4" /> Xuất báo cáo
-          </summary>
-          <div className="border-line bg-surface absolute right-0 z-10 mt-1 grid min-w-36 rounded-lg border p-1 shadow-md">
-            <button type="button" onClick={() => exportReport('excel')} className="rounded px-3 py-2 text-left text-sm hover:bg-emerald-50">Xuất Excel</button>
-            <button type="button" onClick={() => exportReport('csv')} className="rounded px-3 py-2 text-left text-sm hover:bg-emerald-50">Xuất CSV</button>
-          </div>
-        </details>
-      </div>
+      {(tab === 'overview' || tab === 'revenue') && <div className="flex flex-wrap justify-end gap-2">
+        <Button size="sm" variant="outline" onClick={() => exportReport('excel')}>Xuất Excel</Button>
+        <Button size="sm" variant="outline" onClick={() => exportReport('csv')}>Xuất CSV</Button>
+      </div>}
 
       {tab === 'overview' && <>
-        <Metrics items={[...revenueMetrics, ['Lượt đặt sân hoàn thành', formatNumber(completedBookings)],
-          ['Giờ sử dụng sân', hours(usedHours)], ['Đơn bán hàng', formatNumber(orders)], ['Tỷ lệ sử dụng sân', formatPercent(occupancy)]]} />
-        <DailyChart series={daily} bookingsOnly={false} />
+        <StatisticsMetrics items={[
+          ['Tổng doanh thu', money(finance.revenue)], ['Doanh thu đặt sân', money(finance.bookingRevenue)],
+          ['Doanh thu bán hàng', money(finance.salesRevenue)], ['Lợi nhuận', money(finance.profit)],
+          ['Lượt đặt sân hoàn thành', formatNumber(completed)], ['Số giờ sân đã sử dụng', hours(usedHours)],
+          ['Số đơn bán hàng', formatNumber(orderCount)], ['Tỷ lệ sử dụng sân', formatPercent(usage)],
+        ]} />
+        <StatisticsPanel title="Doanh thu theo thời gian">
+          <div className="h-64 min-w-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={daily} margin={{ top: 10, right: 15, bottom: 5, left: 12 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="date" tickFormatter={(date: string) => formatDate(date).slice(0, 5)} minTickGap={24} />
+                <YAxis width={72} tickFormatter={formatNumber} />
+                <Tooltip formatter={(value) => money(Number(value))} labelFormatter={(date) => formatDate(String(date))} />
+                <Line type="monotone" dataKey="total" name="Tổng doanh thu" stroke="#047857" strokeWidth={2} dot={daily.length === 1} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </StatisticsPanel>
         <div className="grid gap-4 lg:grid-cols-2">
-          <Panel title="Doanh thu theo nguồn"><Bars rows={sourceRows} /></Panel>
-          <Panel title="Tình hình sử dụng sân"><Bars rows={courtRows} /></Panel>
-          <Panel title="Sản phẩm bán chạy">{productsTable(5)}</Panel>
-          <Panel title="Khung giờ cao điểm">{peakTable}</Panel>
+          <StatisticsPanel title="Cơ cấu doanh thu">
+            <Bars rows={[
+              { label: 'Đặt sân', value: percent(finance.bookingRevenue, finance.revenue), detail: money(finance.bookingRevenue) },
+              { label: 'Bán hàng', value: percent(finance.salesRevenue, finance.revenue), detail: money(finance.salesRevenue) },
+            ]} />
+          </StatisticsPanel>
+          <StatisticsPanel title="Tỷ lệ sử dụng sân">
+            <Bars rows={[{ label: 'Giờ sân đã sử dụng', value: usage, detail: formatPercent(usage) }]} />
+          </StatisticsPanel>
+          <StatisticsPanel title="Sân có tỷ lệ sử dụng cao">
+            <StatisticsTable columns={['Sân', 'Chi nhánh', 'Giờ sử dụng', 'Tỷ lệ sử dụng']} rows={bestCourts.map((row, index) => ({
+              key: String(index), cells: [row.courtName, branchNames.get(row.branchId), hours(row.usedHours), formatPercent(row.usage)],
+            }))} />
+          </StatisticsPanel>
+          <StatisticsPanel title="Sản phẩm bán chạy">
+            <StatisticsTable columns={['Sản phẩm', 'Số lượng', 'Doanh thu']} rows={bestProducts.map((row) => ({
+              key: row.key, cells: [row.name, formatNumber(row.quantity), money(row.revenue)],
+            }))} />
+          </StatisticsPanel>
+          <StatisticsPanel title="Khung giờ cao điểm">
+            <StatisticsTable columns={['Khung giờ', 'Lượt đặt', 'Doanh thu']} rows={data.peakSlots.map((row) => ({
+              key: row.slot, cells: [row.slot, formatNumber(row.bookingCount), money(row.revenue)],
+            }))} />
+          </StatisticsPanel>
+          {compareBranches && <StatisticsPanel title="So sánh chi nhánh">
+            <StatisticsTable columns={['Chi nhánh', 'Đặt sân', 'Bán hàng', 'Tổng doanh thu']} rows={comparison.map(({ branch, totals }) => ({
+              key: branch.id, cells: [branch.name, money(totals.bookingRevenue), money(totals.salesRevenue), money(totals.revenue)],
+            }))} />
+          </StatisticsPanel>}
         </div>
+        {financeNotes}
       </>}
 
       {tab === 'bookings' && <>
-        <Metrics items={[
-          ['Số lượt đặt sân', formatNumber(bookings)], ['Số lượt hoàn thành', formatNumber(completedBookings)],
-          ['Số lượt hủy', formatNumber(cancelled)], ['Tổng giờ đã đặt', hours(bookedHours)],
-          ['Doanh thu đặt sân', formatMoney(bookingRevenue)], ['Tỷ lệ sử dụng sân', formatPercent(occupancy)],
+        <StatisticsMetrics items={[
+          ['Tổng số lượt đặt sân', formatNumber(bookingCount)], ['Lượt hoàn thành', formatNumber(completed)],
+          ['Lượt đã hủy', formatNumber(sum(data.bookingDays, (row) => row.cancelledCount))],
+          ['Số giờ đã đặt', hours(bookedHours)], ['Doanh thu đặt sân', money(finance.bookingRevenue)],
+          ['Tỷ lệ sử dụng sân', formatPercent(usage)],
         ]} />
-        <DailyChart series={daily} bookingsOnly />
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Panel title="Tỷ lệ sử dụng từng sân">
-            <Bars rows={courtRows} />
-            <p className="mt-3 text-xs text-slate-600">Tỷ lệ tính theo giờ sân đã sử dụng trên giờ mở cửa đã qua, dựa vào lịch mở cửa đang cấu hình.</p>
-          </Panel>
-          <Panel title="Khung giờ được đặt nhiều nhất">{peakTable}</Panel>
-        </div>
+        <StatisticsPanel title="Đặt sân theo ngày">
+          <StatisticsTable columns={['Ngày', 'Số lượt đặt sân', 'Số giờ đặt', 'Doanh thu', 'Thao tác']}
+            rows={daily.filter((row) => row.bookingCount > 0).map((row) => ({ key: row.date,
+              cells: [formatDate(row.date), formatNumber(row.bookingCount), hours(row.bookedHours), money(row.bookingRevenue),
+                <Button size="sm" variant="outline" aria-label={'Xem chi tiết đặt sân ngày ' + formatDate(row.date)}
+                  onClick={() => setDetail({ type: 'booking', date: row.date })}>Xem chi tiết</Button>] }))} />
+        </StatisticsPanel>
       </>}
 
       {tab === 'sales' && <>
-        <Metrics items={[
-          ['Số đơn bán hàng', formatNumber(orders)], ['Doanh thu bán hàng', formatMoney(salesRevenue)],
-          ['Số sản phẩm đã bán', formatNumber(units)], ['Giá trị đơn trung bình', orders ? formatMoney(salesRevenue / orders) : '—'],
+        <StatisticsMetrics items={[
+          ['Số đơn bán hàng', formatNumber(orderCount)], ['Doanh thu bán hàng', money(finance.salesRevenue)],
+          ['Số lượng sản phẩm bán ra', formatNumber(totalProductQuantity)],
+          ['Giá trị đơn hàng trung bình', money(orderCount ? finance.salesRevenue / orderCount : 0)],
         ]} />
-        {hasPermission(PERMISSIONS.SALES_VIEW) && (
-          <Link to={orderBranch ? `${paths.posOrders}?branchId=${orderBranch}` : paths.posOrders} className="inline-flex font-semibold text-emerald-800 underline">
-            Xem chi tiết đơn bán hàng
-          </Link>
-        )}
-        <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-          <Panel title="Sản phẩm bán chạy">{productsTable(10)}</Panel>
-          <Panel title="Doanh thu theo danh mục"><Bars rows={categoryRows} /></Panel>
-        </div>
+        <StatisticsPanel title="Bán hàng theo ngày và sản phẩm">
+          <p className="mb-3 text-sm text-slate-600">Doanh thu theo sản phẩm tính từ số lượng và đơn giá. KPI doanh thu lấy số tiền POS thực thu sau hoàn tiền.</p>
+          <StatisticsTable columns={['Ngày', 'Danh mục', 'Sản phẩm', 'Đơn vị', 'Số lượng bán', 'Doanh thu', 'Thao tác']}
+            rows={[...dailyProducts].map(([key, row]) => ({ key, cells: [formatDate(row.date), row.category, row.productName, row.unit,
+              formatNumber(row.quantity), money(row.revenue),
+              <Button size="sm" variant="outline" aria-label={'Xem chi tiết bán ' + row.productName + ' ngày ' + formatDate(row.date)}
+                onClick={() => setDetail({ type: 'sales', date: row.date, productId: row.productId, name: row.productName })}>Xem chi tiết</Button>] }))} />
+        </StatisticsPanel>
       </>}
+
+      {tab === 'expenses' && <ExpensePanel expenses={data.expenses} branches={branches} branchId={branchId} range={range} />}
 
       {tab === 'revenue' && <>
-        <Metrics items={[...revenueMetrics, ['Giá vốn hàng bán ước tính', cost === null ? '—' : formatMoney(cost)],
-          ['Biên lợi nhuận bán hàng', formatPercent(margin)]]} />
-        <Panel title="Doanh thu theo nguồn">
-          <Bars rows={sourceRows} />
-          <p className="mt-4 text-sm text-slate-600">
-            {cost === null
-              ? 'Chưa đủ dữ liệu giá vốn hoặc chi tiết hoàn trả để tính lợi nhuận bán hàng.'
-              : 'Giá vốn ước tính theo giá nhập gần nhất đã ghi sổ trước khi bán.'}
-            {' '}Doanh thu đặt sân được ghi riêng. Báo cáo chưa có dữ liệu chi phí vận hành sân để tính lợi nhuận ròng.
-          </p>
-        </Panel>
+        <StatisticsMetrics items={financeColumns.map((label, index) => [label, financeCells(finance)[index]])} />
+        <StatisticsPanel title="Doanh thu theo ngày">
+          <StatisticsTable columns={['Ngày', 'Doanh thu đặt sân', 'Doanh thu bán hàng', 'Tổng doanh thu']}
+            rows={daily.map((row) => ({ key: row.date, cells: [formatDate(row.date), money(row.bookingRevenue), money(row.salesRevenue), money(row.total)] }))} />
+        </StatisticsPanel>
+        <StatisticsPanel title="Tổng hợp tài chính theo kỳ">
+          <StatisticsTable columns={['Chỉ tiêu', 'Giá trị']} rows={financeCells(finance).map((value, index) => ({
+            key: financeColumns[index], cells: [financeColumns[index], value],
+          }))} />
+          {financeNotes}
+        </StatisticsPanel>
+        {compareBranches && <StatisticsPanel title="So sánh hiệu quả kinh doanh theo chi nhánh">
+          <StatisticsTable columns={['Chi nhánh', 'Doanh thu', ...financeColumns.slice(3)]}
+            rows={comparison.map(({ branch, totals }) => ({ key: branch.id,
+              cells: [branch.name, money(totals.revenue), ...financeCells(totals).slice(3)] }))} />
+        </StatisticsPanel>}
       </>}
 
-      {branches.length > 1 && (tab === 'overview' || tab === 'revenue') && (
-        <Panel title="So sánh chi nhánh">
-          <DataTable columns={['Chi nhánh', 'Doanh thu đặt sân', 'Doanh thu bán hàng', 'Tổng doanh thu']}
-            rows={branchRows.map((row) => [row.name, formatMoney(row.booking), formatMoney(row.sales), formatMoney(row.total)])} />
-        </Panel>
-      )}
-
-      <details className={panel}>
-        <summary className="cursor-pointer font-bold text-slate-900">Chi tiết theo ngày</summary>
-        <div className="mt-3">
-          <DataTable columns={['Ngày', 'Lượt đặt', 'Đơn bán hàng', 'Doanh thu đặt sân', 'Doanh thu bán hàng', 'Tổng doanh thu']}
-            rows={daily.map((day) => [formatDate(day.date), formatNumber(day.bookingCount), formatNumber(day.orderCount),
-              formatMoney(day.bookingRevenue), formatMoney(day.salesRevenue), formatMoney(day.total)])} />
-        </div>
-      </details>
+      {detail && <DetailDialog detail={detail} branchId={branchId} onClose={() => setDetail(null)} />}
     </div>
   );
 };

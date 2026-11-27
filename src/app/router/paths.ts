@@ -29,6 +29,7 @@ export const paths = {
   myBooking: '/my-booking',
   myProfile: '/my-profile',
   momoReturn: '/payments/momo/return',
+  sePayPayment: (bookingId: string = ':bookingId') => `/payments/sepay/${bookingId}`,
   customers: '/customers',
   customerDetail: (id: string = ':id') => `/customers/${id}`,
   customerCreate: '/customers/new',

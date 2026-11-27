@@ -45,6 +45,7 @@ export interface BookingPaymentStatus {
   expiresAt?: string | null;
   serverTime?: string | null;
   remainingSeconds?: number | null;
+  provider?: string | null;
 }
 
 export const paymentApi = {

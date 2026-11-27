@@ -1,5 +1,7 @@
 import { CalendarDays, Clock3, CreditCard, MapPin, ScanEye, UsersRound } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
+import { paths } from '@/app/router/paths';
 import { Button } from '@/components/ui/button';
 import { BookingStatusBadge } from '@/features/court-status-board/components/BookingStatusBadge';
 import { getBookingStatusConfig } from '../utils/booking-status.utils';
@@ -112,6 +114,11 @@ export const MyBookingCard = ({
             </p>
           </div>
           <div className="flex flex-col gap-2 min-[420px]:flex-row">
+            {booking.paymentMethod.toUpperCase() === 'SEPAY' && (
+              <Button asChild variant="outline" className="min-h-11">
+                <Link to={paths.sePayPayment(booking.bookingId)}>{t('booking.payment.viewStatus')}</Link>
+              </Button>
+            )}
             {onCreatePlayerMatch && (
               <Button
                 type="button"

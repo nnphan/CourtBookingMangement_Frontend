@@ -41,8 +41,9 @@ export const useAuthStore = create<AuthState>()(
       },
 
       isAuthenticated: () => {
-        const token = tokenStorage.read()?.accessToken ?? get().accessToken ?? null;
-        return !!token && !isExpired(token);
+        const tokens = tokenStorage.read();
+        const token = tokens?.accessToken ?? get().accessToken;
+        return !!token && (!isExpired(token) || Boolean(tokens?.refreshToken));
       },
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
     }),

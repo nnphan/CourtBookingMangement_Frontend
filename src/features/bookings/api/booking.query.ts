@@ -55,18 +55,20 @@ export const useCreateBooking = (options?: UseCreateBookingOptions) => {
         tasks.push(queryClient.invalidateQueries({ queryKey: BOOKING_QUERY_KEYS.all }));
       }
       await Promise.all(tasks);
-      toast.success(
-        i18n.t('booking.multiCourt.success', {
-          defaultValue: 'Đặt {{count}} sân thành công.',
-          count: data.details.length,
-        }),
-        data.bookingCode
-          ? i18n.t('booking.success.bookingCode', {
-              defaultValue: 'Mã booking: {{code}}',
-              code: data.bookingCode,
-            })
-          : undefined,
-      );
+      if (data.paymentMethod.toUpperCase() !== 'SEPAY') {
+        toast.success(
+          i18n.t('booking.multiCourt.success', {
+            defaultValue: 'Đặt {{count}} sân thành công.',
+            count: data.details.length,
+          }),
+          data.bookingCode
+            ? i18n.t('booking.success.bookingCode', {
+                defaultValue: 'Mã booking: {{code}}',
+                code: data.bookingCode,
+              })
+            : undefined,
+        );
+      }
       options?.onSuccess?.(data);
     },
     onError: async (err: unknown, { payload }) => {

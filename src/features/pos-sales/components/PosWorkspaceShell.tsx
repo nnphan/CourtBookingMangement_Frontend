@@ -2,27 +2,27 @@ import { useEffect, useRef } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { Link } from 'react-router';
 import { BranchSelector } from '@/components/branches/BranchSelector';
+import { PageHeader } from '@/components/management';
 
 interface PosWorkspaceHeaderProps {
   title: string;
+  description: string;
+  icon: LucideIcon;
   branchId: string;
   onBranchChange: (branchId: string) => void;
   branchDisabled?: boolean;
-  compact?: boolean;
 }
 
 export const PosWorkspaceHeader = ({
   title,
+  description,
+  icon,
   branchId,
   onBranchChange,
   branchDisabled = false,
-  compact = false,
 }: PosWorkspaceHeaderProps) => (
-  <div className={`border-line bg-surface flex flex-col justify-between rounded-xl border sm:flex-row sm:items-end ${compact ? 'gap-3 px-4 py-3 lg:px-5' : 'gap-4 p-4 lg:px-6'}`}>
-    <div>
-      <h1 className={`mt-1 text-2xl font-black text-slate-950 ${compact ? 'lg:text-[26px]' : 'sm:text-3xl'}`}>{title}</h1>
-    </div>
-    <div className="w-full sm:w-80">
+  <PageHeader title={title} description={description} icon={icon} actions={
+    <div className="w-full sm:max-w-80">
       <p className="mb-1.5 block text-sm font-semibold text-slate-700">Chi nhánh đang thao tác</p>
       <BranchSelector
         value={branchId}
@@ -31,7 +31,7 @@ export const PosWorkspaceHeader = ({
         aria-label="Chi nhánh đang thao tác"
       />
     </div>
-  </div>
+  } />
 );
 
 export interface PosWorkspaceTab {
