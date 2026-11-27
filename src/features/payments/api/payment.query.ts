@@ -40,6 +40,7 @@ export const useBookingPaymentStatus = (
   bookingId: string,
   holdToken: string | null,
   enabled: boolean,
+  refetchInBackground = false,
 ) =>
   useQuery({
     queryKey: ['payments', 'booking-status', bookingId],
@@ -50,5 +51,6 @@ export const useBookingPaymentStatus = (
         || (query.state.error && 'status' in query.state.error && [401, 403, 404].includes(Number(query.state.error.status)))
         ? false
         : 3000,
+    refetchIntervalInBackground: refetchInBackground,
     retry: 1,
   });

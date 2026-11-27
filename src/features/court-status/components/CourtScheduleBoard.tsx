@@ -14,6 +14,7 @@ import { getCourtStatusInfo } from '../types/court-status.types';
 import { CourtStatusTimelineHeader } from '../shared/components/CourtStatusTimelineHeader';
 import { CourtStatusCourtNameCell } from '../shared/components/CourtStatusCourtNameCell';
 import { CourtStatusBookingFrame } from '../shared/components/CourtStatusBookingFrame';
+import { CUSTOMER_COURT_STATUS } from '@/features/customer-court-status/types/customer-status';
 import { useSchedulerDimensions } from '@/features/customer-court-status/hooks/useSchedulerDimensions';
 import { getStatusConfig } from '@/features/court-status-board/constants/booking-status';
 import { BookingContextMenu } from '@/features/court-status-board/components/BookingContextMenu';
@@ -375,13 +376,11 @@ export const CourtScheduleBoard: React.FC<CourtScheduleBoardProps> = memo(
                         }
 
                         if (realtime) {
-                          const label = {
-                            HOLDING: 'Đang giữ sân...',
-                            RELEASING: 'Đang bỏ chọn...',
-                            HELD_BY_ME: 'Sân đang được chọn',
-                            HELD_BY_OTHER: 'Đang được giữ',
-                          }[realtime];
                           const owned = realtime === 'HELD_BY_ME';
+                          const status = realtime === 'HELD_BY_OTHER'
+                            ? CUSTOMER_COURT_STATUS.HELD
+                            : CUSTOMER_COURT_STATUS.SELECTED;
+                          const label = realtime === 'RELEASING' ? 'Đang bỏ chọn...' : status.name;
                           return (
                             <button
                               key={hour}
@@ -391,17 +390,15 @@ export const CourtScheduleBoard: React.FC<CourtScheduleBoardProps> = memo(
                               aria-disabled={!owned || !selectionReady}
                               aria-selected={owned}
                               aria-label={`${court.name} ${hour}: ${label}`}
-                              style={{ width: hourWidth }}
+                              style={{ width: hourWidth, backgroundColor: status.color, color: status.textColor }}
                               onClick={() => onToggleSlot(court, hour)}
                               className={cn(
                                 'flex h-full shrink-0 items-center justify-center gap-1 border-r px-1 text-xs font-semibold focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500',
-                                owned ? 'bg-emerald-100 text-emerald-900' : 'bg-slate-200 text-slate-700',
                               )}
                             >
                               {realtime === 'HOLDING' || realtime === 'RELEASING'
                                 ? <Loader2 aria-hidden="true" className="size-3 shrink-0 animate-spin" />
                                 : null}
-                              {label}
                             </button>
                           );
                         }
@@ -536,6 +533,10 @@ export const CourtScheduleBoard: React.FC<CourtScheduleBoardProps> = memo(
                           }
 
                           // Customer View: Sanitized (No PII)
+                          const isHeld = b.bookingStatus?.toUpperCase() === 'PENDING_PAYMENT';
+                          const status = isHeld ? CUSTOMER_COURT_STATUS.HELD : CUSTOMER_COURT_STATUS.BOOKED;
+                          const label = isHeld ? status.name : b.title || status.name;
+
                           return (
                             <div
                               key={b.id}
@@ -546,14 +547,14 @@ export const CourtScheduleBoard: React.FC<CourtScheduleBoardProps> = memo(
                                 left={0}
                                 width={width}
                                 height={42}
-                                backgroundColor={'#FF6666'}
-                                color="#ffffff"
-                                ariaLabel={`Khung giờ đã được đặt: ${b.startTime} - ${b.endTime}`}
-                                className="cursor-default text-white font-medium shadow-xs"
+                                backgroundColor={status.color}
+                                color={status.textColor}
+                                ariaLabel={`${label}: ${b.startTime} - ${b.endTime}`}
+                                className="cursor-default font-medium shadow-xs"
                               >
                                 <div className="flex flex-col items-center justify-center truncate text-[11px] leading-tight">
-                                  <span className="font-semibold">{b.title || 'Đã được đặt'}</span>
-                                  <span className="text-[10px] text-slate-50">
+                                  {!isHeld && <span className="font-semibold">{label}</span>}
+                                  <span className="text-[10px] opacity-80">
                                     {b.startTime.slice(0, 5)} - {b.endTime.slice(0, 5)}
                                   </span>
                                 </div>

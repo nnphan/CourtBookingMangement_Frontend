@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, CheckCircle2, Copy, QrCode, RefreshCw } from 'lucide-react';
 import { Link, useParams } from 'react-router';
@@ -10,29 +10,22 @@ import { BOOKING_QUERY_KEYS } from '@/features/bookings/api/booking.query';
 import { formatCurrency } from '@/features/bookings/utils/booking.mapper';
 import { useBookingPaymentStatus, useCreateSePayPayment } from '../api/payment.query';
 
-const statusMessages: Record<string, string> = {
-  EXPIRED: 'booking.payment.expired',
-  PAYMENT_REVIEW: 'booking.payment.review',
-  UNDERPAID: 'booking.payment.underpaid',
-  OVERPAID: 'booking.payment.overpaid',
-  REFUNDED: 'booking.payment.refunded',
-};
+import { useSePayBookingAlert } from '../api/useSePayBookingAlert';
 
 const SePayPaymentPage = () => {
   const { t } = useTranslation();
   const { bookingId = '' } = useParams();
   const authenticated = useAuthStore((state) => state.isAuthenticated());
   const holdToken = sessionStorage.getItem('booking-hold:' + bookingId);
-  const query = useBookingPaymentStatus(bookingId, holdToken, Boolean(holdToken) || authenticated);
+  const query = useBookingPaymentStatus(bookingId, holdToken, Boolean(holdToken) || authenticated, true);
   const create = useCreateSePayPayment();
   const cache = useQueryClient();
   const [now, setNow] = useState(Date.now);
   const [copyState, setCopyState] = useState<'copied' | 'failed' | null>(null);
   const payment = query.data?.provider?.toUpperCase() === 'SEPAY' ? query.data : undefined;
   const status = payment?.status.toUpperCase();
-  const paid = status === 'PAID';
-  const confirmed = paid && ['CONFIRMED', 'CHECKED_IN', 'COMPLETED'].includes(payment?.bookingStatus?.toUpperCase() ?? '');
-  const pending = status === 'PENDING' || status === 'PROCESSING';
+  const { confirmed, issueMessage } = useSePayBookingAlert(payment);
+  const pending = !issueMessage && (status === 'PENDING' || status === 'PROCESSING');
   const elapsed = Math.max(0, Math.floor((now - query.dataUpdatedAt) / 1000));
   const remaining = Math.max(0, (payment?.remainingSeconds ?? 0) - elapsed);
   const missingAttempt = query.isError && !query.data && 'status' in query.error && query.error.status === 404;
@@ -102,7 +95,7 @@ const SePayPaymentPage = () => {
           <p className="rounded-lg bg-emerald-50 p-3 font-semibold text-emerald-900">
             {t('booking.success.total')} {formatCurrency(payment.amount)}
           </p>
-          {paid && <p role="status">{t(confirmed ? 'booking.payment.confirmed' : 'booking.payment.needsAttention')}</p>}
+          {confirmed && <p role="status">{t('booking.payment.confirmed')}</p>}
           {pending && remaining > 0 && <>
             <p role="status">{t('booking.payment.awaitingPayment')}</p>
             <p className="text-sm text-slate-600">
@@ -128,9 +121,12 @@ const SePayPaymentPage = () => {
             {copyState === 'failed' && <p role="alert">{t('booking.payment.copyFailed')}</p>}
           </>}
           {pending && remaining === 0 && <p role="status">{t('booking.payment.awaitingFinalStatus')}</p>}
-          {!pending && !paid && status && (
+          {issueMessage && (
             <div className="space-y-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
-              <p role="status">{t(statusMessages[status] ?? 'booking.payment.needsAttention')}</p>
+              <div role="alert">
+                <p className="font-semibold">{t('booking.payment.bookingNotConfirmed')}</p>
+                <p>{t(issueMessage)}</p>
+              </div>
               {(payment.receivedAmount ?? 0) > 0 && <p>{t('booking.payment.received', { amount: formatCurrency(payment.receivedAmount ?? 0) })}</p>}
             </div>
           )}

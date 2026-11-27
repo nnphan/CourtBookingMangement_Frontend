@@ -1,4 +1,4 @@
-export type CustomerCourtStatusType = 'AVAILABLE' | 'BOOKED' | 'LOCKED' | 'EVENT' | 'PAST';
+export type CustomerCourtStatusType = 'AVAILABLE' | 'BOOKED' | 'LOCKED' | 'EVENT' | 'PAST' | 'SELECTED' | 'HELD';
 
 export enum SchedulerSlotState {
   AVAILABLE = 'AVAILABLE',
@@ -34,6 +34,22 @@ export const CUSTOMER_COURT_STATUS: Record<CustomerCourtStatusType, CustomerCour
     textColor: '#FFFFFF',
     borderColor: '#EF4444',
     tooltip: 'Sân đã có người đặt',
+  },
+  SELECTED: {
+    id: 'SELECTED',
+    name: 'Đang chọn',
+    color: '#BFDBFE',
+    textColor: '#1E3A8A',
+    borderColor: '#60A5FA',
+    tooltip: 'Khung giờ bạn đang chọn',
+  },
+  HELD: {
+    id: 'HELD',
+    name: 'Đang được giữ',
+    color: '#FDE68A',
+    textColor: '#78350F',
+    borderColor: '#F59E0B',
+    tooltip: 'Khung giờ đang được giữ tạm thời',
   },
   LOCKED: {
     id: 'LOCKED',

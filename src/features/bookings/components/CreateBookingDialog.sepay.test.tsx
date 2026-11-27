@@ -1,5 +1,5 @@
-﻿// @vitest-environment jsdom
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+// @vitest-environment jsdom
+import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -44,6 +44,7 @@ const pendingPayment: BookingPaymentStatus = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  sessionStorage.clear();
   const serverTime = new Date().toISOString();
   const expiresAt = new Date(Date.now() + 300_000).toISOString();
   vi.mocked(bookingApi.createBooking).mockResolvedValue({
@@ -63,7 +64,10 @@ beforeEach(() => {
   vi.mocked(paymentApi.getBookingPaymentStatus).mockResolvedValue(pendingPayment);
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  focusManager.setFocused(undefined);
+});
 
 async function openPayment() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -110,14 +114,33 @@ describe('SePay booking confirmation', () => {
     expect(toast.success).toHaveBeenCalledTimes(1);
   });
 
+  it('notifies automatically when SePay confirms payment while the tab is unfocused', async () => {
+    await openPayment();
+    act(() => focusManager.setFocused(false));
+    vi.mocked(paymentApi.getBookingPaymentStatus).mockResolvedValue({
+      ...pendingPayment, status: 'PAID', bookingStatus: 'confirmed',
+    });
+
+    await screen.findByRole('heading', { name: 'booking.multiCourt.success' }, { timeout: 4500 });
+    expect(toast.success).toHaveBeenCalledTimes(1);
+  });
+
   it('hides the QR and never announces success for an expired hold', async () => {
     const client = await openPayment();
 
-    await refetchStatus(client, { ...pendingPayment, status: 'EXPIRED', bookingStatus: 'expired' });
+    await refetchStatus(client, { ...pendingPayment, bookingStatus: 'expired' });
 
     await screen.findByRole('heading', { name: 'booking.payment.holdExpired' });
     expect(screen.queryByRole('img')).toBeNull();
     expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith('booking.payment.bookingNotConfirmed', 'booking.payment.expired');
+
+    await refetchStatus(client, { ...pendingPayment, status: 'EXPIRED', bookingStatus: 'expired' });
+    expect(toast.error).toHaveBeenCalledTimes(1);
+
+    await refetchStatus(client, { ...pendingPayment, status: 'PAYMENT_REVIEW', bookingStatus: 'expired' });
+    await screen.findByText('booking.payment.review');
+    expect(toast.error).toHaveBeenLastCalledWith('booking.payment.bookingNotConfirmed', 'booking.payment.review');
   });
 });
 

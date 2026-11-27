@@ -722,6 +722,8 @@
       "received": "Số tiền đã nhận: {{amount}}",
       "timeRemaining": "Thời gian giữ sân còn lại",
       "confirmed": "Thanh toán đã được xác nhận",
+      "bookingNotConfirmed": "Đặt sân chưa được xác nhận",
+      "failed": "Thanh toán thất bại. Vui lòng kiểm tra trạng thái đặt sân trước khi thử lại.",
       "needsAttention": "Giao dịch cần được xử lý",
       "starting": "Đang tạo mã QR...",
       "pay": "Thanh toán",

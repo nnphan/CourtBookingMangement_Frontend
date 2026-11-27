@@ -722,6 +722,8 @@
       "received": "Amount received: {{amount}}",
       "timeRemaining": "Hold time remaining",
       "confirmed": "Payment confirmed",
+      "bookingNotConfirmed": "Booking not confirmed",
+      "failed": "The payment failed. Check your booking status before trying again.",
       "needsAttention": "Transaction needs attention",
       "starting": "Creating payment QR...",
       "pay": "Create payment QR",

@@ -27,7 +27,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { TextInput } from '@/components/ui/text-input';
 import dayjs from '@/lib/dayjs';
-import { toast } from '@/lib/toast';
+import { useSePayBookingAlert } from '@/features/payments/api/useSePayBookingAlert';
 import { paths } from '@/app/router/paths';
 import { Link } from 'react-router';
 import type {
@@ -137,29 +137,28 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
 
     const { mutateAsync, isPending } = useCreateBooking();
     const createSePayPayment = useCreateSePayPayment();
+    const isSePayBooking = result?.paymentMethod.toUpperCase() === 'SEPAY';
     const paymentStatus = useBookingPaymentStatus(
       result?.bookingId ?? '',
       result?.holdToken ?? null,
       isOpen && Boolean(paymentId),
+      isSePayBooking,
     );
     const currentPaymentStatus = paymentStatus.data?.status.toUpperCase();
-    const isSePayBooking = result?.paymentMethod.toUpperCase() === 'SEPAY';
-    const bookingConfirmed = isSePayBooking && currentPaymentStatus === 'PAID' &&
-      paymentStatus.data?.bookingStatus?.toUpperCase() === 'CONFIRMED';
+    const { confirmed: bookingConfirmed, issueMessage } = useSePayBookingAlert(
+      isOpen && isSePayBooking && paymentId ? paymentStatus.data : undefined,
+      result?.bookingCode,
+    );
 
     useEffect(() => {
       if (!isOpen || !result || !bookingConfirmed || announcedBookingRef.current === result.bookingId) return;
 
       announcedBookingRef.current = result.bookingId;
-      toast.success(
-        t('booking.multiCourt.success', { count: result.details.length }),
-        t('booking.success.bookingCode', { code: result.bookingCode }),
-      );
       void queryClient.invalidateQueries({ queryKey: BOOKING_QUERY_KEYS.all });
       void queryClient.invalidateQueries({
         queryKey: [...BOOKING_QUERY_KEYS.courtStatus, result.branchId],
       });
-    }, [bookingConfirmed, isOpen, queryClient, result, t]);
+    }, [bookingConfirmed, isOpen, queryClient, result]);
 
     const schema = useMemo(() => buildCreateBookingFormSchema(requireContact), [requireContact]);
     const {
@@ -374,12 +373,12 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
     const paymentCode = paymentStatus.data?.paymentCode ?? sePayPayment?.paymentCode;
     const qrUrl = paymentStatus.data?.qrCodeUrl ?? sePayPayment?.qrUrl;
     const transferIsOpen =
-      !currentPaymentStatus || ['PENDING', 'PROCESSING'].includes(currentPaymentStatus);
-    const holdTimedOut = currentPaymentStatus === 'EXPIRED' || remainingSeconds === 0;
+      !issueMessage && (!currentPaymentStatus || ['PENDING', 'PROCESSING'].includes(currentPaymentStatus));
+    const holdTimedOut = issueMessage === 'booking.payment.expired' || remainingSeconds === 0;
     const awaitingTransfer = transferIsOpen && !holdTimedOut;
     const paymentHoldTitle = awaitingTransfer
       ? t('booking.payment.holdCreated')
-      : transferIsOpen || currentPaymentStatus === 'EXPIRED'
+      : transferIsOpen || issueMessage === 'booking.payment.expired'
         ? t('booking.payment.holdExpired')
         : t('booking.payment.needsAttention');
 
@@ -470,10 +469,10 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                 <section className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="font-semibold text-amber-950">
-                      {currentPaymentStatus === 'PAID'
-                        ? t('booking.payment.confirmed', 'Thanh toán đã được xác nhận')
+                      {issueMessage
+                        ? t('booking.payment.bookingNotConfirmed')
                         : awaitingTransfer
-                          ? t('booking.payment.timeRemaining', 'Thời gian giữ sân còn lại')
+                          ? t('booking.payment.timeRemaining')
                           : paymentHoldTitle}
                     </span>
                     {remainingSeconds !== null && remainingSeconds > 0 && transferIsOpen && (
@@ -488,44 +487,9 @@ export const CreateBookingDialog: React.FC<CreateBookingDialogProps> = memo(
                       {paymentError}
                     </p>
                   )}
-                  {currentPaymentStatus === 'PAYMENT_REVIEW' && (
-                    <p role="status" className="text-xs text-amber-900">
-                      {t(
-                        'booking.payment.review',
-                        'Giao dịch đang được kiểm tra. Không thanh toán lại.',
-                      )}
-                    </p>
-                  )}
-                  {currentPaymentStatus === 'FAILED' && (
-                    <p role="status" className="text-xs text-amber-900">
-                      {t(
-                        'booking.payment.expired',
-                        'Thời gian giữ sân đã hết. Đặt sân chưa được xác nhận.',
-                      )}
-                    </p>
-                  )}
-                  {currentPaymentStatus === 'UNDERPAID' && (
-                    <p role="status" className="text-xs text-amber-900">
-                      {t(
-                        'booking.payment.underpaid',
-                        'Số tiền nhận được chưa đủ. Vui lòng liên hệ chi nhánh để được hỗ trợ.',
-                      )}
-                    </p>
-                  )}
-                  {currentPaymentStatus === 'OVERPAID' && (
-                    <p role="status" className="text-xs text-amber-900">
-                      {t(
-                        'booking.payment.overpaid',
-                        'Số tiền nhận được cao hơn yêu cầu. Giao dịch cần được chi nhánh kiểm tra.',
-                      )}
-                    </p>
-                  )}
-                  {currentPaymentStatus === 'EXPIRED' && (
-                    <p role="status" className="text-xs text-amber-900">
-                      {t(
-                        'booking.payment.expired',
-                        'Thời gian giữ sân đã hết. Đặt sân chưa được xác nhận.',
-                      )}
+                  {issueMessage && (
+                    <p role="alert" className="text-xs text-amber-900">
+                      {t(issueMessage)}
                     </p>
                   )}
                   {transferIsOpen && holdTimedOut && (
